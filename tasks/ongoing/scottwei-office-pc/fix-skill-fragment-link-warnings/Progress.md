@@ -12,9 +12,9 @@ Updated: 2026-09-15
 
 ## Current state
 
-The task is claimed under `scottwei-office-pc`, and the claim is published on
-`origin/main`. The next action is to replace the four fragment-only targets
-with explicit same-file targets and rerun the editor diagnostic.
+All four fragment-only targets now use explicit same-file paths, and every
+agent-verifiable acceptance criterion passes. The next action is to publish
+the implementation-complete milestone while the task remains ongoing.
 
 ## Decisions
 
@@ -42,6 +42,13 @@ with explicit same-file targets and rerun the editor diagnostic.
 - The task-position scan found this task only under the current identity lane.
 - The claim commit `db6838b2698ec64b45254d7102af2c619d182916` is reachable
   from the refreshed `origin/main`.
+- The editor diagnostic reported no errors after all four targets changed to
+  `./SKILL.md#<heading-fragment>`.
+- A focused source scan found the four links and both intended headings.
+- `pnpm check:skills` passed and discovered all three repository skills.
+- `pnpm check` passed, including 36 repoledger tests, 8 release-helper tests,
+  package validation, smoke validation, and the ledger check.
+- `git diff --check -- skills/repository-task-ledger/SKILL.md` passed.
 
 ## Blockers
 

@@ -305,7 +305,7 @@ Before substantive implementation:
    git mv tasks/backlog/<task-name> tasks/ongoing/<identity>/<task-name>
    ```
 
-4. Apply the post-move checks in [Verify Every Task Move](#verify-every-task-move).
+4. Apply the post-move checks in [Verify Every Task Move](./SKILL.md#verify-every-task-move).
 5. Create `Progress.md` from [the progress template](./assets/Progress.md).
 6. Record the current state and the next concrete action.
 7. Commit only the claim and its task artifacts, then publish and verify the
@@ -418,7 +418,7 @@ Before handing work to another identity:
 2. Ensure the destination identity is already registered on the shared primary
    branch.
 3. Move the whole task folder to `tasks/ongoing/<new-identity>/<task-name>`.
-4. Apply the post-move checks in [Verify Every Task Move](#verify-every-task-move).
+4. Apply the post-move checks in [Verify Every Task Move](./SKILL.md#verify-every-task-move).
 5. Commit and publish the handoff before either identity continues.
 
 ## Complete Or Abandon Work
@@ -433,13 +433,13 @@ To complete work:
    still under `tasks/ongoing/<identity>/`, then verify it on the refreshed
    remote shared primary branch.
 4. If manual user acceptance is required, follow
-   [Run User Acceptance When Required](#run-user-acceptance-when-required) and
+   [Run User Acceptance When Required](./SKILL.md#run-user-acceptance-when-required) and
    leave the task ongoing until the user reports acceptance.
 5. Check every remaining acceptance criterion and record the actual result.
    Set the outcome to `Completed` only after all required acceptance passes.
 6. Mark archive publication as the final task checklist action, move the whole
    task to `tasks/archived/<task-name>`, and apply the post-move checks in
-   [Verify Every Task Move](#verify-every-task-move).
+   [Verify Every Task Move](./SKILL.md#verify-every-task-move).
 7. Commit the archive artifacts separately from implementation completion,
    publish through the normal shared-primary-branch integration path, and
    verify the remote archive state.

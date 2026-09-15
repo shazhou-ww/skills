@@ -27,10 +27,10 @@ resolver is interpreting targets such as `#verify-every-task-move` as paths.
 
 ## Acceptance criteria
 
-- [ ] Each affected link still targets its intended heading in the same skill
+- [x] Each affected link still targets its intended heading in the same skill
       document.
-- [ ] The skill document has no nonexistent-file diagnostics for those links.
-- [ ] Repository and skill checks pass after the change.
+- [x] The skill document has no nonexistent-file diagnostics for those links.
+- [x] Repository and skill checks pass after the change.
 
 ## Constraints
 
