@@ -4,7 +4,7 @@ Updated: 2026-09-15
 
 ## Checklist
 
-- [ ] Publish the claim to the shared primary branch.
+- [x] Publish the claim to the shared primary branch.
 - [ ] Commit and publish substantive work at meaningful checkpoints.
 - [ ] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented user acceptance, if required (not required).
@@ -12,9 +12,9 @@ Updated: 2026-09-15
 
 ## Current state
 
-The task is claimed locally under `scottwei-office-pc`. The next action is to
-publish the claim, then replace the four fragment-only targets with explicit
-same-file targets and rerun the editor diagnostic.
+The task is claimed under `scottwei-office-pc`, and the claim is published on
+`origin/main`. The next action is to replace the four fragment-only targets
+with explicit same-file targets and rerun the editor diagnostic.
 
 ## Decisions
 
@@ -29,7 +29,7 @@ same-file targets and rerun the editor diagnostic.
 
 | Milestone | Evidence | Status |
 | --- | --- | --- |
-| Claim | Pending. | Pending |
+| Claim | `origin/main` commit `db6838b2698ec64b45254d7102af2c619d182916`. | Published |
 | Implementation complete | Pending. | Pending |
 | Archive | Pending. | Pending |
 
@@ -40,6 +40,8 @@ same-file targets and rerun the editor diagnostic.
 - The editor diagnostic reported exactly four nonexistent-file errors, all on
   fragment-only links whose headings exist in the same document.
 - The task-position scan found this task only under the current identity lane.
+- The claim commit `db6838b2698ec64b45254d7102af2c619d182916` is reachable
+  from the refreshed `origin/main`.
 
 ## Blockers
 
