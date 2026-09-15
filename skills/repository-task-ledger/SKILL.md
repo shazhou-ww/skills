@@ -1,6 +1,6 @@
 ---
 name: repository-task-ledger
-description: 'Use when triaging accepted Issues or starting, resuming, handing off, completing, or abandoning planned or multi-step repository work. Maintains repository-owned tasks, per-worktree identities, visible claims, progress, decisions, validation, and archives while keeping Issues as the intake surface.'
+description: 'Use when triaging accepted work expected to change repository files outside tasks/**, or when claiming, resuming, handing off, completing, or abandoning an existing repository task. Does not create tasks for learning the skill, read-only work, or task-ledger-only maintenance.'
 user-invocable: true
 ---
 
@@ -12,6 +12,37 @@ can move across devices, people, agents, worktrees, and hosting platforms.
 This workflow is a coordination protocol, not a distributed lock. Its purpose
 is to make intent and overlap visible early enough to avoid wasted work when
 participants follow the same convention.
+
+## Admit Only Implementation Work
+
+The admission rule governs creating a new repository task. Create one only
+when the accepted outcome is expected to add, modify, rename, or delete at
+least one repository file outside `tasks/**`. Use this path boundary rather
+than complexity, duration, number of steps, or which skill is involved.
+
+Files outside `tasks/**` include source, tests, documentation, configuration,
+workflows, scripts, instructions, and skills. A new file intended to be
+tracked also counts.
+
+Do not create a new task solely to:
+
+- learn, read, configure, or use this skill;
+- answer a question or perform read-only investigation, planning, or review;
+- run commands, tests, validation, inventory, or diagnostics without changing
+   repository files outside `tasks/**`;
+- create, claim, update, hand off, archive, or otherwise maintain task-ledger
+   files; or
+- perform external-only operations that do not change repository files.
+
+If task-free work later reveals that an edit outside `tasks/**` is needed,
+stop before the first such edit, triage the implementation outcome, and create
+or claim its task. Do not create a task retroactively after implementation has
+already begun.
+
+This admission rule does not end an existing task during a read-only phase.
+Once implementation work has been admitted, continue updating that task until
+it is completed, abandoned, or handed off. Repositories may also impose a
+separate operational change-management process for external systems.
 
 ## Start With Local Policy
 
@@ -29,15 +60,16 @@ Keep Issues or another external tracker as the open intake surface. People who
 cannot modify the repository must still be able to report bugs and request
 work.
 
-Create a repository task only after triage accepts the work:
+Create a repository task only after triage accepts the work and the admission
+rule above is satisfied:
 
 1. Create `tasks/backlog/<task-name>/Task.md` from
    [the task template](./assets/Task.md).
 2. Rewrite the accepted outcome, boundaries, constraints, and observable
    acceptance criteria; do not merely copy the Issue conversation.
 3. Link the Issue and task in both directions when the tracker permits it.
-4. Leave rejected, duplicate, or still-unconfirmed requests outside the task
-   ledger.
+4. Leave rejected, duplicate, still-unconfirmed, and task-free requests outside
+   the task ledger.
 
 One Issue may produce several tasks, and several Issues may be consolidated
 into one task.

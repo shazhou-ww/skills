@@ -1,5 +1,23 @@
 # Project adoption
 
+## Admission boundary
+
+Use the ledger for accepted implementation work: a new task is required only
+when the expected repository change adds, modifies, renames, or deletes at
+least one file outside `tasks/**`. This includes source, tests, docs,
+configuration, workflows, scripts, instructions, and skills.
+
+Do not create a task merely because work is lengthy or multi-step. Learning
+the skill, answering questions, read-only investigation or review, running
+validation, external-only operations, and changes confined to `tasks/**` do
+not create a new task. If one of those activities later reveals a required
+edit outside `tasks/**`, stop and claim accepted implementation work before
+the first such edit.
+
+The boundary controls admission, not the lifecycle of an existing task. Keep
+an admitted task current through read-only phases until completion, abandonment,
+or handoff.
+
 ## Required project instruction
 
 Installation makes this skill discoverable. A checked-in project instruction
@@ -9,10 +27,14 @@ repository:
 ```markdown
 ## Task workflow
 
-For Issue triage and all planned or multi-step work, load and follow the
-`repository-task-ledger` skill.
+For accepted work expected to modify repository files outside `tasks/**`, and
+when managing an existing repository task, load and follow the
+`repository-task-ledger` skill. Do not create a task solely to learn the skill,
+perform read-only work, or maintain files under `tasks/**`.
 
 - Keep accepted work under `tasks/`.
+- If task-free work discovers a required edit outside `tasks/**`, stop and
+   claim the implementation before that edit.
 - Resolve the current identity from the worktree-scoped Git key
    `task-ledger.identity`; do not use `.env`.
 - Before implementation, claim the task under
