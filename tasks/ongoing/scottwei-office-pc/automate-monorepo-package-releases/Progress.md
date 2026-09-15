@@ -5,19 +5,19 @@ Updated: 2026-09-15
 ## Checklist
 
 - [x] Publish the claim to the shared primary branch.
-- [ ] Commit and publish substantive work at meaningful checkpoints.
-- [ ] Publish implementation completion while the task is still ongoing.
+- [x] Commit and publish substantive work at meaningful checkpoints.
+- [x] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented user acceptance, if required. Not required because
   every acceptance criterion is agent-verifiable.
 - [ ] Archive and publish the task as its final action.
 
 ## Current state
 
-The claim is published on `origin/main`. The package-specific release planner,
-trusted-publishing workflow, tests, root validation scripts, dependencies, and
-maintainer guide are complete, and every acceptance criterion passes locally.
-The next action is to publish implementation completion while the task remains
-ongoing and record its immutable commit evidence.
+The claim and implementation completion are published on `origin/main`. The
+package-specific release planner, trusted-publishing workflow, tests, root
+validation scripts, dependencies, and maintainer guide are complete, and every
+acceptance criterion passes. No manual acceptance is required; the next action
+is to archive and publish the completed task.
 
 ## Decisions
 
@@ -47,7 +47,7 @@ ongoing and record its immutable commit evidence.
 | Milestone | Evidence | Status |
 | --- | --- | --- |
 | Claim | `origin/main` commit `4485f0cee7e097c8cf842461ea884880a2e6a8ef`. | Published |
-| Implementation complete | Pending. | Pending |
+| Implementation complete | `origin/main` commit `192b39881ba0a99a0d554fc8191b7d72790d1870`. | Published |
 | Archive | Pending. | Pending |
 
 ## Validation
@@ -81,6 +81,15 @@ ongoing and record its immutable commit evidence.
   safely rejected by npm, and documented.
 - `git diff --check` passed. This task's implementation is isolated from the
   unrelated concurrent changes in the shared worktree.
+- Verified implementation commit
+  `192b39881ba0a99a0d554fc8191b7d72790d1870` is reachable from refreshed
+  `origin/main`, with the workflow, planner, tests, guide, and ongoing task
+  evidence present on the remote branch.
+- GitHub's Actions API reports `.github/workflows/publish-npm.yml` as active
+  workflow ID `358613833`.
+- `pnpm exec repoledger check` passed after removing a byte-identical untracked
+  ongoing copy of an independently archived task; the canonical archived task
+  and all concurrent tracked edits were preserved.
 
 ## Blockers
 
