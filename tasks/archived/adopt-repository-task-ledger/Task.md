@@ -31,14 +31,14 @@ identity reservation now exist, and this worktree is bound to that identity.
 
 ## Acceptance criteria
 
-- [ ] `AGENTS.md` requires the local skill for work expected to modify files
+- [x] `AGENTS.md` requires the local skill for work expected to modify files
       outside this repository's `tasks/**` and for existing task lifecycle work.
-- [ ] `tasks/README.md` documents this repository's admission and identity
+- [x] `tasks/README.md` documents this repository's admission and identity
       profile.
-- [ ] The worktree identity resolves from worktree-scoped Git config to a lane
+- [x] The worktree identity resolves from worktree-scoped Git config to a lane
       registered on `origin/main`.
-- [ ] Current accepted work exists in exactly one canonical task location.
-- [ ] Task links and repository diff hygiene validate.
+- [x] Current accepted work exists in exactly one canonical task location.
+- [x] Task links and repository diff hygiene validate.
 
 ## Constraints
 
@@ -50,5 +50,5 @@ identity reservation now exist, and this worktree is bound to that identity.
 
 ## References
 
-- [Repository task ledger skill](../../../../skills/repository-task-ledger/SKILL.md)
-- [Project adoption guide](../../../../skills/repository-task-ledger/references/adoption.md)
+- [Repository task ledger skill](../../../skills/repository-task-ledger/SKILL.md)
+- [Project adoption guide](../../../skills/repository-task-ledger/references/adoption.md)

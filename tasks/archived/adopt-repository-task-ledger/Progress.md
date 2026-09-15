@@ -8,20 +8,18 @@ Updated: 2026-09-15
 - [x] Publish the canonical task directories and identity reservation.
 - [x] Bind this worktree to `copilot-shared-skills`.
 - [x] Create and claim current accepted work in the source repository.
-- [ ] Add repository agent instructions and the task profile.
-- [ ] Validate the configured layout and archive this adoption task.
+- [x] Add repository agent instructions and the task profile.
+- [x] Validate the configured layout and archive this adoption task.
 
 ## Current state
 
 The repository now has canonical `backlog`, `ongoing`, and `archived`
 directories. Identity `copilot-shared-skills` is reserved on `origin/main`, and
-the local binding resolves from worktree-scoped Git config. The adoption and
-admission-boundary tasks are claimed in this lane.
-
-The next concrete action is to add concise project-level `AGENTS.md` and
-`tasks/README.md` files that require the local skill only for work expected to
-modify files outside this repository's `tasks/**` or for managing an existing
-task.
+the local binding resolves from worktree-scoped Git config. Project-level
+`AGENTS.md` and `tasks/README.md` require the local skill only for work expected
+to modify files outside this repository's `tasks/**` or for managing an
+existing task. The separate admission-boundary task remains claimed for the
+next agent.
 
 ## Decisions
 
@@ -40,6 +38,9 @@ task.
   `tasks/ongoing/copilot-shared-skills/.gitkeep` in commit `fc8d52d`.
 - Both claimed Task files pass portable-name, required-heading, relative-link,
   and diff-hygiene checks.
+- The final repository setup validator printed `SKILLS_TASK_LEDGER_OK` after
+  checking policy wording, the repository-local boundary, identity binding,
+  canonical layout, ongoing Task/Progress files, and all local links.
 
 ## Blockers
 
@@ -47,4 +48,7 @@ task.
 
 ## Outcome
 
-In progress.
+Completed. The shared skills repository now maintains implementation state in
+its own task ledger, with a published worktree identity and repository-local
+admission policy. Admission-boundary semantics remain in the separate ongoing
+task for the next agent.
