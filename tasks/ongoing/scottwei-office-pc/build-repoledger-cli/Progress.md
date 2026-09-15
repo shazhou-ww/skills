@@ -12,14 +12,15 @@ Updated: 2026-09-15
 
 ## Current state
 
-The claim and initial pnpm workspace checkpoint are published on `origin/main`.
-The complete source implementation is ready for its second checkpoint:
-Commander-generated help, the GitHub-identified v1 schema, task topology and
-Markdown checks, strict publication history, worktree identity diagnostics,
-offline behavior, JSON output, exact tarball validation, real Git integration
-tests, packed npm consumer smoke, skill/profile guidance, and cross-platform
-CI. The next action is to publish this checkpoint and verify its GitHub Actions
-matrix before preparing the initial npm release.
+The claim, initial pnpm workspace, and complete source implementation are
+published on `origin/main`. GitHub Actions passed the Node 22/24 matrix on
+Windows, macOS, and Linux plus Agent Skills discovery. The only remaining
+implementation blocker is npm authentication on this device. The next action
+is for the maintainer to run
+`npm login --registry=https://registry.npmjs.org/` directly in a terminal;
+after `npm whoami` succeeds, recheck the package name, publish
+`repoledger@0.1.0`, verify exact-version npx execution, and record the
+implementation-complete milestone.
 
 ## Decisions
 
@@ -113,10 +114,21 @@ matrix before preparing the initial npm release.
   `pnpm check`, online `pnpm exec repoledger doctor --json`,
   `pnpm check:skills`, all 29 Markdown files, editor diagnostics, and
   `git diff --check` on Windows with Node 24.11.1 and pnpm 11.22.0.
+- Published the complete CLI, schema, tests, CI, docs, and skill integration as
+  `origin/main` commit `473ffad71c2a85d567fc736cfa1b13d9cd2fb5ef`.
+- [GitHub Actions run 34950524537](https://github.com/shazhou-ww/skills/actions/runs/34950524537)
+  completed successfully: Node 22 and 24 passed on Ubuntu, Windows, and macOS,
+  and the separate Agent Skills discovery job passed.
+- `npm ping` reached `https://registry.npmjs.org/`, and an anonymous registry
+  lookup confirmed the unscoped `repoledger` name remains unpublished.
+- `npm whoami --registry=https://registry.npmjs.org/` found no active npm
+  publishing identity, so no publication was attempted.
 
 ## Blockers
 
-- None.
+- Initial npm publication requires the maintainer to authenticate directly in
+  a terminal. Credentials, one-time codes, and tokens must not pass through the
+  task artifact or agent conversation. Resume after `npm whoami` succeeds.
 
 ## Outcome
 
