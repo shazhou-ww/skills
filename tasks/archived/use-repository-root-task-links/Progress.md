@@ -21,7 +21,9 @@ Code compatibility and applies `/...` to new or edited non-archived task
 artifacts. Both artifact templates defer to the declared project convention.
 The active task references already use root links, backlog has no task to
 update, and archived history is unchanged. The complete prepublish validation
-passes; next, publish the implementation commit before archiving the task.
+passes, and implementation commit `62bb2da` is published on `origin/main`.
+The completed task is now in its canonical archive location with unchanged
+repository-local references. Next, publish the archive move.
 
 ## Decisions
 
@@ -48,6 +50,10 @@ passes; next, publish the implementation commit before archiving the task.
   verifying current task-link style, unique task ownership, the registered
   identity lane, unchanged archived history, template formatting, and diff
   hygiene.
+- Implementation commit `62bb2da` is published on `origin/main`.
+- The post-move check printed `ARCHIVE_MOVE_AND_REFERENCES_OK` after verifying
+  both archive artifacts, source cleanup, unique task position, identity lane
+  preservation, completed state, and unchanged `## References` content.
 
 ## Blockers
 
@@ -55,4 +61,6 @@ passes; next, publish the implementation commit before archiving the task.
 
 ## Outcome
 
-In progress.
+Completed. Repository-local task references can now remain stable across
+lifecycle moves in projects that declare compatible renderers, while projects
+requiring portable Markdown retain the file-relative fallback.
