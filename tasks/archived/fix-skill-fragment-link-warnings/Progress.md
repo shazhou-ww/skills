@@ -8,13 +8,13 @@ Updated: 2026-09-15
 - [x] Commit and publish substantive work at meaningful checkpoints.
 - [x] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented user acceptance, if required (not required).
-- [ ] Archive and publish the task as its final action.
+- [x] Archive and publish the task as its final action.
 
 ## Current state
 
-All four fragment-only targets use explicit same-file paths, every
-agent-verifiable acceptance criterion passes, and implementation completion is
-published on `origin/main`. The next action is to archive and publish the task.
+The claim, implementation completion, and final archive are published on
+`origin/main`. All four links resolve through explicit same-file paths, every
+acceptance criterion passes, and the editor reports no link diagnostics.
 
 ## Decisions
 
@@ -31,7 +31,7 @@ published on `origin/main`. The next action is to archive and publish the task.
 | --- | --- | --- |
 | Claim | `origin/main` commit `db6838b2698ec64b45254d7102af2c619d182916`. | Published |
 | Implementation complete | `origin/main` commit `e2994c58cc2c5c6658240dca2a3c1885c6b5feb2`. | Published |
-| Archive | Pending. | Pending |
+| Archive | This final archive commit on `origin/main`; remote Git history supplies its immutable ID. | Published |
 
 ## Validation
 
@@ -51,6 +51,9 @@ published on `origin/main`. The next action is to archive and publish the task.
 - `git diff --check -- skills/repository-task-ledger/SKILL.md` passed.
 - The implementation commit `e2994c58cc2c5c6658240dca2a3c1885c6b5feb2`
   is reachable from the refreshed `origin/main`.
+- Published the implementation milestone evidence in `origin/main` commit
+  `a0ed1436692b36418f5bdff2ac6e47e3d265e915` and reran
+  `repoledger check` successfully before the archive move.
 
 ## Blockers
 
@@ -58,4 +61,5 @@ published on `origin/main`. The next action is to archive and publish the task.
 
 ## Outcome
 
-In progress.
+Completed. The four same-document links retain their intended heading targets
+without nonexistent-file warnings.
