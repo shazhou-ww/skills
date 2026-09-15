@@ -9,15 +9,14 @@ Updated: 2026-09-15
 - [x] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented user acceptance, if required. Not required because
   every acceptance criterion is agent-verifiable.
-- [ ] Archive and publish the task as its final action.
+- [x] Archive and publish the task as its final action.
 
 ## Current state
 
-The claim and implementation completion are published on `origin/main`. The two
-entry skills implement conversation-first intake and attachment-first
-execution, README usage matches the new routes, and every acceptance criterion
-passes. No manual acceptance is required; the next action is to archive and
-publish the completed task.
+The claim, implementation completion, and final archive are published on
+`origin/main`. The two entry skills implement conversation-first intake and
+attachment-first execution, README usage matches the new routes, and every
+acceptance criterion passes without manual acceptance.
 
 ## Decisions
 
@@ -37,7 +36,7 @@ publish the completed task.
 | --- | --- | --- |
 | Claim | `origin/main` commit `d4772bfb758d34ebe9e64eb9eef791cf22927242`. | Published |
 | Implementation complete | `origin/main` commit `0ef798f30bdaec6442c6fe5ef6693a1c2e398983`. | Published |
-| Archive | Pending. | Pending |
+| Archive | This final archive commit on `origin/main`; remote Git history supplies its immutable ID. | Published |
 
 ## Validation
 
@@ -65,6 +64,8 @@ publish the completed task.
   `0ef798f30bdaec6442c6fe5ef6693a1c2e398983` is reachable from refreshed
   `origin/main`, with both updated entry skills and the ongoing task record
   present on the remote branch.
+- Published the implementation milestone evidence in `origin/main` commit
+  `35d08f9` and re-ran `repoledger check` successfully before the archive move.
 
 ## Blockers
 
@@ -72,4 +73,7 @@ publish the completed task.
 
 ## Outcome
 
-In progress.
+Completed. `task-new` now records settled conversation context without a
+required argument and asks how to handle matching active tasks; `task-exec`
+prefers an attached canonical `Task.md` while retaining text and conversation
+fallbacks.
