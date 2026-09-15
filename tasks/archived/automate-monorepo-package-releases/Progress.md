@@ -9,15 +9,14 @@ Updated: 2026-09-15
 - [x] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented user acceptance, if required. Not required because
   every acceptance criterion is agent-verifiable.
-- [ ] Archive and publish the task as its final action.
+- [x] Archive and publish the task as its final action.
 
 ## Current state
 
-The claim and implementation completion are published on `origin/main`. The
-package-specific release planner, trusted-publishing workflow, tests, root
-validation scripts, dependencies, and maintainer guide are complete, and every
-acceptance criterion passes. No manual acceptance is required; the next action
-is to archive and publish the completed task.
+The claim, implementation completion, and final archive are published on
+`origin/main`. The package-specific release planner, trusted-publishing
+workflow, tests, root validation scripts, dependencies, and maintainer guide
+are complete, and every acceptance criterion passes without manual acceptance.
 
 ## Decisions
 
@@ -48,7 +47,7 @@ is to archive and publish the completed task.
 | --- | --- | --- |
 | Claim | `origin/main` commit `4485f0cee7e097c8cf842461ea884880a2e6a8ef`. | Published |
 | Implementation complete | `origin/main` commit `192b39881ba0a99a0d554fc8191b7d72790d1870`. | Published |
-| Archive | Pending. | Pending |
+| Archive | This final archive commit on `origin/main`; remote Git history supplies its immutable ID. | Published |
 
 ## Validation
 
@@ -97,4 +96,7 @@ is to archive and publish the completed task.
 
 ## Outcome
 
-In progress.
+Completed. Protected package-specific tags now drive a tested, allowlisted npm
+trusted-publishing workflow that validates the manifest, primary-branch
+ancestry, registry state, repository, and tarball before publishing only the
+selected package with provenance and the correct dist-tag.
