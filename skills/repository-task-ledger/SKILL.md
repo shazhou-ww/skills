@@ -77,6 +77,51 @@ repository and link them rather than copying one task between repositories.
 5. Preserve unrelated worktree changes. Never move, rewrite, or archive another
    identity's task merely to clear a conflict.
 
+## Publish Through The Shared Primary Branch
+
+The shared primary branch is the repository-declared collaboration branch,
+commonly `main` or `master`. The project profile must name the remote and
+branch when they cannot be discovered unambiguously. References to the shared
+primary branch in this skill mean that declared branch, not a hard-coded branch
+name or an agent-created substitute.
+
+Accepted work and repository policy authorize the routine, non-force Git
+operations needed to carry that work through its lifecycle. Once those
+preconditions are satisfied, do not ask the user whether to commit, push, or
+integrate merely because one of those routine operations is the next task
+step. Perform it autonomously through the repository's normal direct-push,
+merge, or pull-request path.
+
+This autonomy does not bypass authentication, protected branches, required
+review, explicit approval rules, failed validation, push rejection, or
+unresolved conflicts. Never force-push as a shortcut. When the normal path
+cannot be completed autonomously, leave the milestone incomplete, record the
+blocker and exact next action in `Progress.md`, and ask only for the user action
+that the repository or hosting platform actually requires.
+
+A publication milestone is complete only when its commit is reachable from the
+refreshed remote shared primary branch. A local commit, a pushed side branch,
+or an open but unmerged pull request does not satisfy it. Before each
+publication, refresh the remote branch, reconcile concurrent work without
+discarding it, run the relevant focused checks, publish through the normal
+integration path, and verify the resulting remote state.
+
+Every completed task requires at least three distinct shared-primary-branch
+integrations:
+
+1. **Claim:** publish the move into the current identity lane before
+   substantive implementation.
+2. **Implementation complete:** publish the finished implementation,
+   validation evidence, and any user acceptance guide while the task remains
+   ongoing.
+3. **Archive:** after all required acceptance is satisfied, publish the move to
+   `tasks/archived/` as the task's final recorded action.
+
+Do not combine claim with implementation completion or implementation
+completion with archival. A task may and often should have more publications
+for meaningful substantive checkpoints, fixes after failed acceptance,
+handoffs, or other durable progress.
+
 ## Separate Intake From Execution
 
 Keep Issues or another external tracker as the open intake surface. People who
@@ -236,8 +281,9 @@ Before substantive implementation:
 4. Apply the post-move checks in [Verify Every Task Move](#verify-every-task-move).
 5. Create `Progress.md` from [the progress template](./assets/Progress.md).
 6. Record the current state and the next concrete action.
-7. Commit and publish the claim through the team's normal `main` integration
-   path before investing in substantial implementation.
+7. Commit only the claim and its task artifacts, then publish and verify the
+   claim milestone through the normal shared-primary-branch integration path
+   before investing in substantive implementation.
 
 ## Verify Every Task Move
 
@@ -264,12 +310,45 @@ what must disappear.
   verified state, next action, decisions, validation evidence, and blockers.
 - Before pausing, make the next action specific enough that another actor can
   resume without reconstructing the session.
+- Commit substantive work at meaningful, validated checkpoints rather than
+   accumulating one large uncommitted change. Update `Progress.md` with the
+   checkpoint state and evidence, then publish each checkpoint that is safe for
+   the shared primary branch through the repository's normal integration path.
+   Do not publish a known-broken state merely to create a checkpoint.
 - Keep task-specific research, inventories, plans, and captures in the task
   folder so they move with it.
 - Put only accepted, stable project consensus in `docs/`; link extracted
   documents from `Task.md`.
 - Never store credentials, tokens, private keys, private customer data, or
   machine-local secrets in task artifacts.
+
+## Run User Acceptance When Required
+
+Manual user acceptance is required only when an acceptance criterion explicitly
+depends on user judgment, user-only access, physical interaction, or another
+result the agent cannot validate. Do not invent a confirmation gate for work
+whose acceptance criteria can be completed and verified autonomously.
+
+When manual user acceptance is required:
+
+1. Create `UserAcceptance.md` in the task folder from
+   [the user acceptance template](./assets/UserAcceptance.md).
+2. Replace every placeholder with task-specific prerequisites, exact numbered
+   actions, expected results for each action, and an unambiguous way to report
+   acceptance or failure. Keep it written for the user, not as an agent log.
+3. Publish the guide with the implementation-complete milestone so the user
+   tests the integrated shared-primary-branch result rather than unpublished
+   local state.
+4. Keep the task ongoing while acceptance is pending. Ask the user to follow
+   the guide, and record only the result the user actually reports; never infer
+   or fabricate acceptance.
+5. If acceptance fails, record the observed result, resume implementation,
+   publish the fix as another substantive checkpoint and refreshed
+   implementation-complete milestone, then repeat the documented acceptance.
+
+Once the user reports acceptance, record it and continue directly to archival.
+Do not ask for a separate confirmation to commit or archive unless repository
+policy requires one.
 
 ### Choose Stable Task Links
 
@@ -315,13 +394,31 @@ Before handing work to another identity:
 
 ## Complete Or Abandon Work
 
-1. Check every acceptance criterion and run the narrowest required validation.
-2. Record the result and validation evidence in `Progress.md`.
-3. Set the outcome to `Completed` or `Abandoned`; for abandonment, preserve the
-   reason, useful findings, and follow-up.
-4. Move the task to `tasks/archived/<task-name>`.
-5. Apply the post-move checks in [Verify Every Task Move](#verify-every-task-move).
-6. Publish the move.
+To complete work:
+
+1. Finish the scoped implementation and every agent-verifiable acceptance
+   criterion, then run the narrowest required validation.
+2. Update `Task.md` and `Progress.md` with the verified state, validation
+   evidence, and any still-pending manual user acceptance.
+3. Commit and publish the implementation-complete milestone while the task is
+   still under `tasks/ongoing/<identity>/`, then verify it on the refreshed
+   remote shared primary branch.
+4. If manual user acceptance is required, follow
+   [Run User Acceptance When Required](#run-user-acceptance-when-required) and
+   leave the task ongoing until the user reports acceptance.
+5. Check every remaining acceptance criterion and record the actual result.
+   Set the outcome to `Completed` only after all required acceptance passes.
+6. Mark archive publication as the final task checklist action, move the whole
+   task to `tasks/archived/<task-name>`, and apply the post-move checks in
+   [Verify Every Task Move](#verify-every-task-move).
+7. Commit the archive artifacts separately from implementation completion,
+   publish through the normal shared-primary-branch integration path, and
+   verify the remote archive state.
+
+To abandon work, preserve the reason, useful findings, validation state, and
+follow-up in `Progress.md`; set the outcome to `Abandoned`; move and verify the
+task as above; and publish the archive move. Do not falsely record an
+implementation-complete milestone for unfinished work.
 
 Archived tasks do not retain an identity layer because they no longer have an
 active owner. The Git history preserves prior claims and handoffs.
@@ -338,11 +435,13 @@ tasks/
 │       ├── .gitkeep
 │       └── <task-name>/
 │           ├── Task.md
-│           └── Progress.md
+│           ├── Progress.md
+│           └── UserAcceptance.md  # only when manual acceptance is required
 └── archived/
     └── <task-name>/
         ├── Task.md
-        └── Progress.md
+   ├── Progress.md
+   └── UserAcceptance.md      # preserved when one was required
 ```
 
 For project setup, instruction wording, validation invariants, and migration
