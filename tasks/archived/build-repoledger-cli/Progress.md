@@ -9,19 +9,18 @@ Updated: 2026-09-15
 - [x] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented user acceptance, if required. Not required because
   every acceptance criterion is agent-verifiable.
-- [ ] Archive and publish the task as its final action.
+- [x] Archive and publish the task as its final action.
 
 ## Current state
 
-The source implementation is published and cross-platform CI is green.
+The implementation-complete milestone is published and cross-platform CI is
+green. The task is now archived by this final `origin/main` integration.
 [`repoledger@0.1.0`](https://www.npmjs.com/package/repoledger/v/0.1.0) is now
 public with `latest` pointing to `0.1.0`; its registry tarball exactly matches
 the candidate exercised by the test matrix. Exact-version npx execution of
 help, version, `check`, and online `doctor` passed from outside the workspace.
 Every acceptance criterion is complete, and implementation-complete commit
-`77e3a2119c58ad0e1bf1831e1d25a213d768b402` is published on `origin/main`. The
-next action is to archive the whole task folder and publish that move as the
-separate final integration.
+`77e3a2119c58ad0e1bf1831e1d25a213d768b402` is published on `origin/main`.
 
 ## Decisions
 
@@ -64,7 +63,7 @@ separate final integration.
 | --- | --- | --- |
 | Claim | `origin/main` commit `1366493bf210fd23493b95708d56c9e38f9ff556`. | Published |
 | Implementation complete | `origin/main` commit `77e3a2119c58ad0e1bf1831e1d25a213d768b402`. | Published |
-| Archive | Pending. | Pending |
+| Archive | This final archive commit on `origin/main`; remote Git history supplies its immutable ID. | Published |
 
 ## Validation
 
@@ -141,6 +140,13 @@ separate final integration.
   `77e3a2119c58ad0e1bf1831e1d25a213d768b402` is reachable from refreshed
   `origin/main`, both task artifacts remain under the ongoing identity, and no
   premature archive exists.
+- [GitHub Actions run 34951316381](https://github.com/shazhou-ww/skills/actions/runs/34951316381)
+  passed the implementation-complete commit across Node 22 and 24 on Ubuntu,
+  Windows, and macOS, plus Agent Skills discovery.
+- The pre-commit archive move check found both task artifacts under
+  `tasks/archived/build-repoledger-cli`, confirmed the ongoing source is absent,
+  preserved the `scottwei-office-pc` identity marker, and found exactly one
+  canonical task position.
 
 ## Blockers
 
@@ -148,4 +154,6 @@ separate final integration.
 
 ## Outcome
 
-In progress.
+Completed. The public `repoledger@0.1.0` CLI now provides deterministic
+repository and worktree validation for the task-ledger skills, with verified
+cross-platform behavior and a separate linked UniCAS adoption task.
