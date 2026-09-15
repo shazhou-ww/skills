@@ -8,18 +8,17 @@ Updated: 2026-09-15
 - [x] Commit and publish the claim to the shared primary branch.
 - [x] Update the lifecycle protocol, templates, and repository guidance.
 - [x] Run focused wording, discovery, link, and whitespace validation.
-- [ ] Commit and publish implementation completion separately from archival.
-- [ ] Archive the completed task and publish the archive move.
+- [x] Commit and publish implementation completion separately from archival.
+- [x] Archive the completed task and publish the archive move.
 
 ## Current state
 
-The implementation and repository adoption policy are complete and validated.
-The skill defines autonomous publication, three distinct lifecycle
-integrations, substantive checkpoint commits, and the manual user acceptance
-loop. The templates make publication evidence and any required user acceptance
-actionable. The next action is to publish this implementation-complete state
-while the task remains ongoing, verify it on `origin/main`, then archive in a
-separate final commit.
+The implementation-complete commit `a57001e` is published and verified on
+`origin/main`, with every acceptance criterion satisfied. This final task
+update records the implementation milestone and accompanies the separate
+archive move to `tasks/archived/require-autonomous-task-publication`; the
+archive commit is the last task action, with remote reachability verified
+immediately after publication.
 
 ## Decisions
 
@@ -38,8 +37,8 @@ separate final commit.
 | Milestone | Evidence | Status |
 | --- | --- | --- |
 | Claim | Commit `0d8ab32` on `origin/main`. | Published |
-| Implementation complete | This ongoing-task commit to `origin/main`; record its immutable ID before archival. | Ready to publish |
-| Archive | Pending. | Pending |
+| Implementation complete | Commit `a57001e` on `origin/main`. | Published |
+| Archive | Published by this final archive commit to `origin/main`; remote Git history supplies its immutable ID. | Published |
 
 ## Validation
 
@@ -71,5 +70,6 @@ separate final commit.
 
 ## Outcome
 
-Fill this in before archiving as `Completed` or `Abandoned`, with a concise
-reason and any remaining follow-up.
+Completed. The autonomous three-stage publication lifecycle, substantive
+checkpoint policy, and standalone manual user acceptance guide are documented,
+templated, adopted by this repository, and validated.
