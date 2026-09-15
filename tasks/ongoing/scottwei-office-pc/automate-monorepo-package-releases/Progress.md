@@ -4,7 +4,7 @@ Updated: 2026-09-15
 
 ## Checklist
 
-- [ ] Publish the claim to the shared primary branch.
+- [x] Publish the claim to the shared primary branch.
 - [ ] Commit and publish substantive work at meaningful checkpoints.
 - [ ] Publish implementation completion while the task is still ongoing.
 - [ ] Complete documented user acceptance, if required.
@@ -12,10 +12,10 @@ Updated: 2026-09-15
 
 ## Current state
 
-The task is claimed locally under the worktree identity
-`scottwei-office-pc`. The next action is to publish the isolated claim, then
-inspect the existing package scripts and CI conventions before implementing
-the package-specific trusted-publishing workflow.
+The task is claimed under the worktree identity `scottwei-office-pc`, and the
+claim is published on `origin/main`. The next action is to inspect the existing
+package scripts and CI conventions before implementing the package-specific
+trusted-publishing workflow.
 
 ## Decisions
 
@@ -34,7 +34,7 @@ the package-specific trusted-publishing workflow.
 
 | Milestone | Evidence | Status |
 | --- | --- | --- |
-| Claim | Pending. | Pending |
+| Claim | `origin/main` commit `4485f0cee7e097c8cf842461ea884880a2e6a8ef`. | Published |
 | Implementation complete | Pending. | Pending |
 | Archive | Pending. | Pending |
 
