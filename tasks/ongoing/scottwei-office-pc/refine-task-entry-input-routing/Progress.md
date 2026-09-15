@@ -4,7 +4,7 @@ Updated: 2026-09-15
 
 ## Checklist
 
-- [ ] Publish the claim to the shared primary branch.
+- [x] Publish the claim to the shared primary branch.
 - [ ] Commit and publish substantive work at meaningful checkpoints.
 - [ ] Publish implementation completion while the task is still ongoing.
 - [ ] Complete documented user acceptance, if required.
@@ -12,9 +12,9 @@ Updated: 2026-09-15
 
 ## Current state
 
-The task is claimed locally under the worktree identity
-`scottwei-office-pc`. The next action is to publish the isolated claim, then
-update the two entry skills and focused routing validation.
+The task is claimed under the worktree identity `scottwei-office-pc`, and the
+claim is published on `origin/main`. The next action is to update the two entry
+skills and focused routing validation.
 
 ## Decisions
 
@@ -32,7 +32,7 @@ update the two entry skills and focused routing validation.
 
 | Milestone | Evidence | Status |
 | --- | --- | --- |
-| Claim | Pending. | Pending |
+| Claim | `origin/main` commit `d4772bfb758d34ebe9e64eb9eef791cf22927242`. | Published |
 | Implementation complete | Pending. | Pending |
 | Archive | Pending. | Pending |
 
