@@ -31,12 +31,12 @@ cross-repository scope still need to be made explicit.
 
 ## Acceptance criteria
 
-- [ ] Admission is based only on expected file changes outside the current
+- [x] Admission is based only on expected file changes outside the current
       repository's own `tasks/**` directory.
-- [ ] The task lives in the repository that owns the primary implementation.
-- [ ] Cross-repository guidance distinguishes source ownership, mechanical
+- [x] The task lives in the repository that owns the primary implementation.
+- [x] Cross-repository guidance distinguishes source ownership, mechanical
       downstream sync, and independently owned implementation changes.
-- [ ] Learning or using the skill does not itself require a task.
+- [x] Learning or using the skill does not itself require a task.
 - [ ] Published source and downstream installed copies agree.
 - [ ] Skill discovery and downstream workflow checks pass.
 

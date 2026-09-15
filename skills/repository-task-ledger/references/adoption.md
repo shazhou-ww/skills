@@ -2,10 +2,11 @@
 
 ## Admission boundary
 
-Use the ledger for accepted implementation work: a new task is required only
-when the expected repository change adds, modifies, renames, or deletes at
-least one file outside `tasks/**`. This includes source, tests, docs,
-configuration, workflows, scripts, instructions, and skills.
+Use the ledger for accepted implementation work: a new task is required in the
+repository that owns the outcome only when that outcome adds, modifies,
+renames, or deletes at least one file outside that same repository's own
+`tasks/**`. This includes source, tests, docs, configuration, workflows,
+scripts, instructions, and skills.
 
 Do not create a task merely because work is lengthy or multi-step. Learning
 the skill, answering questions, read-only investigation or review, running
@@ -18,6 +19,22 @@ The boundary controls admission, not the lifecycle of an existing task. Keep
 an admitted task current through read-only phases until completion, abandonment,
 or handoff.
 
+### Cross-repository ownership
+
+Apply admission to each independently owned implementation outcome, not to
+every checkout touched while delivering one outcome:
+
+- The repository that owns the primary design and implementation owns the
+   source task.
+- A generated artifact, installed copy, lockfile refresh, or equivalent
+   downstream update that mechanically consumes the source change remains part
+   of the source task. Reference that task when practical; do not mirror it.
+- Downstream-specific design, adaptation, tests, configuration, or other
+   independently maintained changes outside that downstream repository's own
+   `tasks/**` require a task there before implementation.
+- When multiple repositories independently own implementation, create linked
+   tasks in those repositories instead of copying one task between them.
+
 ## Required project instruction
 
 Installation makes this skill discoverable. A checked-in project instruction
@@ -27,10 +44,10 @@ repository:
 ```markdown
 ## Task workflow
 
-For accepted work expected to modify repository files outside `tasks/**`, and
-when managing an existing repository task, load and follow the
-`repository-task-ledger` skill. Do not create a task solely to learn the skill,
-perform read-only work, or maintain files under `tasks/**`.
+For accepted work owned by this repository and expected to modify its files
+outside its own `tasks/**`, and when managing an existing repository task, load
+and follow the `repository-task-ledger` skill. Do not create a task solely to
+learn the skill, perform read-only work, or maintain files under `tasks/**`.
 
 - Keep accepted work under `tasks/`.
 - If task-free work discovers a required edit outside `tasks/**`, stop and
@@ -93,10 +110,14 @@ Automated checks should verify at least:
 
 - only `backlog`, `ongoing`, and `archived` are canonical status directories;
 - task and identity names use the project's portable naming convention;
-- every backlog and archived entry is a task directory;
+- every non-hidden backlog and archived entry is a task directory;
 - every non-hidden ongoing entry is an identity directory;
 - every identity contains `.gitkeep`;
-- every task contains `Task.md` with the required headings;
+- every non-hidden entry below an identity is a task directory;
+- every task-position directory is treated as a task even when it is empty and
+   contains `Task.md` with the required headings;
+- no task name appears in more than one backlog, ongoing identity, or archived
+   position;
 - backlog tasks do not contain `Progress.md`;
 - ongoing and archived tasks contain `Progress.md`;
 - archived progress records an outcome;
@@ -116,10 +137,13 @@ When a repository currently uses `tasks/ongoing/<task-name>`:
    ownership from Git authorship alone.
 3. Move each active folder to `tasks/ongoing/<identity>/<task-name>` with
    `git mv`.
-4. Update project instructions, documentation, and validation in the same
+4. Verify each destination contains all task artifacts and each source task
+   directory no longer exists. Remove an empty source directory, but stop and
+   reconcile unexpected contents instead of deleting recursively.
+5. Update project instructions, documentation, and validation in the same
    migration.
-5. Enable worktree config and bind each worktree to its registered identity.
-6. Publish the migration before accepting new claims under the revised layout.
+6. Enable worktree config and bind each worktree to its registered identity.
+7. Publish the migration before accepting new claims under the revised layout.
 
 Do not add an identity layer to `backlog` or `archived`; unclaimed and inactive
 tasks have no current execution owner.

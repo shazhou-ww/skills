@@ -1,6 +1,6 @@
 ---
 name: repository-task-ledger
-description: 'Use when triaging accepted work expected to change repository files outside tasks/**, or when claiming, resuming, handing off, completing, or abandoning an existing repository task. Does not create tasks for learning the skill, read-only work, or task-ledger-only maintenance.'
+description: "Use when triaging accepted work expected to change files outside the owning repository's own tasks/**, or when claiming, resuming, handing off, completing, or abandoning an existing repository task. Does not create tasks for learning the skill, read-only work, or task-ledger-only maintenance."
 user-invocable: true
 ---
 
@@ -15,10 +15,12 @@ participants follow the same convention.
 
 ## Admit Only Implementation Work
 
-The admission rule governs creating a new repository task. Create one only
-when the accepted outcome is expected to add, modify, rename, or delete at
-least one repository file outside `tasks/**`. Use this path boundary rather
-than complexity, duration, number of steps, or which skill is involved.
+The admission rule governs creating a new repository task. Evaluate it against
+the repository that owns the accepted implementation outcome. Create a task
+there only when that outcome is expected to add, modify, rename, or delete at
+least one file outside that same repository's own `tasks/**` directory. Use
+this path boundary rather than complexity, duration, number of steps, or which
+skill is involved.
 
 Files outside `tasks/**` include source, tests, documentation, configuration,
 workflows, scripts, instructions, and skills. A new file intended to be
@@ -43,6 +45,27 @@ This admission rule does not end an existing task during a read-only phase.
 Once implementation work has been admitted, continue updating that task until
 it is completed, abandoned, or handed off. Repositories may also impose a
 separate operational change-management process for external systems.
+
+### Choose The Owning Repository
+
+For work spanning repositories, apply the admission rule to each independently
+owned implementation outcome, not mechanically to every checkout touched:
+
+- Create the source task in the repository that owns the primary design and
+   implementation change.
+- Treat generated files, installed copies, lockfile refreshes, or equivalent
+   downstream updates that only consume that source change as part of the source
+   task. Reference the source task from the downstream change when practical;
+   do not create a mirrored task solely for the synchronization.
+- If a downstream repository needs its own design, adaptation, tests,
+   configuration, or other independently maintained changes outside its own
+   `tasks/**`, create or claim a task in that repository before those edits.
+- Work performed only in another repository never admits a task in the current
+   repository unless the current repository also owns an implementation change
+   outside its own `tasks/**`.
+
+When more than one repository owns implementation, use one task in each owning
+repository and link them rather than copying one task between repositories.
 
 ## Start With Local Policy
 
@@ -171,13 +194,28 @@ Before substantive implementation:
    git mv tasks/backlog/<task-name> tasks/ongoing/<identity>/<task-name>
    ```
 
-4. Create `Progress.md` from [the progress template](./assets/Progress.md).
-5. Record the current state and the next concrete action.
-6. Commit and publish the claim through the team's normal `main` integration
+4. Apply the post-move checks in [Verify Every Task Move](#verify-every-task-move).
+5. Create `Progress.md` from [the progress template](./assets/Progress.md).
+6. Record the current state and the next concrete action.
+7. Commit and publish the claim through the team's normal `main` integration
    path before investing in substantial implementation.
 
-The task must exist in exactly one status location. Never copy it between
-status or identity directories.
+## Verify Every Task Move
+
+After a claim, handoff, completion, abandonment, or layout migration:
+
+1. Verify that the destination contains every task artifact.
+2. Verify that the source task directory no longer exists. Git does not track
+   directories, so moving or deleting every tracked file can still leave an
+   empty source directory behind. Remove it if it is empty; if it contains
+   unexpected files, stop and reconcile them instead of deleting recursively.
+3. Re-scan the task positions under `backlog`, every ongoing identity, and
+   `archived`. Count every non-hidden directory in a task position even when it
+   is empty, and verify that the task name appears in exactly one location.
+
+Never copy a task between status or identity directories. Preserve each
+identity lane and its `.gitkeep`; the source task directory beneath the lane is
+what must disappear.
 
 ## Work And Record Progress
 
@@ -219,7 +257,8 @@ Before handing work to another identity:
    blockers, and next concrete action.
 2. Ensure the destination identity is already registered on `main`.
 3. Move the whole task folder to `tasks/ongoing/<new-identity>/<task-name>`.
-4. Commit and publish the handoff before either identity continues.
+4. Apply the post-move checks in [Verify Every Task Move](#verify-every-task-move).
+5. Commit and publish the handoff before either identity continues.
 
 ## Complete Or Abandon Work
 
@@ -227,7 +266,9 @@ Before handing work to another identity:
 2. Record the result and validation evidence in `Progress.md`.
 3. Set the outcome to `Completed` or `Abandoned`; for abandonment, preserve the
    reason, useful findings, and follow-up.
-4. Move the task to `tasks/archived/<task-name>` and publish the move.
+4. Move the task to `tasks/archived/<task-name>`.
+5. Apply the post-move checks in [Verify Every Task Move](#verify-every-task-move).
+6. Publish the move.
 
 Archived tasks do not retain an identity layer because they no longer have an
 active owner. The Git history preserves prior claims and handoffs.

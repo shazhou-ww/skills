@@ -6,10 +6,10 @@ Updated: 2026-09-15
 
 - [x] Publish initial task-free-work admission wording.
 - [x] Move task ownership from the downstream consumer to this source repository.
-- [ ] Define the current-repository `tasks/**` scope explicitly.
-- [ ] Define cross-repository source ownership and downstream sync behavior.
+- [x] Define the current-repository `tasks/**` scope explicitly.
+- [x] Define cross-repository source ownership and downstream sync behavior.
 - [ ] Publish and validate the refined skill.
-- [ ] Refresh downstream installed copies where applicable.
+- [x] Check downstream installed copies; none are applicable locally.
 - [ ] Archive the completed task.
 
 ## Current state
@@ -19,10 +19,13 @@ work, external-only operations, and task-ledger-only maintenance do not create
 new tasks. The task that tracks further refinement now lives in the skills
 source repository rather than the UniCAS consumer repository.
 
-The next concrete action for the continuing agent is to amend the admission
-section so `tasks/**` unambiguously means the current repository's own task
-directory, then document ownership for source changes, mechanical downstream
-installation updates, and independently owned changes across multiple repos.
+The source skill and adoption guide now define `tasks/**` as the owning
+repository's own task directory. They assign the primary design and
+implementation to a source task, keep purely mechanical downstream sync under
+that task, and require a downstream task only for independently maintained
+implementation there. The public repository summary uses the same ownership
+boundary. The next action is to publish the source changes and archive this
+task after the release checks pass.
 
 ## Decisions
 
@@ -31,6 +34,8 @@ installation updates, and independently owned changes across multiple repos.
   task; independent downstream implementation decisions may require their own
   repository task.
 - Preserve the already published initial wording and refine it forward.
+- Sequence the move-cleanup task first instead of editing the shared files from
+  two active tasks at once.
 
 ## Validation
 
@@ -40,11 +45,22 @@ installation updates, and independently owned changes across multiple repos.
   skill update was applied there before ownership was corrected.
 - This skills worktree identity is published and resolves from worktree-scoped
   Git config.
+- `npx skills add . --list` discovered the refined skill and displayed the
+  owning-repository boundary in its description.
+- The focused semantic assertion printed
+  `REPOSITORY_ADMISSION_BOUNDARY_OK`.
+- The repository README now summarizes the same owning-repository boundary.
+- The clean `D:\Code\unicas` checkout has no `repository-task-ledger` copy in
+  either `.agents/skills` or `.claude/skills`, so no downstream refresh is
+  applicable there.
+- `git diff --check` reported no errors, and the combined release check printed
+  `PREPUBLISH_CHECK_OK` after validating task positions, links, and identity.
 
 ## Blockers
 
-- None.
+- Publishing requires an explicitly authorized commit and push.
 
 ## Outcome
 
-In progress.
+In progress. Source semantics and local validation are complete; publication,
+downstream synchronization where applicable, and archival remain.
