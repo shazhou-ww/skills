@@ -4,7 +4,7 @@ Updated: 2026-09-15
 
 ## Checklist
 
-- [ ] Publish the claim to the shared primary branch.
+- [x] Publish the claim to the shared primary branch.
 - [ ] Commit and publish substantive work at meaningful checkpoints.
 - [ ] Publish implementation completion while the task is still ongoing.
 - [ ] Complete documented user acceptance, if required.
@@ -12,11 +12,10 @@ Updated: 2026-09-15
 
 ## Current state
 
-The unique backlog task has been moved under the registered
-`scottwei-office-pc` identity, and the post-move check confirms one complete
-task position with no backlog source directory. The next action is to publish
-this claim to `origin/main`; after publication, create the private pnpm
-workspace and the smallest executable `repoledger check` package slice.
+The claim is published on `origin/main` under the registered
+`scottwei-office-pc` identity. The next action is to create the private pnpm
+workspace and the smallest executable `repoledger check` package slice, then
+run its focused package tests before expanding validation coverage.
 
 ## Decisions
 
@@ -37,7 +36,7 @@ workspace and the smallest executable `repoledger check` package slice.
 
 | Milestone | Evidence | Status |
 | --- | --- | --- |
-| Claim | Pending. | Pending |
+| Claim | `origin/main` commit `1366493bf210fd23493b95708d56c9e38f9ff556`. | Published |
 | Implementation complete | Pending. | Pending |
 | Archive | Pending. | Pending |
 
@@ -49,6 +48,9 @@ workspace and the smallest executable `repoledger check` package slice.
   ongoing task or archived task of the same name.
 - Verified the claim move preserved `Task.md`, removed the backlog source
   directory, and left exactly one task position.
+- Verified claim commit `1366493bf210fd23493b95708d56c9e38f9ff556` is
+  reachable from refreshed `origin/main`, with both ongoing artifacts present
+  and the backlog source absent.
 
 ## Blockers
 
