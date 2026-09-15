@@ -23,11 +23,23 @@ that understanding. Existing work has a different durable source of truth: the
 user should be able to attach its `Task.md` and invoke `/task-exec` without
 translating the artifact back into a textual lookup query.
 
+New-task intake needs only semantic duplicate detection, not execution-time
+workspace coordination. An unrelated dirty worktree, implementation change, or
+active claim should not distract from recording an admitted outcome. When an
+active task already appears to track that outcome, however, the user should
+choose whether to add the new context there or create a distinct task.
+
 ## Scope
 
 - Revise the `task-new` description, argument hint, and intake routing so direct
   arguments are optional and the latest settled outcome in the active
   conversation is the primary source for a no-argument invocation.
+- Limit `task-new` overlap inspection to active backlog and ongoing tasks whose
+  outcomes plausibly match the current discussion. When one matches, present it
+  and ask whether to merge the new context into that task or create a distinct
+  task instead of choosing silently.
+- Keep unrelated worktree changes, implementation-surface overlap, and
+  nonmatching active claims out of the new-task intake decision.
 - Revise the `task-exec` description, argument hint, and target routing so one
   attached canonical `Task.md` is the preferred task locator, with task name,
   description, and explicit conversation context retained as fallbacks.
@@ -57,6 +69,13 @@ translating the artifact back into a textual lookup query.
       record one sufficiently specified, admitted outcome, while unresolved
       alternatives, missing acceptance boundaries, or multiple plausible
       outcomes produce only the smallest necessary clarification.
+- [ ] Before creating a task, `task-new` compares that outcome with current
+  active task definitions; a plausible match identifies the existing task
+  and asks the user to choose between merging the context there and creating
+  a separate task.
+- [ ] Unrelated dirty files, implementation work, and nonmatching claims neither
+  block `task-new` nor trigger intake questions, while any resulting ledger
+  publication still preserves those unrelated changes.
 - [ ] `task-exec` metadata presents an attached `Task.md` as the primary input,
       and invoking `/task-exec` with exactly one canonical task attachment
       resolves its owning repository and current ledger position without
