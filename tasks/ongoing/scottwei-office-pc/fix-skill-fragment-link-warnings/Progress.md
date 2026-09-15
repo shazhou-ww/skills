@@ -5,16 +5,16 @@ Updated: 2026-09-15
 ## Checklist
 
 - [x] Publish the claim to the shared primary branch.
-- [ ] Commit and publish substantive work at meaningful checkpoints.
-- [ ] Publish implementation completion while the task is still ongoing.
+- [x] Commit and publish substantive work at meaningful checkpoints.
+- [x] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented user acceptance, if required (not required).
 - [ ] Archive and publish the task as its final action.
 
 ## Current state
 
-All four fragment-only targets now use explicit same-file paths, and every
-agent-verifiable acceptance criterion passes. The next action is to publish
-the implementation-complete milestone while the task remains ongoing.
+All four fragment-only targets use explicit same-file paths, every
+agent-verifiable acceptance criterion passes, and implementation completion is
+published on `origin/main`. The next action is to archive and publish the task.
 
 ## Decisions
 
@@ -30,7 +30,7 @@ the implementation-complete milestone while the task remains ongoing.
 | Milestone | Evidence | Status |
 | --- | --- | --- |
 | Claim | `origin/main` commit `db6838b2698ec64b45254d7102af2c619d182916`. | Published |
-| Implementation complete | Pending. | Pending |
+| Implementation complete | `origin/main` commit `e2994c58cc2c5c6658240dca2a3c1885c6b5feb2`. | Published |
 | Archive | Pending. | Pending |
 
 ## Validation
@@ -49,6 +49,8 @@ the implementation-complete milestone while the task remains ongoing.
 - `pnpm check` passed, including 36 repoledger tests, 8 release-helper tests,
   package validation, smoke validation, and the ledger check.
 - `git diff --check -- skills/repository-task-ledger/SKILL.md` passed.
+- The implementation commit `e2994c58cc2c5c6658240dca2a3c1885c6b5feb2`
+  is reachable from the refreshed `origin/main`.
 
 ## Blockers
 
