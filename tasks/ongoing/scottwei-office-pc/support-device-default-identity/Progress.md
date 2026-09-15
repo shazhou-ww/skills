@@ -7,19 +7,22 @@ Updated: 2026-09-15
 - [x] Reserve and publish the `scottwei-office-pc` repository identity.
 - [x] Configure the device default suggestion and explicitly bind this worktree.
 - [x] Claim this task under the new identity.
-- [ ] Define device-default semantics and initialization safeguards in the skill.
-- [ ] Document explicit identity overrides for additional worktrees.
-- [ ] Confirm the old identity has no active claims or worktree bindings, then retire it.
-- [ ] Run discovery, link, identity, task-layout, and diff-hygiene validation.
+- [x] Define device-default semantics and initialization safeguards in the skill.
+- [x] Document explicit identity overrides for additional worktrees.
+- [x] Confirm the old identity has no active claims or worktree bindings, then retire it.
+- [x] Run discovery, link, identity, task-layout, and diff-hygiene validation.
 - [ ] Archive and publish the completed task.
 
 ## Current state
 
-Commit `6cab1ac` publishes the `scottwei-office-pc` identity reservation on
-`origin/main`. The device-global `task-ledger.defaultIdentity` suggests that
-identity, while this worktree independently resolves the same value from
-worktree-scoped `task-ledger.identity`. The task is now claimed under the new
-identity; the next action is to publish this claim before editing the skill.
+Commits `6cab1ac` and `44413c5` publish the `scottwei-office-pc` identity
+reservation and this task's claim on `origin/main`. The skill now treats the
+device-global default only as initialization input and requires repository
+registration before an explicit worktree binding. The adoption guide documents
+per-worktree overrides. The repository has one linked worktree, already bound
+to the new identity; the unused `copilot-shared-skills` registration has been
+removed. Full prepublish validation passes; the next action is to publish the
+implementation, verify the shared result, and archive this task.
 
 ## Decisions
 
@@ -39,6 +42,16 @@ identity; the next action is to publish this claim before editing the skill.
   `scottwei-office-pc` from `.git/config.worktree` at worktree scope.
 - The post-move check found the complete task only under
   `tasks/ongoing/scottwei-office-pc/` and confirmed the backlog source is gone.
+- Focused semantic checks printed `DEVICE_DEFAULT_SKILL_SEMANTICS_OK` and
+  `ADOPTION_DEVICE_DEFAULT_GUIDANCE_OK`.
+- The linked-worktree audit found one worktree bound to
+  `scottwei-office-pc`, no active claim under `copilot-shared-skills`, and no
+  remaining old identity directory after retirement.
+- `npx skills add . --list` discovered `repository-task-ledger` successfully.
+- The combined prepublish check validated 5 task positions, all local links in
+  16 tracked Markdown files, the identity scopes, the one linked worktree,
+  initialization ordering, the expected changed paths, and `git diff --check`;
+  it printed `PREPUBLISH_CHECK_OK`.
 
 ## Blockers
 

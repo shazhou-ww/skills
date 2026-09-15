@@ -103,17 +103,36 @@ Each worktree should normally use one stable identity. An identity may name a
 person, an agent, a team, or another actor chosen under the team's convention.
 The workflow does not require identities to represent humans.
 
-Identity uses two records with different scopes:
+An authoritative worktree identity uses two records with different scopes:
 
 - `tasks/ongoing/<identity>/.gitkeep` on the shared `main` branch registers and
   reserves the identity for collaboration.
 - `task-ledger.identity` in Git's worktree-scoped config identifies which
   registered identity the current worktree uses.
 
+An optional `task-ledger.defaultIdentity` value in Git's global config may
+suggest a candidate during initialization. It is device-local convenience, not
+a third identity record: it neither registers the name in a repository nor
+binds any worktree, and task work must never fall back to it.
+
 Do not store the local binding in `.env`, an environment variable, a tracked
 file, or ordinary repository-local Git config. Application environment files
 have the wrong ownership and may contain secrets; ordinary local Git config is
 shared by linked worktrees.
+
+### Configure An Optional Device Default
+
+Set a usual identity for this device only when that suggestion is useful across
+repositories:
+
+```sh
+git config --global task-ledger.defaultIdentity <identity>
+```
+
+The value must use lowercase kebab-case. Keep it in global Git config, which is
+machine-local, and never copy it into tracked repository configuration. Setting
+or changing it does not initialize any worktree. Remove an obsolete suggestion
+with `git config --global --unset task-ledger.defaultIdentity`.
 
 ### Resolve An Existing Binding
 
@@ -128,8 +147,9 @@ The first command must return `true`. The second must return one lowercase
 kebab-case identity. Fetch the shared `main` branch and verify that
 `tasks/ongoing/<identity>/.gitkeep` exists there. If the extension, value, or
 remote registration is missing or invalid, stop before claiming or resuming a
-task. Do not infer the identity from the worktree path, branch name, operating
-system user, agent name, or the only visible identity lane.
+task. Do not substitute the global default for a missing worktree value, and do
+not infer the identity from the worktree path, branch name, operating system
+user, agent name, or the only visible identity lane.
 
 To inspect where Git read the value from, use:
 
@@ -139,7 +159,8 @@ git config --show-origin --show-scope --get task-ledger.identity
 
 It must report worktree-scoped configuration. A new clone or worktree must
 establish its own binding; the value intentionally does not travel with Git
-history.
+history. The optional device default is deliberately outside this resolution
+path.
 
 ### Initialize A New Binding
 
@@ -164,19 +185,37 @@ Before using a new identity:
 
 3. Fetch the shared `main` branch and inspect the identity directories already
    present under `tasks/ongoing/` on that branch.
-4. Choose a short lowercase kebab-case name that is not already registered.
-5. Add `tasks/ongoing/<identity>/.gitkeep` in a clean coordination change.
-6. Commit only that reservation and push it directly to `main` before using the
+4. Choose a short lowercase kebab-case candidate explicitly. As input to this
+   choice, initialization may read the device suggestion:
+
+   ```sh
+   git config --global --get task-ledger.defaultIdentity
+   ```
+
+   An absent value means there is no suggestion. Reject an invalid value rather
+   than writing it. An explicit choice overrides the suggestion.
+5. Check `tasks/ongoing/<identity>/.gitkeep` on the refreshed shared `main`. A
+   matching existing lane satisfies registration only after the initializer
+   deliberately confirms it is the identity to bind; the global match alone
+   is not confirmation. If another actor reserved the name, choose another.
+6. When the selected identity is not registered, add
+   `tasks/ongoing/<identity>/.gitkeep` in a clean coordination change.
+7. Commit only that reservation and push it directly to `main` before using the
    identity for work.
-7. If the push is rejected or the name appeared after the fetch, do not force
+8. If the push is rejected or the name appeared after the fetch, do not force
    the push. Fetch again, choose another identity, and retry.
-8. Only after the reservation succeeds, bind the current worktree and verify
-   the value and its origin:
+9. Only after an existing or newly published registration is confirmed, bind
+   the current worktree explicitly and verify the value and its origin:
 
    ```sh
    git config --worktree task-ledger.identity <identity>
    git config --show-origin --show-scope --get task-ledger.identity
    ```
+
+Repeat registration validation and explicit binding for every worktree. For an
+additional worktree on the same device, choose a registered override explicitly
+instead of silently reusing the global suggestion; leave the device default
+unchanged unless the usual identity for the device itself has changed.
 
 The `.gitkeep` preserves the identity lane when it has no active task and
 reserves the name against accidental reuse. Keep the identity stable for the

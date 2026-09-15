@@ -65,12 +65,24 @@ project need.
 
 ## Worktree identity setup
 
-The committed identity lane and local binding answer different questions:
+Repository registration, worktree binding, and an optional device suggestion
+answer different questions:
 
 | Record | Scope | Meaning |
 | --- | --- | --- |
 | `tasks/ongoing/<identity>/.gitkeep` | Shared `main` history | This name is registered and reserved. |
-| `task-ledger.identity` | Current Git worktree | This worktree uses that registered name. |
+| `task-ledger.identity` | Current Git worktree | Authoritatively binds this worktree to that registered name. |
+| `task-ledger.defaultIdentity` | Device-global Git config | Optionally suggests a candidate during initialization only. |
+
+When one identity is commonly used across repositories on a device, configure
+the machine-local suggestion with:
+
+```sh
+git config --global task-ledger.defaultIdentity <identity>
+```
+
+Do not track this value in a repository. It does not reserve the name, bind a
+worktree, or provide a fallback when a worktree binding is missing.
 
 For an ordinary non-bare repository with no configured `core.worktree`, enable
 worktree configuration once:
@@ -84,12 +96,39 @@ Before enabling it in a nonstandard repository, inspect `core.worktree` and
 is unsupported by older Git clients; all tools accessing the repository must
 support the extension.
 
-After a unique `.gitkeep` reservation has been pushed successfully to `main`,
-bind the worktree:
+During initialization, an explicit identity choice may override the suggestion.
+Otherwise, read the suggestion only as a candidate:
+
+```sh
+git config --global --get task-ledger.defaultIdentity
+```
+
+Validate the candidate as lowercase kebab-case, fetch shared `main`, and inspect
+the repository's identity lanes. Deliberately confirm a matching registration,
+or publish a clean `.gitkeep` reservation when it is absent. A matching global
+value must not trigger an automatic binding.
+
+After the existing or new registration has been confirmed on shared `main`,
+bind the worktree explicitly:
 
 ```sh
 git config --worktree task-ledger.identity <identity>
 ```
+
+### Multiple Worktrees On One Device
+
+Initialize each worktree independently. A primary worktree may explicitly bind
+the identity suggested by the device default. For an additional worktree, first
+validate or publish a different repository registration when the team requires
+distinct ownership, then run this command inside that worktree:
+
+```sh
+git config --worktree task-ledger.identity <registered-override>
+```
+
+That explicit value overrides the device suggestion for the current worktree.
+Leave `task-ledger.defaultIdentity` unchanged unless the device's usual identity
+has changed; an override for one worktree is not a reason to rewrite it.
 
 At the start of task work, agents must read and validate it:
 
@@ -102,7 +141,7 @@ The extension must be enabled, the value must be lowercase kebab-case, the
 origin must be worktree config, and the matching `.gitkeep` must exist on the
 latest shared `main`. Stop task work until any missing or stale binding is
 resolved. Do not guess from paths, branches, usernames, agent names, or visible
-lanes.
+lanes, and do not substitute the device default.
 
 ## Suggested validation invariants
 
