@@ -11,7 +11,7 @@ an authorized package-specific Git tag is pushed.
 
 This repository is a private pnpm workspace whose publishable packages live
 under `packages/`. The initial `repoledger` release is owned by the active
-[`build-repoledger-cli`](/tasks/ongoing/scottwei-office-pc/build-repoledger-cli/Task.md)
+[`build-repoledger-cli`](/tasks/archived/build-repoledger-cli/Task.md)
 task, but subsequent releases need a repeatable path that does not depend on a
 maintainer publishing from a development machine.
 
@@ -90,6 +90,6 @@ committed package manifest remaining the source of package name and version.
 
 ## References
 
-- [Build the repoledger CLI](/tasks/ongoing/scottwei-office-pc/build-repoledger-cli/Task.md)
+- [Build the repoledger CLI](/tasks/archived/build-repoledger-cli/Task.md)
 - [repoledger package manifest](/packages/repoledger/package.json)
 - [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
