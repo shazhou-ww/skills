@@ -61,36 +61,36 @@ choose whether to add the new context there or create a distinct task.
 
 ## Acceptance criteria
 
-- [ ] `task-new` metadata presents command text as optional, and invoking
+- [x] `task-new` metadata presents command text as optional, and invoking
       `/task-new` without an argument after a sufficiently specified discussion
       uses the latest settled implementation outcome instead of asking the user
       to restate it.
-- [ ] A no-argument `/task-new` invocation counts as an explicit request to
+- [x] A no-argument `/task-new` invocation counts as an explicit request to
       record one sufficiently specified, admitted outcome, while unresolved
       alternatives, missing acceptance boundaries, or multiple plausible
       outcomes produce only the smallest necessary clarification.
-- [ ] Before creating a task, `task-new` compares that outcome with current
+- [x] Before creating a task, `task-new` compares that outcome with current
   active task definitions; a plausible match identifies the existing task
   and asks the user to choose between merging the context there and creating
   a separate task.
-- [ ] Unrelated dirty files, implementation work, and nonmatching claims neither
+- [x] Unrelated dirty files, implementation work, and nonmatching claims neither
   block `task-new` nor trigger intake questions, while any resulting ledger
   publication still preserves those unrelated changes.
-- [ ] `task-exec` metadata presents an attached `Task.md` as the primary input,
+- [x] `task-exec` metadata presents an attached `Task.md` as the primary input,
       and invoking `/task-exec` with exactly one canonical task attachment
       resolves its owning repository and current ledger position without
       requiring a duplicate name or description.
-- [ ] The attached task is used as a locator rather than a potentially stale
+- [x] The attached task is used as a locator rather than a potentially stale
       snapshot: execution refreshes shared state and reads the latest canonical
       task and progress artifacts before choosing the backlog, current-owner,
       other-owner, or archived route.
-- [ ] When no usable task attachment is present, `task-exec` still resolves from
+- [x] When no usable task attachment is present, `task-exec` still resolves from
       an optional task name or description and explicit conversation context;
       conflicting or multiple targets stop for the smallest clarification.
-- [ ] Both entry skills continue to load `repository-task-ledger`, fail closed
+- [x] Both entry skills continue to load `repository-task-ledger`, fail closed
       when it is unavailable, preserve its sole authority over lifecycle
       policy, and avoid duplicating core implementation details.
-- [ ] Focused routing checks, skill discovery validation, repository checks,
+- [x] Focused routing checks, skill discovery validation, repository checks,
       local-link validation, and `git diff --check` all pass.
 
 ## Constraints
@@ -100,8 +100,7 @@ choose whether to add the new context there or create a distinct task.
 - Treat the latest explicit user instruction as stronger than older session
   context, and do not turn exploratory or rejected discussion into task scope.
 - Preserve the existing admission boundary and autonomous publication rules.
-- Preserve unrelated in-progress work in the current worktree and active
-  `build-repoledger-cli` task.
+- Preserve unrelated in-progress work and other task-ledger entries.
 
 ## References
 

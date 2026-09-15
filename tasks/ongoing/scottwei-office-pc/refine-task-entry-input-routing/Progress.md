@@ -7,24 +7,27 @@ Updated: 2026-09-15
 - [x] Publish the claim to the shared primary branch.
 - [ ] Commit and publish substantive work at meaningful checkpoints.
 - [ ] Publish implementation completion while the task is still ongoing.
-- [ ] Complete documented user acceptance, if required.
+- [x] Complete documented user acceptance, if required. Not required because
+  every acceptance criterion is agent-verifiable.
 - [ ] Archive and publish the task as its final action.
 
 ## Current state
 
-The task is claimed under the worktree identity `scottwei-office-pc`, and the
-claim is published on `origin/main`. The next action is to update the two entry
-skills and focused routing validation.
+The claim is published on `origin/main`. The two entry skills now implement
+conversation-first intake and attachment-first execution, and README usage
+matches the new routes. All acceptance criteria pass locally; the next action
+is to publish implementation completion while the task remains ongoing and
+record its immutable commit evidence.
 
 ## Decisions
 
-- Keep the implementation confined to the two user-facing entry skills and
-  their focused validation unless documentation assertions require a matching
-  update.
+- Keep the behavioral implementation confined to the two user-facing entry
+  skills and update only the README section that advertised the old required
+  arguments.
 - Treat the active package-release task as nonoverlapping because it owns npm
   release automation rather than task-entry routing.
-- Preserve the unrelated local link repair in the package-release task and do
-  not include it in this task's commits.
+- Preserve unrelated task-ledger work; a concurrent package-release link repair
+  was published independently before this task's claim.
 - No manual user acceptance is currently expected because metadata, routing
   precedence, ambiguity behavior, and skill discovery are agent-verifiable.
 
@@ -46,6 +49,18 @@ skills and focused routing validation.
 - The claim-move check found `Task.md` only under the current identity lane,
   confirmed the backlog source directory is absent, and preserved the identity
   marker.
+- Focused generated-prompt assertions printed `ENTRY_ROUTING_PROMPTS_VALID`.
+  They verified the optional `task-new` hint, settled-conversation source,
+  active-task merge choice, unrelated-work boundary, attached `Task.md`
+  locator, latest-canonical-state refresh, fallback route, and removal of both
+  old required hints.
+- `pnpm check:skills` discovered exactly the three expected skills with the new
+  descriptions; README and skill scans found no old required invocation forms.
+- Editor diagnostics reported no errors in either entry skill or README.
+- `pnpm check` passed all 36 CLI tests, package allowlist and packed-package
+  smoke checks, and repository ledger validation with full history.
+- `git diff --check` passed, and the implementation diff contains only README,
+  the two entry skills, and this task's ongoing records.
 
 ## Blockers
 

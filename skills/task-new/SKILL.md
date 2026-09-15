@@ -1,7 +1,7 @@
 ---
 name: task-new
-description: "Discuss, triage, and record a new repository implementation task. Use when the user proposes an idea, asks to add accepted work to a task backlog, or invokes /task-new."
-argument-hint: "<implementation idea>"
+description: "Discuss, triage, and record a repository implementation task from the current conversation. Use when the user invokes /task-new with or without extra context, proposes an idea, or asks to add accepted work to a backlog."
+argument-hint: "[optional task context]"
 user-invocable: true
 ---
 
@@ -26,22 +26,34 @@ create task files without it.
 
 ## Route The Intake Intent
 
-- Treat the user's input as a candidate implementation idea, not automatically
-  as accepted work.
+- Resolve the candidate from the latest explicit user direction and the settled
+  outcome of the active conversation. Text supplied with `/task-new` is
+  optional and supplements or overrides older context. When the conversation
+  already contains exactly one sufficiently specified outcome, do not ask the
+  user to restate it.
+- Treat invoking `/task-new` as an explicit request to record that candidate.
+  When the outcome is sufficiently specified and passes the core admission
+  rule, the invocation counts as acceptance; exploratory discussion without
+  that request does not.
 - Discuss only enough to identify the owning repository, one testable outcome,
   important boundaries, and observable acceptance criteria.
-- Inspect the latest backlog and all ongoing claims before creating related
-  work. Surface duplicates, overlap, or ownership ambiguity instead of
-  guessing.
+- Inspect the latest backlog and ongoing task definitions only for an active
+  task that plausibly tracks the same implementation outcome. Do not turn
+  unrelated claims, dirty files, or implementation-surface overlap into intake
+  blockers or questions, and preserve unrelated work during publication.
+- When an active task plausibly matches, identify it and ask the user whether
+  to merge the new context into that task or create a distinct task. Do not
+  choose, mutate the match, or create another task until the user decides.
 - Apply the core protocol's admission rule. Create a backlog task only when the
-  implementation outcome is accepted and admission passes. An explicit request
-  to record a sufficiently specified, admitted task counts as acceptance;
-  otherwise ask for the smallest missing decision.
+  implementation outcome is accepted and admission passes. Ask only for the
+  smallest missing decision when the candidate, repository, boundaries,
+  acceptance criteria, or duplicate route remains ambiguous.
 - Leave rejected, duplicate, still-unconfirmed, and task-free requests outside
   the task ledger, following the core protocol's intake guidance.
 - When a task is admitted, use the core protocol's template, location,
   repository profile, validation, and publication requirements.
 
-Finish by reporting whether the idea was admitted and, when created, the task's
-canonical backlog path and published state. Do not claim or implement the task
-unless the user explicitly changes the intent to execution.
+Finish by reporting whether the candidate was admitted and whether it was
+merged or created. When created, include the task's canonical backlog path and
+published state. Do not claim or implement the task unless the user explicitly
+changes the intent to execution.

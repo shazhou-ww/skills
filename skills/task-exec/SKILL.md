@@ -1,7 +1,7 @@
 ---
 name: task-exec
-description: "Claim, resume, and complete an existing repository task. Use when the user asks to execute backlog work, continue an ongoing task, finish task work, or invokes /task-exec."
-argument-hint: "<task name or description>"
+description: "Claim, resume, and complete an existing repository task, preferably from an attached canonical Task.md. Use when the user invokes /task-exec, attaches a task, or asks to execute backlog or ongoing work."
+argument-hint: "[attach Task.md or optionally name a task]"
 user-invocable: true
 ---
 
@@ -26,13 +26,21 @@ change task or implementation files without it.
 
 ## Resolve The Execution Target
 
-- Use the supplied task name or description together with explicit conversation
-  context to inspect the latest backlog, every ongoing identity lane, and any
-  matching archived task.
+- Prefer one attached canonical `Task.md` as the execution locator. Use its
+  owning repository and task identity to find the task in the latest ledger;
+  treat the attachment as a locator, not as an authoritative content or status
+  snapshot.
+- When there is no usable task attachment, resolve from an optional supplied
+  task name or description, then from explicit conversation context. The
+  latest explicit user instruction takes precedence over older context.
+- Refresh the shared primary branch and read the latest canonical `Task.md` and
+  `Progress.md`, when present, before deciding the task's current backlog,
+  ongoing, or archived route.
 - Proceed only with one unambiguous task in one owning repository. If there is
-  no match, more than one plausible match, or ambiguous repository ownership,
-  stop and ask for the smallest clarification. Do not silently create a new
-  task; route new intake through `task-new`.
+  no match, conflicting locators, multiple attachments or plausible matches,
+  or ambiguous repository ownership, stop and ask for the smallest
+  clarification. Do not silently create a new task; route new intake through
+  `task-new`.
 - For a backlog match, follow the core protocol to validate identity and
   overlap, claim and publish the task, and only then begin implementation.
 - For a task already ongoing under the current worktree identity, refresh its

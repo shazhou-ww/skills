@@ -6,25 +6,33 @@ Reusable Agent Skills maintained for projects under `shazhou-ww`.
 
 ### task-new
 
-[`task-new`](skills/task-new/SKILL.md) discusses and triages a candidate
-implementation idea, checks current task state for overlap, and records it in
-backlog only after acceptance and repository-task admission both pass. On
-clients that expose user-invocable skills as commands, use:
+[`task-new`](skills/task-new/SKILL.md) turns the settled implementation outcome
+of the active conversation into a backlog task after admission passes. Invoke
+it once the discussion is ready to record; extra command text is optional:
 
 ```text
-/task-new <implementation idea>
+/task-new
 ```
+
+Before creating anything, it checks active task definitions for the same
+outcome. A plausible match prompts the user to choose between merging the new
+context into that task and creating a distinct task; unrelated workspace work
+does not block intake.
 
 ### task-exec
 
-[`task-exec`](skills/task-exec/SKILL.md) resolves one existing backlog or
-ongoing task, then claims or resumes it and follows the repository lifecycle to
-completion or a genuine external blocker. On clients that expose
-user-invocable skills as commands, use:
+[`task-exec`](skills/task-exec/SKILL.md) resolves one existing task, then claims
+or resumes it and follows the repository lifecycle to completion or a genuine
+external blocker. Prefer attaching its canonical `Task.md` and invoking:
 
 ```text
-/task-exec <task name or description>
+/task-exec
 ```
+
+The attachment locates the task; execution refreshes the shared ledger and
+reads its latest canonical artifacts rather than trusting an attached snapshot.
+When attachments are unavailable, a task name, description, or explicit
+conversation context remains a supported fallback.
 
 ## Protocol core
 
