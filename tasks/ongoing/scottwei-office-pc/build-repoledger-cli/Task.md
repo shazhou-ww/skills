@@ -65,35 +65,35 @@ JavaScript package workspace.
 
 ## Acceptance criteria
 
-- [ ] The repository is a private pnpm workspace with a publishable
+- [x] The repository is a private pnpm workspace with a publishable
       `packages/repoledger` package and no unintended task or skill artifacts
       in its npm tarball.
-- [ ] A pinned published version can run `npx repoledger@<version> --help`,
+- [x] A pinned published version can run `npx repoledger@<version> --help`,
       `check`, and `doctor` from a consuming repository on every documented
       supported platform and Node.js version.
-- [ ] `repoledger check` passes this repository and representative valid
+- [x] `repoledger check` passes this repository and representative valid
       fixtures, reports every scoped invariant violation with a useful path
       and remediation, emits machine-readable JSON on request, and returns a
       nonzero status for errors.
-- [ ] `repoledger doctor` verifies the actual worktree-scoped identity and its
+- [x] `repoledger doctor` verifies the actual worktree-scoped identity and its
       refreshed shared-branch registration, distinguishes the optional global
       default from the authoritative binding, and gives deterministic errors
       for each missing or invalid prerequisite.
-- [ ] CI-safe `check` does not require a developer identity or network access;
+- [x] CI-safe `check` does not require a developer identity or network access;
       local/remote readiness remains isolated in `doctor` with clearly marked
       offline behavior.
-- [ ] The GitHub-hosted schema contract strictly validates new and active tasks
+- [x] The GitHub-hosted schema contract strictly validates new and active tasks
   while preserving archived tasks with legacy publication formats without
   forcing historical rewrites; fixture tests cover both paths.
-- [ ] Full-history publication checks have documented behavior for complete,
+- [x] Full-history publication checks have documented behavior for complete,
       shallow, and unavailable Git history and never silently claim evidence
       that was not inspected.
-- [ ] The repository-task-ledger skill and adoption guidance consistently
+- [x] The repository-task-ledger skill and adoption guidance consistently
       explain when to use `check` versus `doctor`, while lifecycle decisions
       remain authoritative in the skill.
-- [ ] Package tests, workspace validation, skill discovery, local-link checks,
+- [x] Package tests, workspace validation, skill discovery, local-link checks,
       package packing checks, and diff hygiene all pass before publication.
-- [ ] The initial `repoledger` npm release is publicly resolvable at the exact
+- [x] The initial `repoledger` npm release is publicly resolvable at the exact
       version recorded in validation evidence.
 
 ## Constraints

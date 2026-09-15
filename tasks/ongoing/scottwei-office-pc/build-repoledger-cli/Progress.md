@@ -7,20 +7,20 @@ Updated: 2026-09-15
 - [x] Publish the claim to the shared primary branch.
 - [x] Commit and publish substantive work at meaningful checkpoints.
 - [ ] Publish implementation completion while the task is still ongoing.
-- [ ] Complete documented user acceptance, if required.
+- [x] Complete documented user acceptance, if required. Not required because
+  every acceptance criterion is agent-verifiable.
 - [ ] Archive and publish the task as its final action.
 
 ## Current state
 
-The claim, initial pnpm workspace, and complete source implementation are
-published on `origin/main`. GitHub Actions passed the Node 22/24 matrix on
-Windows, macOS, and Linux plus Agent Skills discovery. The only remaining
-implementation blocker is npm authentication on this device. The next action
-is for the maintainer to run
-`npm login --registry=https://registry.npmjs.org/` directly in a terminal;
-after `npm whoami` succeeds, recheck the package name, publish
-`repoledger@0.1.0`, verify exact-version npx execution, and record the
-implementation-complete milestone.
+The source implementation is published and cross-platform CI is green.
+[`repoledger@0.1.0`](https://www.npmjs.com/package/repoledger/v/0.1.0) is now
+public with `latest` pointing to `0.1.0`; its registry tarball exactly matches
+the candidate exercised by the test matrix. Exact-version npx execution of
+help, version, `check`, and online `doctor` passed from outside the workspace.
+Every acceptance criterion is complete. The next action is to publish this
+implementation-complete task state on `origin/main`, record its immutable
+commit in the milestone table, and then archive in a separate integration.
 
 ## Decisions
 
@@ -123,12 +123,23 @@ implementation-complete milestone.
   lookup confirmed the unscoped `repoledger` name remains unpublished.
 - `npm whoami --registry=https://registry.npmjs.org/` found no active npm
   publishing identity, so no publication was attempted.
+- After the maintainer authenticated, `npm whoami` returned `shazhou.ww`, and a
+  final registry lookup confirmed `repoledger@0.1.0` was still available.
+- `npm publish --access public --registry=https://registry.npmjs.org/`
+  published `repoledger@0.1.0` with 13 files, the `latest` dist-tag, and tarball
+  SHA-1 `4c625adc7e8745a5ccd3ba706b88bbc9a4cb33a5`.
+- Registry metadata reports `repoledger@0.1.0` and `latest=0.1.0`; its SHA-1
+  and integrity values exactly match a fresh local dry-run candidate.
+- From outside the workspace, exact-version `npx repoledger@0.1.0` returned
+  version `0.1.0`, rendered Commander help, passed `check` over 10 task
+  positions, and passed online `doctor` with identity
+  `scottwei-office-pc` and refreshed remote state.
+- [GitHub Actions run 34950800032](https://github.com/shazhou-ww/skills/actions/runs/34950800032)
+  passed for the current published source commit before npm publication.
 
 ## Blockers
 
-- Initial npm publication requires the maintainer to authenticate directly in
-  a terminal. Credentials, one-time codes, and tokens must not pass through the
-  task artifact or agent conversation. Resume after `npm whoami` succeeds.
+- None.
 
 ## Outcome
 
