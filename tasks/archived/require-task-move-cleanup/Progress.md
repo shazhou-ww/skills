@@ -9,7 +9,8 @@ Updated: 2026-09-15
 - [x] Add source-directory cleanup requirements to task moves.
 - [x] Tighten structural validation guidance for empty stale directories.
 - [x] Validate skill discovery, links, layout, and diff hygiene.
-- [ ] Publish the implementation and archive this task.
+- [x] Publish the implementation in commit `927f84d`.
+- [x] Archive this completed task.
 
 ## Current state
 
@@ -17,8 +18,9 @@ The stale `adopt-repository-task-ledger` directories under backlog and ongoing,
 and the stale `define-task-admission-boundary` backlog directory, were empty
 and have been removed without recursive deletion. The skill now makes source
 directory absence an explicit postcondition of every task move, and the
-adoption guide treats empty task-position directories as invalid. The next
-action is to publish these changes and archive this task.
+adoption guide treats empty task-position directories as invalid. Commit
+`927f84d` is published on `origin/main`, and this task is now in its canonical
+archive location. This progress record is the task's final lifecycle state.
 
 ## Decisions
 
@@ -43,12 +45,16 @@ action is to publish these changes and archive this task.
 - Editor diagnostics and `git diff --check` reported no errors.
 - The combined release check printed `PREPUBLISH_CHECK_OK` after validating
   unique task positions, local links, and the registered worktree identity.
+- The post-move checks printed `TASK_ARCHIVE_MOVE_OK` and `ARCHIVED_TASKS_OK`,
+  confirming complete archive artifacts, absent source directories, completed
+  checklists, and resolving links.
 
 ## Blockers
 
-- Publishing requires an explicitly authorized commit and push.
+- None.
 
 ## Outcome
 
-In progress. Implementation and local validation are complete; publication
-and archival remain.
+Completed. Task moves now require destination verification, source-directory
+cleanup, and a unique-position check that includes empty directories. The
+implementation is published in commit `927f84d`.

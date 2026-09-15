@@ -37,8 +37,8 @@ cross-repository scope still need to be made explicit.
 - [x] Cross-repository guidance distinguishes source ownership, mechanical
       downstream sync, and independently owned implementation changes.
 - [x] Learning or using the skill does not itself require a task.
-- [ ] Published source and downstream installed copies agree.
-- [ ] Skill discovery and downstream workflow checks pass.
+- [x] Published source and downstream installed copies agree.
+- [x] Skill discovery and downstream workflow checks pass.
 
 ## Constraints
 
@@ -49,5 +49,5 @@ cross-repository scope still need to be made explicit.
 
 ## References
 
-- [Repository task ledger skill](../../../../skills/repository-task-ledger/SKILL.md)
-- [Project adoption guide](../../../../skills/repository-task-ledger/references/adoption.md)
+- [Repository task ledger skill](../../../skills/repository-task-ledger/SKILL.md)
+- [Project adoption guide](../../../skills/repository-task-ledger/references/adoption.md)

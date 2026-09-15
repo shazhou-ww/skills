@@ -8,9 +8,9 @@ Updated: 2026-09-15
 - [x] Move task ownership from the downstream consumer to this source repository.
 - [x] Define the current-repository `tasks/**` scope explicitly.
 - [x] Define cross-repository source ownership and downstream sync behavior.
-- [ ] Publish and validate the refined skill.
+- [x] Publish and validate the refined skill in commit `927f84d`.
 - [x] Check downstream installed copies; none are applicable locally.
-- [ ] Archive the completed task.
+- [x] Archive this completed task.
 
 ## Current state
 
@@ -24,8 +24,9 @@ repository's own task directory. They assign the primary design and
 implementation to a source task, keep purely mechanical downstream sync under
 that task, and require a downstream task only for independently maintained
 implementation there. The public repository summary uses the same ownership
-boundary. The next action is to publish the source changes and archive this
-task after the release checks pass.
+boundary. Commit `927f84d` is published on `origin/main`; the known UniCAS
+checkout has no installed copy to refresh. This task is now in its canonical
+archive location, and this progress record is its final lifecycle state.
 
 ## Decisions
 
@@ -55,12 +56,17 @@ task after the release checks pass.
   applicable there.
 - `git diff --check` reported no errors, and the combined release check printed
   `PREPUBLISH_CHECK_OK` after validating task positions, links, and identity.
+- The post-move checks printed `TASK_ARCHIVE_MOVE_OK` and `ARCHIVED_TASKS_OK`,
+  confirming complete archive artifacts, absent source directories, completed
+  checklists, and resolving links.
 
 ## Blockers
 
-- Publishing requires an explicitly authorized commit and push.
+- None.
 
 ## Outcome
 
-In progress. Source semantics and local validation are complete; publication,
-downstream synchronization where applicable, and archival remain.
+Completed. Admission is repository-local and path-based, source ownership is
+explicit, mechanical downstream synchronization does not create mirrored
+tasks, and independent downstream implementation retains its own task.
+Commit `927f84d` publishes the refined workflow.
