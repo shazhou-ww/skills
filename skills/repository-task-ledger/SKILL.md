@@ -77,6 +77,31 @@ repository and link them rather than copying one task between repositories.
 5. Preserve unrelated worktree changes. Never move, rewrite, or archive another
    identity's task merely to clear a conflict.
 
+## Use Deterministic Validation
+
+The `repoledger` npm CLI is the deterministic companion to this skill. The
+skill remains authoritative for admission, ownership, coordination,
+publication, acceptance, and lifecycle decisions; the CLI checks facts that do
+not require judgment.
+
+Repositories that adopt the CLI should pin it as a development dependency and
+track `repoledger.json` against the versioned GitHub schema. The schema URL is
+the contract version; do not duplicate it in another config field or in task
+metadata.
+
+Run `repoledger check` in CI and after task-artifact changes. It reads files and
+existing Git refs without network access, and it requires complete history so
+publication evidence is never silently skipped. Before claiming or resuming
+task work, run `repoledger doctor`; it also validates the real worktree-scoped
+identity, refreshes the configured shared branch, and checks the remote
+identity lane. `doctor --offline` reports degraded freshness and does not
+satisfy the protocol's latest-remote requirement.
+
+The CLI accepts repository-root and ordinary file-relative local links and
+leaves URI references external. It does not create, move, repair, commit, or
+publish task state. When a repository has not adopted the CLI, apply the same
+normative checks described by this skill and its project profile.
+
 ## Publish Through The Shared Primary Branch
 
 The shared primary branch is the repository-declared collaboration branch,

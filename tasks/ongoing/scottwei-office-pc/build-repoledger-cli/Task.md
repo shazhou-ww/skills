@@ -29,17 +29,17 @@ JavaScript package workspace.
   `npx` without requiring pnpm in consuming repositories.
 - Add `repoledger check` for CI-safe validation of repository task layout,
   portable names, identity lanes, unique task positions, required artifacts
-  and sections, state constraints, declared link behavior, user-acceptance
-  guides, publication evidence, and available Git history.
+  and sections, state constraints, repository-local links, user-acceptance
+  guides, publication evidence, and complete Git history.
 - Add `repoledger doctor` for local task-work readiness, including the static
   checks plus Git worktree configuration, authoritative identity scope and
   syntax, device-default separation, remote-branch freshness, and identity
   registration. Permit an explicitly degraded offline check.
 - Provide concise human output, structured JSON output, actionable failures,
   and stable nonzero exit behavior.
-- Define a language-neutral `repoledger.json` project configuration and a
-  versioned validation contract without parsing natural-language project
-  policy from `tasks/README.md`.
+- Define a language-neutral `repoledger.json` project configuration whose
+  GitHub-hosted schema URL is the versioned validation contract, without
+  parsing natural-language project policy from `tasks/README.md`.
 - Update the repository-task-ledger skill, templates, adoption guidance, and
   repository profile so new tasks use the versioned contract while existing
   archived history remains valid without bulk rewriting.
@@ -82,9 +82,9 @@ JavaScript package workspace.
 - [ ] CI-safe `check` does not require a developer identity or network access;
       local/remote readiness remains isolated in `doctor` with clearly marked
       offline behavior.
-- [ ] The versioned contract strictly validates new and active tasks while
-      preserving unversioned archived tasks as legacy records without forcing
-      historical rewrites; fixture tests cover both paths.
+- [ ] The GitHub-hosted schema contract strictly validates new and active tasks
+  while preserving archived tasks with legacy publication formats without
+  forcing historical rewrites; fixture tests cover both paths.
 - [ ] Full-history publication checks have documented behavior for complete,
       shallow, and unavailable Git history and never silently claim evidence
       that was not inspected.

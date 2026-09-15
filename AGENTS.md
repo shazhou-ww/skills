@@ -14,6 +14,9 @@ the repository profile in [`tasks/README.md`](tasks/README.md).
   `tasks/**`, stop before that edit and create or claim accepted work.
 - Resolve identity only from the worktree-scoped Git key
   `task-ledger.identity`; verify its `.gitkeep` lane on `origin/main`.
+- When workspace dependencies are available, run
+  `pnpm exec repoledger doctor` for deterministic identity and ledger checks
+  before task work; do not treat offline mode as a fresh remote check.
 - Inspect all active claims and backlog tasks before creating or claiming work.
 - Create accepted work in `tasks/backlog/<task-name>/Task.md`, then move the
   whole folder under `tasks/ongoing/<identity>/` and add `Progress.md` before
@@ -34,6 +37,7 @@ the repository profile in [`tasks/README.md`](tasks/README.md).
 
 - Keep generic reusable workflow guidance under `skills/`.
 - Keep repository-specific execution state and research under `tasks/`.
-- Validate skill discovery with `npx skills add . --list` after changing a
-  skill's frontmatter or structure.
+- Run `pnpm check` for CLI, configuration, and task-ledger validation.
+- Validate skill discovery with `pnpm check:skills` after changing a skill's
+  frontmatter or structure.
 - Do not commit secrets, credentials, tokens, or private customer data.

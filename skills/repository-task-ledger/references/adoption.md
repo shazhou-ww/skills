@@ -26,6 +26,45 @@ The entry skills are convenient intent routers, not policy enforcement. Keep
 the checked-in project instruction below so natural-language requests and
 agents that do not expose slash commands still load the authoritative core.
 
+## Install The Deterministic Validator
+
+Pin the companion CLI in each adopting repository instead of resolving
+`latest` during CI:
+
+```sh
+pnpm add --save-dev repoledger@0.1.0
+```
+
+Track this `repoledger.json` at the repository root, adapting only the task
+directory and shared remote branch when necessary:
+
+```json
+{
+   "$schema": "./node_modules/repoledger/schema/v1.json",
+   "tasksDirectory": "tasks",
+   "remote": "origin",
+   "branch": "main"
+}
+```
+
+The pinned package supplies the schema locally for offline editor validation;
+its canonical `$id` links to the versioned schema on GitHub and is the
+configuration contract. `repoledger check` validates the repository without
+fetching or reading a developer identity; because publication is part of the
+protocol, it fails rather than claiming a complete result when Git history is
+shallow, unavailable, or missing the configured remote ref. CI must check out
+full history.
+
+Run `repoledger doctor` before task work. It refreshes the configured branch,
+validates `extensions.worktreeConfig`, the authoritative worktree binding, the
+optional device-default boundary, and remote identity registration, then runs
+the same repository checks. `--offline` is diagnostic only and does not meet
+the latest-remote prerequisite.
+
+The CLI never decides admission, ownership, acceptance, handoff, completion,
+or abandonment, and it never mutates task files, Git configuration, commits,
+or branches. Keep the skill installed and required by project instructions.
+
 ## Admission boundary
 
 Use the ledger for accepted implementation work: a new task is required in the
@@ -106,23 +145,20 @@ guess whether a local commit, side-branch push, or unmerged request counts as
 published; only history reachable from the refreshed remote primary branch
 satisfies a publication milestone.
 
-## Choose A Task-Link Convention
+## Link Task References
 
-Task artifacts move between directories with different depths, so each project
-should declare its preferred repository-local link convention and supported
-renderers in `tasks/README.md` or equivalent checked-in policy:
+Task artifacts move between directories with different depths. Prefer
+`/path/from/repository/root` for repository-local links when the supported
+renderer resolves a leading `/` from the repository or workspace root. GitHub
+does this for repository Markdown, and VS Code does it when the repository root
+is the workspace root. This is renderer behavior, not standard Markdown.
 
-- Use `/path/from/repository/root` when every supported renderer resolves a
-   leading `/` from the repository or workspace root. GitHub does this for
-   repository Markdown, and VS Code does it when the repository root is the
-   workspace root. This is a renderer-supported convention, not standard
-   Markdown behavior.
-- Use ordinary file-relative links when the project must support other Markdown
-   renderers. They are portable, but links from task artifacts may need to be
-   updated whenever a task moves.
+Ordinary file-relative links remain valid and are required when another
+renderer lacks repository-root behavior, though they may need updates when a
+task moves. External URI references and fragment-only links remain unchanged.
+The validator resolves both local forms without a project link-policy setting
+and does not interpret external URIs as repository paths.
 
-Root-link projects may still contain ordinary relative links, so validation
-must support both forms. Leave external URLs and fragment-only links unchanged.
 
 ## Worktree identity setup
 
@@ -227,16 +263,16 @@ Automated checks should verify at least:
    the shared primary branch for those milestones;
 - any `UserAcceptance.md` contains a test target, prerequisites, numbered
    steps, matching expected results, reporting instructions, and actual status;
-- local links in task artifacts resolve according to the project's declared
-   convention.
+- repository-root and ordinary relative local links in task artifacts resolve,
+   while external URI and fragment-only references remain external.
 
 Link checks must first determine the Git repository root, for example with
 `git rev-parse --show-toplevel`. After separating any fragment from the path,
-resolve a target beginning with one `/` from that repository root when the
-project declares root-link support. Resolve every ordinary relative target from
-the directory containing the task artifact. Skip absolute and protocol-relative
-external URLs, non-file URI schemes, and fragment-only targets. A leading `/`
-must not silently use the process working directory or filesystem root.
+resolve a target beginning with one `/` from that repository root. Resolve
+every ordinary relative target from the directory containing the task
+artifact. Skip absolute and protocol-relative external URLs, non-file URI
+schemes, and fragment-only targets. A leading `/` must not silently use the
+process working directory or filesystem root.
 
 CI checks structure after the fact. They complement, but do not replace, the
 early identity reservation and claim publication protocol. CI cannot validate a

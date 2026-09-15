@@ -13,10 +13,12 @@
     "bin",
     "src",
     "README.md",
-    "repoledger.schema.json"
+    "schema"
   ],
   "scripts": {
-    "check": "node --check bin/repoledger.js && node --test",
+    "check": "node --check bin/repoledger.js && node --test && npm run pack:check && npm run smoke:pack",
+    "pack:check": "node scripts/check-pack.js",
+    "smoke:pack": "node scripts/smoke-pack.js",
     "test": "node --test"
   },
   "engines": {
@@ -30,9 +32,17 @@
     "validation"
   ],
   "license": "UNLICENSED",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/shazhou-ww/skills.git",
     "directory": "packages/repoledger"
+  },
+  "dependencies": {
+    "commander": "^14.0.3",
+    "marked": "^18.0.13"
   }
 }

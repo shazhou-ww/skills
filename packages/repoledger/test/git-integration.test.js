@@ -1,0 +1,219 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { afterEach, test } from "node:test";
+
+import { doctorRepository } from "../src/doctor.js";
+import { checkRepository } from "../src/index.js";
+import { projectConfig } from "../test-support/support.js";
+
+const temporaryDirectories = [];
+
+afterEach(async () => {
+  await Promise.all(
+    temporaryDirectories.splice(0).map((directory) =>
+      rm(directory, { recursive: true, force: true }),
+    ),
+  );
+});
+
+function git(root, ...args) {
+  const result = spawnSync("git", ["-C", root, ...args], {
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  if (result.status !== 0) {
+    throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+  }
+  return result.stdout.trim();
+}
+
+async function createGitRepository() {
+  const base = await mkdtemp(join(tmpdir(), "repoledger-real-git-"));
+  temporaryDirectories.push(base);
+  const root = join(base, "work");
+  const remote = join(base, "remote.git");
+  await mkdir(root);
+  git(root, "init", "--initial-branch=main");
+  git(root, "config", "user.name", "repoledger test");
+  git(root, "config", "user.email", "repoledger@example.invalid");
+  await writeFile(join(root, "repoledger.json"), JSON.stringify(projectConfig(), null, 2));
+  for (const status of ["backlog", "ongoing", "archived"]) {
+    const path = join(root, "tasks", status);
+    await mkdir(path, { recursive: true });
+    await writeFile(join(path, ".gitkeep"), "");
+  }
+  const lane = join(root, "tasks", "ongoing", "fixture-identity");
+  await mkdir(lane);
+  await writeFile(join(lane, ".gitkeep"), "");
+  git(root, "add", ".");
+  git(root, "commit", "-m", "Initialize task ledger");
+  git(root, "init", "--bare", "--initial-branch=main", remote);
+  git(root, "remote", "add", "origin", remote);
+  git(root, "push", "--set-upstream", "origin", "main");
+  git(root, "config", "extensions.worktreeConfig", "true");
+  git(root, "config", "--worktree", "task-ledger.identity", "fixture-identity");
+  return { base, remote, root };
+}
+
+function commitAndPush(root, message) {
+  git(root, "add", "--all");
+  git(root, "commit", "-m", message);
+  const commit = git(root, "rev-parse", "HEAD");
+  git(root, "push", "origin", "HEAD:main");
+  return commit;
+}
+
+function taskDocument(checked = false) {
+  return `# Real Git task
+
+Created: 2026-09-15
+
+## Goal
+
+Exercise real Git history.
+
+## Context
+
+Integration fixture.
+
+## Scope
+
+- Fixture files.
+
+## Out of scope
+
+- Production data.
+
+## Acceptance criteria
+
+- [${checked ? "x" : " "}] The lifecycle is validated.
+
+## Constraints
+
+- Keep commits distinct.
+
+## References
+
+- None.
+`;
+}
+
+function progressDocument({ archive = false, claim, implementation }) {
+  return `# Progress
+
+Updated: 2026-09-15
+
+## Checklist
+
+- [x] Publish the claim to the shared primary branch.
+- [x] Commit and publish substantive work at meaningful checkpoints.
+- [${implementation ? "x" : " "}] Publish implementation completion while the task is still ongoing.
+- [x] Complete documented user acceptance, if required.
+- [${archive ? "x" : " "}] Archive and publish the task as its final action.
+
+## Current state
+
+${archive ? "Archived." : "In progress."}
+
+## Decisions
+
+- Use real Git commits.
+
+## Publication milestones
+
+| Milestone | Evidence | Status |
+| --- | --- | --- |
+| Claim | ${claim ? `Commit ${claim} on origin/main.` : "Pending."} | ${claim ? "Published" : "Pending"} |
+| Implementation complete | ${implementation ? `Commit ${implementation} on origin/main.` : "Pending."} | ${implementation ? "Published" : "Pending"} |
+| Archive | ${archive ? "This archive move commit on origin/main." : "Pending."} | ${archive ? "Published" : "Pending"} |
+
+## Validation
+
+- Real Git fixture.
+
+## Blockers
+
+- None.
+
+## Outcome
+
+${archive ? "Completed. The real lifecycle passed." : "In progress."}
+`;
+}
+
+test("validates a real worktree identity and refreshed local remote", async () => {
+  const { root } = await createGitRepository();
+
+  const checked = await checkRepository({ root });
+  const doctored = await doctorRepository({ root });
+
+  assert.equal(checked.ok, true);
+  assert.equal(checked.capabilities.history, "full");
+  assert.equal(doctored.ok, true);
+  assert.equal(doctored.identity, "fixture-identity");
+  assert.equal(doctored.remoteFreshness, "refreshed");
+});
+
+test("rejects a real shallow clone", async () => {
+  const { base, remote } = await createGitRepository();
+  const shallow = join(base, "shallow");
+  const clone = spawnSync(
+    "git",
+    ["clone", "--depth=1", pathToFileURL(remote).href, shallow],
+    { encoding: "utf8", windowsHide: true },
+  );
+  assert.equal(clone.status, 0, clone.stderr);
+
+  const report = await checkRepository({ root: shallow });
+
+  assert.equal(report.ok, false);
+  assert.equal(report.capabilities.history, "shallow");
+  assert.ok(report.diagnostics.some(({ code }) => code === "history.shallow"));
+});
+
+test("validates a real archive move with three distinct publications", async () => {
+  const { root } = await createGitRepository();
+  const backlog = join(root, "tasks", "backlog", "real-history-task");
+  await mkdir(backlog);
+  await writeFile(join(backlog, "Task.md"), taskDocument());
+  commitAndPush(root, "Record real history task");
+
+  const ongoing = join(
+    root,
+    "tasks",
+    "ongoing",
+    "fixture-identity",
+    "real-history-task",
+  );
+  await rename(backlog, ongoing);
+  await writeFile(join(ongoing, "Progress.md"), progressDocument({}));
+  const claim = commitAndPush(root, "Claim real history task");
+
+  await writeFile(join(root, "implementation.txt"), "implemented\n");
+  await writeFile(join(ongoing, "Progress.md"), progressDocument({ claim }));
+  const implementation = commitAndPush(root, "Implement real history task");
+
+  await writeFile(
+    join(ongoing, "Progress.md"),
+    progressDocument({ claim, implementation }),
+  );
+  commitAndPush(root, "Record implementation evidence");
+
+  const archived = join(root, "tasks", "archived", "real-history-task");
+  await rename(ongoing, archived);
+  await writeFile(join(archived, "Task.md"), taskDocument(true));
+  await writeFile(
+    join(archived, "Progress.md"),
+    progressDocument({ archive: true, claim, implementation }),
+  );
+  commitAndPush(root, "Archive real history task");
+
+  const report = await checkRepository({ root });
+
+  assert.equal(report.ok, true);
+  assert.deepEqual(report.diagnostics, []);
+});

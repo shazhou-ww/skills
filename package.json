@@ -5,8 +5,13 @@
   "engines": {
     "node": ">=22"
   },
+  "devDependencies": {
+    "repoledger": "workspace:*"
+  },
   "scripts": {
-    "check": "pnpm --filter repoledger check",
+    "check": "pnpm --filter repoledger check && pnpm check:ledger",
+    "check:ledger": "node packages/repoledger/bin/repoledger.js check",
+    "check:skills": "npx skills add . --list",
     "test": "pnpm --filter repoledger test"
   }
 }

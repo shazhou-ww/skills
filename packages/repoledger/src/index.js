@@ -1,35 +1,56 @@
-import { access } from "node:fs/promises";
-import { constants } from "node:fs";
 import { resolve } from "node:path";
 
-const STATUS_DIRECTORIES = ["backlog", "ongoing", "archived"];
+import { loadConfig } from "./config.js";
+import { inspectTaskContents } from "./content.js";
+import { inspectHistory } from "./history.js";
+import { inspectLayout } from "./layout.js";
 
-export async function checkRepository({ root = process.cwd() } = {}) {
+export async function checkRepository({
+  configPath,
+  git,
+  root = process.cwd(),
+} = {}) {
   const repositoryRoot = resolve(root);
-  const diagnostics = [];
-
-  for (const status of STATUS_DIRECTORIES) {
-    const relativePath = `tasks/${status}`;
-    try {
-      await access(resolve(repositoryRoot, relativePath), constants.R_OK);
-    } catch {
-      diagnostics.push({
-        code: "layout.status.missing",
-        level: "error",
-        path: relativePath,
-        message: `Missing canonical task status directory: ${relativePath}`,
-        remediation: `Create ${relativePath} before using the task ledger.`,
-      });
-    }
-  }
+  const loaded = await loadConfig({ root: repositoryRoot, configPath });
+  const layout = loaded.config
+    ? await inspectLayout({ config: loaded.config, root: repositoryRoot })
+    : { diagnostics: [], tasks: [] };
+  const contents = loaded.config
+    ? await inspectTaskContents({
+      root: repositoryRoot,
+      tasks: layout.tasks,
+    })
+    : { diagnostics: [] };
+  const history = loaded.config
+    ? await inspectHistory({
+      config: loaded.config,
+      git,
+      root: repositoryRoot,
+      tasks: layout.tasks,
+    })
+    : { capability: "unavailable", diagnostics: [], remoteRef: null };
+  const diagnostics = [
+    ...loaded.diagnostics,
+    ...layout.diagnostics,
+    ...contents.diagnostics,
+    ...history.diagnostics,
+  ];
 
   return {
     command: "check",
+    capabilities: {
+      history: history.capability,
+      remoteRef: history.remoteRef ?? null,
+    },
+    configPath: loaded.configPath,
+    schema: loaded.config?.schemaId ?? null,
     ok: diagnostics.every(({ level }) => level !== "error"),
     root: repositoryRoot,
     diagnostics,
     summary: {
       errors: diagnostics.filter(({ level }) => level === "error").length,
+      infos: diagnostics.filter(({ level }) => level === "info").length,
+      tasks: layout.tasks.length,
       warnings: diagnostics.filter(({ level }) => level === "warning").length,
     },
   };

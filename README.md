@@ -60,3 +60,21 @@ Projects should still require the core skill from their checked-in agent
 instructions. Installation makes the skills discoverable; project instructions
 make the protocol mandatory even when users work through natural-language
 requests instead of the two explicit entry points.
+
+## Deterministic validation
+
+[`repoledger`](packages/repoledger/README.md) is the npm-distributed companion
+CLI for facts such as task layout, Markdown artifacts, publication evidence,
+Git history, and worktree identity configuration. It does not replace the
+skill's judgment or lifecycle rules.
+
+```sh
+npx repoledger@0.1.0 check
+npx repoledger@0.1.0 doctor
+```
+
+Repositories should pin the package for CI. `check` is network-free and
+requires full existing Git history; `doctor` refreshes the configured shared
+branch and validates the local identity before task work. The versioned
+configuration contract is the GitHub-hosted
+[`schema/v1.json`](packages/repoledger/schema/v1.json).

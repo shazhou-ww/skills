@@ -60,6 +60,9 @@ history solely to change its link style.
   `git config --worktree --get task-ledger.identity`.
 - Verify the value comes from worktree scope and that
   `tasks/ongoing/<identity>/.gitkeep` exists on current `origin/main`.
+- With workspace dependencies installed, `pnpm exec repoledger doctor` performs
+  these checks and refreshes the remote before task work; offline mode is not a
+  substitute for current remote state.
 - Never infer identity from a path, branch, user, agent name, or visible lane.
 
 ## Publication path
@@ -91,5 +94,6 @@ Git confirmation.
   should reference the source task rather than silently becoming its owner.
 - Keep generic guidance in the skill and task-specific state in the owning task
   folder.
-- After skill changes, run `npx skills add . --list`, verify local links, and
+- Run `pnpm check` after CLI, task, or configuration changes.
+- After skill changes, also run `pnpm check:skills`; verify local links and
   inspect `git diff --check` before archiving the task.
