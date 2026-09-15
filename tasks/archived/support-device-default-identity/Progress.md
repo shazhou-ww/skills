@@ -11,7 +11,7 @@ Updated: 2026-09-15
 - [x] Document explicit identity overrides for additional worktrees.
 - [x] Confirm the old identity has no active claims or worktree bindings, then retire it.
 - [x] Run discovery, link, identity, task-layout, and diff-hygiene validation.
-- [ ] Archive and publish the completed task.
+- [x] Archive and publish the completed task.
 
 ## Current state
 
@@ -21,8 +21,9 @@ device-global default only as initialization input and requires repository
 registration before an explicit worktree binding. The adoption guide documents
 per-worktree overrides. The repository has one linked worktree, already bound
 to the new identity; the unused `copilot-shared-skills` registration has been
-removed. Full prepublish validation passes; the next action is to publish the
-implementation, verify the shared result, and archive this task.
+removed. Commit `075e649` is published and its remote state is verified; the
+completed task is now in its canonical archive location with a final outcome
+and complete validation evidence.
 
 ## Decisions
 
@@ -52,6 +53,14 @@ implementation, verify the shared result, and archive this task.
   16 tracked Markdown files, the identity scopes, the one linked worktree,
   initialization ordering, the expected changed paths, and `git diff --check`;
   it printed `PREPUBLISH_CHECK_OK`.
+- Commit `075e649` publishes the skill, adoption guide, progress update, and old
+  identity retirement. The remote verification confirmed `HEAD` matches
+  `origin/main`, the new marker exists, the old marker is absent, the key skill
+  semantics are present, all identity scopes are correct, and the worktree is
+  clean; it printed `PUBLISHED_IDENTITY_CHANGE_OK`.
+- The post-move check confirmed complete archive artifacts, an absent ongoing
+  source, one canonical task position, and the preserved new identity marker;
+  it printed `TASK_ARCHIVE_MOVE_OK`.
 
 ## Blockers
 
@@ -59,4 +68,8 @@ implementation, verify the shared result, and archive this task.
 
 ## Outcome
 
-Pending.
+Completed. Device-global identity configuration is an initialization suggestion
+only; every worktree still requires a registered identity and an explicit
+worktree-scoped binding. This worktree and its task now use
+`scottwei-office-pc`, and the unused `copilot-shared-skills` identity has been
+retired after the linked-worktree and active-claim audit.

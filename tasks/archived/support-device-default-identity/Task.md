@@ -39,17 +39,17 @@ visible in repository paths and Git history wherever it is registered.
 
 ## Acceptance criteria
 
-- [ ] The skill distinguishes a device default from an authoritative worktree
+- [x] The skill distinguishes a device default from an authoritative worktree
       binding.
-- [ ] Initialization may read the global default but must validate repository
+- [x] Initialization may read the global default but must validate repository
       registration and write an explicit worktree value before task work.
-- [ ] A missing or invalid worktree binding still stops task work.
-- [ ] Guidance covers explicit overrides for multiple worktrees of one
+- [x] A missing or invalid worktree binding still stops task work.
+- [x] Guidance covers explicit overrides for multiple worktrees of one
       repository on the same device.
-- [ ] This worktree and its active claims use the registered
+- [x] This worktree and its active claims use the registered
       `scottwei-office-pc` identity.
-- [ ] The old identity is retired only after no active task or worktree uses it.
-- [ ] Skill discovery, links, identity validation, and diff hygiene pass.
+- [x] The old identity is retired only after no active task or worktree uses it.
+- [x] Skill discovery, links, identity validation, and diff hygiene pass.
 
 ## Constraints
 
@@ -59,5 +59,5 @@ visible in repository paths and Git history wherever it is registered.
 
 ## References
 
-- [Repository task ledger skill](../../../../skills/repository-task-ledger/SKILL.md)
-- [Project adoption guide](../../../../skills/repository-task-ledger/references/adoption.md)
+- [Repository task ledger skill](../../../skills/repository-task-ledger/SKILL.md)
+- [Project adoption guide](../../../skills/repository-task-ledger/references/adoption.md)
