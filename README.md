@@ -12,6 +12,11 @@ intake surface, while task state, worktree claims, decisions, handoffs, and
 validation travel with the code. Learning the skill, read-only work, and
 task-ledger-only maintenance do not create new tasks.
 
+Claims, meaningful implementation checkpoints, implementation completion, and
+archival are published autonomously through the repository's shared primary
+branch. Tasks that need manual user acceptance carry a standalone, user-facing
+guide while they remain ongoing.
+
 Install it interactively with:
 
 ```sh

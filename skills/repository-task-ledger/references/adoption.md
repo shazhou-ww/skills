@@ -54,14 +54,31 @@ learn the skill, perform read-only work, or maintain files under `tasks/**`.
    claim the implementation before that edit.
 - Resolve the current identity from the worktree-scoped Git key
    `task-ledger.identity`; do not use `.env`.
-- Before implementation, claim the task under
-  `tasks/ongoing/<identity>/<task-name>/`.
-- Keep `Progress.md` current and archive the task when work ends.
+- Treat accepted task work as authorization for routine non-force commits and
+   publication; do not ask for confirmation solely to commit, push, or
+   integrate a lifecycle milestone.
+- Publish the claim before substantive implementation, commit and publish
+   meaningful validated checkpoints, and publish implementation completion
+   while the task remains ongoing.
+- When manual user acceptance is required, publish a standalone
+   `UserAcceptance.md` guide with the implementation and keep the task ongoing
+   until the user reports the documented result.
+- After all acceptance passes, archive and publish the task as a separate final
+   integration. A completed task has at least claim, implementation-complete,
+   and archive integrations on the shared primary branch.
 ```
 
 Keep repository-specific commands, boundaries, and exceptions in the project
 instruction or `tasks/README.md`; do not fork the generic lifecycle without a
 project need.
+
+The project profile must name the shared remote and primary branch, such as
+`origin/main` or `origin/master`, and state whether the normal integration path
+is direct push, merge, or pull request. It must also identify any required
+review or approval that prevents autonomous completion. Do not leave agents to
+guess whether a local commit, side-branch push, or unmerged request counts as
+published; only history reachable from the refreshed remote primary branch
+satisfies a publication milestone.
 
 ## Choose A Task-Link Convention
 
@@ -88,7 +105,7 @@ answer different questions:
 
 | Record | Scope | Meaning |
 | --- | --- | --- |
-| `tasks/ongoing/<identity>/.gitkeep` | Shared `main` history | This name is registered and reserved. |
+| `tasks/ongoing/<identity>/.gitkeep` | Shared primary branch history | This name is registered and reserved. |
 | `task-ledger.identity` | Current Git worktree | Authoritatively binds this worktree to that registered name. |
 | `task-ledger.defaultIdentity` | Device-global Git config | Optionally suggests a candidate during initialization only. |
 
@@ -121,13 +138,13 @@ Otherwise, read the suggestion only as a candidate:
 git config --global --get task-ledger.defaultIdentity
 ```
 
-Validate the candidate as lowercase kebab-case, fetch shared `main`, and inspect
-the repository's identity lanes. Deliberately confirm a matching registration,
-or publish a clean `.gitkeep` reservation when it is absent. A matching global
-value must not trigger an automatic binding.
+Validate the candidate as lowercase kebab-case, fetch the shared primary
+branch, and inspect the repository's identity lanes. Deliberately confirm a
+matching registration, or publish a clean `.gitkeep` reservation when it is
+absent. A matching global value must not trigger an automatic binding.
 
-After the existing or new registration has been confirmed on shared `main`,
-bind the worktree explicitly:
+After the existing or new registration has been confirmed on the shared
+primary branch, bind the worktree explicitly:
 
 ```sh
 git config --worktree task-ledger.identity <identity>
@@ -157,9 +174,9 @@ git config --show-origin --show-scope --get task-ledger.identity
 
 The extension must be enabled, the value must be lowercase kebab-case, the
 origin must be worktree config, and the matching `.gitkeep` must exist on the
-latest shared `main`. Stop task work until any missing or stale binding is
-resolved. Do not guess from paths, branches, usernames, agent names, or visible
-lanes, and do not substitute the device default.
+latest shared primary branch. Stop task work until any missing or stale binding
+is resolved. Do not guess from paths, branches, usernames, agent names, or
+visible lanes, and do not substitute the device default.
 
 ## Suggested validation invariants
 
@@ -178,6 +195,12 @@ Automated checks should verify at least:
 - backlog tasks do not contain `Progress.md`;
 - ongoing and archived tasks contain `Progress.md`;
 - archived progress records an outcome;
+- progress records claim, implementation-complete, and archive publication
+   milestones;
+- a completed task's history contains at least three distinct integrations on
+   the shared primary branch for those milestones;
+- any `UserAcceptance.md` contains a test target, prerequisites, numbered
+   steps, matching expected results, reporting instructions, and actual status;
 - local links in task artifacts resolve according to the project's declared
    convention.
 

@@ -150,7 +150,7 @@ The workflow does not require identities to represent humans.
 
 An authoritative worktree identity uses two records with different scopes:
 
-- `tasks/ongoing/<identity>/.gitkeep` on the shared `main` branch registers and
+- `tasks/ongoing/<identity>/.gitkeep` on the shared primary branch registers and
   reserves the identity for collaboration.
 - `task-ledger.identity` in Git's worktree-scoped config identifies which
   registered identity the current worktree uses.
@@ -189,7 +189,7 @@ git config --worktree --get task-ledger.identity
 ```
 
 The first command must return `true`. The second must return one lowercase
-kebab-case identity. Fetch the shared `main` branch and verify that
+kebab-case identity. Fetch the shared primary branch and verify that
 `tasks/ongoing/<identity>/.gitkeep` exists there. If the extension, value, or
 remote registration is missing or invalid, stop before claiming or resuming a
 task. Do not substitute the global default for a missing worktree value, and do
@@ -228,7 +228,7 @@ Before using a new identity:
    git config --local extensions.worktreeConfig true
    ```
 
-3. Fetch the shared `main` branch and inspect the identity directories already
+3. Fetch the shared primary branch and inspect the identity directories already
    present under `tasks/ongoing/` on that branch.
 4. Choose a short lowercase kebab-case candidate explicitly. As input to this
    choice, initialization may read the device suggestion:
@@ -239,14 +239,16 @@ Before using a new identity:
 
    An absent value means there is no suggestion. Reject an invalid value rather
    than writing it. An explicit choice overrides the suggestion.
-5. Check `tasks/ongoing/<identity>/.gitkeep` on the refreshed shared `main`. A
+5. Check `tasks/ongoing/<identity>/.gitkeep` on the refreshed shared primary
+   branch. A
    matching existing lane satisfies registration only after the initializer
    deliberately confirms it is the identity to bind; the global match alone
    is not confirmation. If another actor reserved the name, choose another.
 6. When the selected identity is not registered, add
    `tasks/ongoing/<identity>/.gitkeep` in a clean coordination change.
-7. Commit only that reservation and push it directly to `main` before using the
-   identity for work.
+7. Commit only that reservation and publish it through the repository's normal
+   non-force shared-primary-branch integration path before using the identity
+   for work.
 8. If the push is rejected or the name appeared after the fetch, do not force
    the push. Fetch again, choose another identity, and retry.
 9. Only after an existing or newly published registration is confirmed, bind
@@ -270,7 +272,7 @@ life of the worktree unless the team deliberately transfers it.
 
 Before substantive implementation:
 
-1. Refresh the shared `main` state.
+1. Refresh the shared primary branch state.
 2. Recheck the backlog, active claims, and nearby affected areas for overlap.
 3. Move the whole task folder with Git history preserved:
 
@@ -372,7 +374,8 @@ mutual exclusion.
 When another claim or overlapping code area appears:
 
 1. Stop before expanding the implementation.
-2. Refresh `main` and compare the two tasks' goals, scope, and current state.
+2. Refresh the shared primary branch and compare the two tasks' goals, scope,
+   and current state.
 3. Coordinate ownership, collaboration, splitting, or sequencing explicitly.
 4. Record the resolution and changed assumptions in the affected
    `Progress.md` files.
@@ -387,7 +390,8 @@ Before handing work to another identity:
 
 1. Update the checklist, current verified state, decisions, validation,
    blockers, and next concrete action.
-2. Ensure the destination identity is already registered on `main`.
+2. Ensure the destination identity is already registered on the shared primary
+   branch.
 3. Move the whole task folder to `tasks/ongoing/<new-identity>/<task-name>`.
 4. Apply the post-move checks in [Verify Every Task Move](#verify-every-task-move).
 5. Commit and publish the handoff before either identity continues.
@@ -427,21 +431,21 @@ active owner. The Git history preserves prior claims and handoffs.
 
 ```text
 tasks/
-├── backlog/
-│   └── <task-name>/
-│       └── Task.md
-├── ongoing/
-│   └── <identity>/
-│       ├── .gitkeep
-│       └── <task-name>/
-│           ├── Task.md
-│           ├── Progress.md
-│           └── UserAcceptance.md  # only when manual acceptance is required
-└── archived/
-    └── <task-name>/
-        ├── Task.md
-   ├── Progress.md
-   └── UserAcceptance.md      # preserved when one was required
+|-- backlog/
+|   `-- <task-name>/
+|       `-- Task.md
+|-- ongoing/
+|   `-- <identity>/
+|       |-- .gitkeep
+|       `-- <task-name>/
+|           |-- Task.md
+|           |-- Progress.md
+|           `-- UserAcceptance.md  # only when manual acceptance is required
+`-- archived/
+   `-- <task-name>/
+      |-- Task.md
+      |-- Progress.md
+      `-- UserAcceptance.md      # preserved when one was required
 ```
 
 For project setup, instruction wording, validation invariants, and migration

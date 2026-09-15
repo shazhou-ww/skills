@@ -62,6 +62,28 @@ history solely to change its link style.
   `tasks/ongoing/<identity>/.gitkeep` exists on current `origin/main`.
 - Never infer identity from a path, branch, user, agent name, or visible lane.
 
+## Publication path
+
+The shared primary branch is `origin/main`. The normal integration path is a
+non-force push to a refreshed `main` after reconciling concurrent changes and
+running the relevant checks. If branch protection or required review blocks
+that path, use the hosting platform's required integration flow and ask only
+for the action that cannot be completed autonomously.
+
+Accepted task work authorizes routine commits and publication through this
+path; agents do not pause merely to ask whether they should commit or push.
+A milestone is published only when its commit is reachable from the refreshed
+`origin/main`.
+
+Every completed task has at least three distinct integrations on `origin/main`:
+the claim before substantive implementation, implementation completion while
+the task is ongoing, and the archive move after acceptance. Commit and publish
+additional substantive work at meaningful validated checkpoints. When manual
+user acceptance is an explicit prerequisite, publish a task-specific
+`UserAcceptance.md` with the implementation, keep the task ongoing until the
+user reports the result, and then archive without asking for another routine
+Git confirmation.
+
 ## Skill repository profile
 
 - The canonical source for each reusable skill lives under `skills/`.

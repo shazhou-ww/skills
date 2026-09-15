@@ -39,24 +39,24 @@ durable user-facing acceptance guide when manual acceptance is a prerequisite.
 
 ## Acceptance criteria
 
-- [ ] The skill requires agents to commit and integrate the claim onto the
+- [x] The skill requires agents to commit and integrate the claim onto the
   refreshed shared primary branch before substantive implementation, without
   asking for routine commit or push permission.
-- [ ] The skill requires substantive intermediate progress to be committed and
+- [x] The skill requires substantive intermediate progress to be committed and
   published at meaningful checkpoints.
-- [ ] Implementation completion is committed and integrated before acceptance
+- [x] Implementation completion is committed and integrated before acceptance
   or archival, and the task records that publication as a distinct milestone.
-- [ ] Tasks requiring manual user acceptance contain a standalone acceptance
+- [x] Tasks requiring manual user acceptance contain a standalone acceptance
   guide with prerequisites, exact steps, expected results, and a clear way to
   report the outcome.
-- [ ] After acceptance is satisfied, the agent autonomously archives and
+- [x] After acceptance is satisfied, the agent autonomously archives and
   publishes the task through the shared primary branch.
-- [ ] A completed task normally has at least three distinct shared-primary-
+- [x] A completed task normally has at least three distinct shared-primary-
   branch integrations: claim, implementation completion, and archive.
-- [ ] Guidance preserves normal safeguards for authentication, protected
+- [x] Guidance preserves normal safeguards for authentication, protected
   branches, required review, push rejection, and conflicts, and forbids force
   publication as a shortcut.
-- [ ] Skill discovery, repository-local links, whitespace checks, and focused
+- [x] Skill discovery, repository-local links, whitespace checks, and focused
   lifecycle wording checks pass.
 
 ## Constraints
