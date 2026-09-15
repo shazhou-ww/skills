@@ -40,8 +40,7 @@ committed package manifest remaining the source of package name and version.
 
 ## Out of scope
 
-- Performing or changing the initial `repoledger` npm release owned by the
-  active CLI task.
+- Repeating or changing the completed initial `repoledger` npm release.
 - Automatically choosing versions, editing package manifests, creating Git
   tags, or generating changelogs and GitHub Releases.
 - Introducing Changesets, release-please, or coordinated dependency versioning
@@ -52,28 +51,28 @@ committed package manifest remaining the source of package name and version.
 
 ## Acceptance criteria
 
-- [ ] Pushing an authorized `npm/repoledger/v<version>` tag whose version
+- [x] Pushing an authorized `npm/repoledger/v<version>` tag whose version
       exactly matches `packages/repoledger/package.json` runs validation and
       publishes only that package at that exact version.
-- [ ] The workflow fails before `npm publish` for a malformed or unknown tag,
+- [x] The workflow fails before `npm publish` for a malformed or unknown tag,
       a tag/package name or version mismatch, a private package, an already
       published version, or a commit outside the refreshed shared primary
       branch.
-- [ ] Stable releases use the npm `latest` dist-tag, while supported SemVer
+- [x] Stable releases use the npm `latest` dist-tag, while supported SemVer
       prereleases use an explicitly derived non-`latest` dist-tag.
-- [ ] npm authentication uses a GitHub-hosted runner and OIDC trusted
+- [x] npm authentication uses a GitHub-hosted runner and OIDC trusted
       publishing with only `contents: read` and `id-token: write`; no npm write
       token is stored in repository or environment secrets.
-- [ ] Release validation installs from the frozen pnpm lockfile, passes the
+- [x] Release validation installs from the frozen pnpm lockfile, passes the
       repository checks, and verifies the selected package tarball before
       publication.
-- [ ] Automated tests exercise tag parsing, package selection, version
+- [x] Automated tests exercise tag parsing, package selection, version
       agreement, primary-branch reachability, and npm dist-tag selection
       without performing a real publication.
-- [ ] Release documentation gives a maintainer an exact, reproducible sequence
+- [x] Release documentation gives a maintainer an exact, reproducible sequence
       for preparing and pushing a protected package tag and for registering
       the workflow as the package's npm trusted publisher.
-- [ ] The initial public `repoledger` release is complete before this workflow
+- [x] The initial public `repoledger` release is complete before this workflow
       is enabled for subsequent releases.
 
 ## Constraints
@@ -86,10 +85,13 @@ committed package manifest remaining the source of package name and version.
   ancestry, package identity, version, or registry state cannot be verified.
 - Use the exact workflow filename registered on npmjs.com, because trusted
   publisher identity is filename-sensitive.
-- Preserve unrelated work and the boundaries of the active CLI task.
+- Preserve unrelated work and the archived CLI task history.
 
 ## References
 
 - [Build the repoledger CLI](/tasks/archived/build-repoledger-cli/Task.md)
 - [repoledger package manifest](/packages/repoledger/package.json)
+- [npm release workflow](/.github/workflows/publish-npm.yml)
+- [npm release planner](/scripts/prepare-npm-release.mjs)
+- [npm package release guide](/docs/npm-package-releases.md)
 - [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
