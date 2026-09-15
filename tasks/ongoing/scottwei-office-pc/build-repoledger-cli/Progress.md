@@ -6,7 +6,7 @@ Updated: 2026-09-15
 
 - [x] Publish the claim to the shared primary branch.
 - [x] Commit and publish substantive work at meaningful checkpoints.
-- [ ] Publish implementation completion while the task is still ongoing.
+- [x] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented user acceptance, if required. Not required because
   every acceptance criterion is agent-verifiable.
 - [ ] Archive and publish the task as its final action.
@@ -18,9 +18,10 @@ The source implementation is published and cross-platform CI is green.
 public with `latest` pointing to `0.1.0`; its registry tarball exactly matches
 the candidate exercised by the test matrix. Exact-version npx execution of
 help, version, `check`, and online `doctor` passed from outside the workspace.
-Every acceptance criterion is complete. The next action is to publish this
-implementation-complete task state on `origin/main`, record its immutable
-commit in the milestone table, and then archive in a separate integration.
+Every acceptance criterion is complete, and implementation-complete commit
+`77e3a2119c58ad0e1bf1831e1d25a213d768b402` is published on `origin/main`. The
+next action is to archive the whole task folder and publish that move as the
+separate final integration.
 
 ## Decisions
 
@@ -62,7 +63,7 @@ commit in the milestone table, and then archive in a separate integration.
 | Milestone | Evidence | Status |
 | --- | --- | --- |
 | Claim | `origin/main` commit `1366493bf210fd23493b95708d56c9e38f9ff556`. | Published |
-| Implementation complete | Pending. | Pending |
+| Implementation complete | `origin/main` commit `77e3a2119c58ad0e1bf1831e1d25a213d768b402`. | Published |
 | Archive | Pending. | Pending |
 
 ## Validation
@@ -136,6 +137,10 @@ commit in the milestone table, and then archive in a separate integration.
   `scottwei-office-pc` and refreshed remote state.
 - [GitHub Actions run 34950800032](https://github.com/shazhou-ww/skills/actions/runs/34950800032)
   passed for the current published source commit before npm publication.
+- Verified implementation-complete commit
+  `77e3a2119c58ad0e1bf1831e1d25a213d768b402` is reachable from refreshed
+  `origin/main`, both task artifacts remain under the ongoing identity, and no
+  premature archive exists.
 
 ## Blockers
 
