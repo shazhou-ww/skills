@@ -12,16 +12,23 @@ Updated: 2026-09-15
 
 ## Current state
 
-The claim is published on `origin/main` under the registered
-`scottwei-office-pc` identity. The next action is to create the private pnpm
-workspace and the smallest executable `repoledger check` package slice, then
-run its focused package tests before expanding validation coverage.
+The claim is published on `origin/main`, and the first implementation slice is
+ready to publish: a private pnpm workspace, a public-package skeleton, the
+`repoledger` executable, structured diagnostics, and canonical status-directory
+checks. The next action after this checkpoint is to add the versioned
+`repoledger.json` contract and comprehensive task layout validation.
 
 ## Decisions
 
 - Keep `repoledger` source in `packages/repoledger` and the repository root
   private, so npm publication does not package task history or unrelated
   skills.
+- Use pnpm as the workspace package manager, pinned through the root
+  `packageManager` field. Consuming repositories remain able to invoke the
+  published package with npm/npx.
+- Preserve the repository's current absence of an explicit software license;
+  package metadata is `UNLICENSED` unless the owner makes a separate licensing
+  decision before publication.
 - Limit the initial CLI to non-lifecycle `check` and `doctor` commands. Task
   admission, claims, handoffs, completion, and archival remain skill-owned.
 - Keep CI-safe repository validation in `check`; isolate local worktree,
@@ -51,6 +58,11 @@ run its focused package tests before expanding validation coverage.
 - Verified claim commit `1366493bf210fd23493b95708d56c9e38f9ff556` is
   reachable from refreshed `origin/main`, with both ongoing artifacts present
   and the backlog source absent.
+- `pnpm install --lockfile-only` created the workspace lockfile with pnpm
+  `11.22.0`.
+- `pnpm --filter repoledger check` passed syntax validation and 4 focused tests
+  covering canonical directories, missing-directory diagnostics, package
+  version output, and unknown-command usage errors.
 
 ## Blockers
 

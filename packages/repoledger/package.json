@@ -1,0 +1,38 @@
+{
+  "name": "repoledger",
+  "version": "0.1.0",
+  "description": "Validate repository-owned task ledgers and worktree identities.",
+  "type": "module",
+  "bin": {
+    "repoledger": "bin/repoledger.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "repoledger.schema.json"
+  ],
+  "scripts": {
+    "check": "node --check bin/repoledger.js && node --test",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "agent-skills",
+    "cli",
+    "repository",
+    "task-ledger",
+    "validation"
+  ],
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shazhou-ww/skills.git",
+    "directory": "packages/repoledger"
+  }
+}
