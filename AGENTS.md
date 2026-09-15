@@ -2,16 +2,22 @@
 
 ## Task workflow
 
-For accepted work expected to add, modify, rename, or delete repository files
-outside this repository's `tasks/**`, and when managing an existing repository
-task, load and follow
-[`repository-task-ledger`](skills/repository-task-ledger/SKILL.md). Then apply
-the repository profile in [`tasks/README.md`](tasks/README.md).
+Load and follow
+[`repository-task-ledger`](skills/repository-task-ledger/SKILL.md) only when
+the user explicitly invokes `task-new`, invokes `task-exec`, or asks to manage
+an existing repository task. Then apply the repository profile in
+[`tasks/README.md`](tasks/README.md). Ordinary implementation requests remain
+task-free regardless of which files they change, their size, or their duration.
 
-- Do not create a task solely to learn or use the skill, perform read-only
-  work, run validation, operate external systems, or maintain `tasks/**`.
-- If task-free work discovers a required edit outside this repository's
-  `tasks/**`, stop before that edit and create or claim accepted work.
+- Never create a task automatically. When work would benefit from durable
+  coordination, suggest that the user invoke `task-new`, but treat the
+  suggestion as neither authorization nor a prerequisite for task-free work.
+- After the user invokes `task-new`, create a task only for accepted work that
+  will change files outside this repository's `tasks/**`; read-only work,
+  validation, external-only operations, and task-ledger maintenance remain
+  ineligible.
+- Once a task exists, keep managing it until completion, abandonment, or an
+  explicit handoff. The opt-in rule does not release existing task ownership.
 - Resolve identity only from the worktree-scoped Git key
   `task-ledger.identity`; verify its `.gitkeep` lane on `origin/main`.
 - When workspace dependencies are available, run
@@ -32,6 +38,22 @@ the repository profile in [`tasks/README.md`](tasks/README.md).
   that move as a separate final commit. Completed tasks require at least claim,
   implementation-complete, and archive commits on `origin/main`.
 - Preserve unrelated work and never copy one task into multiple locations.
+
+## npm releases
+
+- Before preparing, tagging, rerunning, or troubleshooting a package release,
+  read and follow the canonical
+  [`npm package release guide`](docs/npm-package-releases.md).
+- Publish only through `.github/workflows/publish-npm.yml` by pushing an
+  authorized `npm/<release-key>/v<version>` tag whose commit is on
+  `origin/main` and whose version exactly matches the selected package
+  manifest.
+- Do not publish from a development machine or add `NPM_TOKEN` or
+  `NODE_AUTH_TOKEN` secrets. npm authentication uses the `npm` GitHub
+  environment and OIDC trusted publishing.
+- Treat npm versions and release tags as immutable. Rerun the same workflow
+  only for transient infrastructure failures; source or validation fixes
+  require a new committed version and a new tag.
 
 ## Skill boundaries
 

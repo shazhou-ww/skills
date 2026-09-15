@@ -22,9 +22,12 @@ clients may show the core or expose all three skills through a different UI.
 The stable contract is the skill name and instructions, not the presentation of
 `/task-new` and `/task-exec`.
 
-The entry skills are convenient intent routers, not policy enforcement. Keep
-the checked-in project instruction below so natural-language requests and
-agents that do not expose slash commands still load the authoritative core.
+The entry skills are user-selected intent routers. Explicit invocation means
+the user selects `task-new` through the client interface; clients may represent
+that action as `/task-new`, a menu entry, or another user-facing mechanism.
+An agent must not invoke it because an ordinary request appears complex. Keep
+the checked-in project instruction below so this opt-in boundary is consistent
+and every selected task flow still loads the authoritative core.
 
 ## Install The Deterministic Validator
 
@@ -67,27 +70,34 @@ or branches. Keep the skill installed and required by project instructions.
 
 ## Admission boundary
 
-Use the ledger for accepted implementation work: a new task is required in the
-repository that owns the outcome only when that outcome adds, modifies,
-renames, or deletes at least one file outside that same repository's own
-`tasks/**`. This includes source, tests, docs, configuration, workflows,
-scripts, instructions, and skills.
+New task intake is opt-in. Only the user's explicit invocation of `task-new`
+authorizes an agent to evaluate and create a task. Ordinary implementation
+requests remain task-free regardless of size, duration, number of steps, or
+expected paths. An agent may recommend `task-new` when durable coordination
+would help, but the recommendation is not authorization and must not block
+ordinary work.
+
+After explicit opt-in, use the repository boundary as an eligibility filter:
+create a task in the repository that owns the outcome only when that outcome
+adds, modifies, renames, or deletes at least one file outside that same
+repository's own `tasks/**`. This includes source, tests, docs, configuration,
+workflows, scripts, instructions, and skills.
 
 Do not create a task merely because work is lengthy or multi-step. Learning
 the skill, answering questions, read-only investigation or review, running
 validation, external-only operations, and changes confined to `tasks/**` do
-not create a new task. If one of those activities later reveals a required
-edit outside `tasks/**`, stop and claim accepted implementation work before
-the first such edit.
+not create a new task. If task-free work later reveals a required edit outside
+`tasks/**`, continue task-free unless the user explicitly invokes `task-new`.
 
-The boundary controls admission, not the lifecycle of an existing task. Keep
-an admitted task current through read-only phases until completion, abandonment,
-or handoff.
+The opt-in and repository boundaries control admission, not the lifecycle of
+an existing task. Keep an admitted task current through read-only phases until
+completion, abandonment, or handoff.
 
 ### Cross-repository ownership
 
-Apply admission to each independently owned implementation outcome, not to
-every checkout touched while delivering one outcome:
+After explicit opt-in for cross-repository work, apply admission to each
+independently owned implementation outcome, not to every checkout touched
+while delivering one outcome:
 
 - The repository that owns the primary design and implementation owns the
    source task.
@@ -109,14 +119,17 @@ repository:
 ```markdown
 ## Task workflow
 
-For accepted work owned by this repository and expected to modify its files
-outside its own `tasks/**`, and when managing an existing repository task, load
-and follow the `repository-task-ledger` skill. Do not create a task solely to
-learn the skill, perform read-only work, or maintain files under `tasks/**`.
+Load and follow the `repository-task-ledger` skill only when the user explicitly
+invokes `task-new`, invokes `task-exec`, or asks to manage an existing task.
+Ordinary implementation requests remain task-free regardless of their size,
+duration, or expected files.
 
-- Keep accepted work under `tasks/`.
-- If task-free work discovers a required edit outside `tasks/**`, stop and
-   claim the implementation before that edit.
+- Never create a task automatically. An agent may recommend `task-new` for
+   durable coordination, but must wait for explicit user opt-in.
+- After `task-new` is invoked, admit only accepted implementation work that
+   changes files outside this repository's own `tasks/**`.
+- Once a task exists, keep managing it until completion, abandonment, or an
+   explicit handoff.
 - Resolve the current identity from the worktree-scoped Git key
    `task-ledger.identity`; do not use `.env`.
 - Treat accepted task work as authorization for routine non-force commits and

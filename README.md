@@ -7,8 +7,10 @@ Reusable Agent Skills maintained for projects under `shazhou-ww`.
 ### task-new
 
 [`task-new`](skills/task-new/SKILL.md) turns the settled implementation outcome
-of the active conversation into a backlog task after admission passes. Invoke
-it once the discussion is ready to record; extra command text is optional:
+of the active conversation into a backlog task after admission passes. It runs
+only when the user explicitly selects this entry; ordinary implementation
+requests and agent recommendations never trigger it. Invoke it once the
+discussion is ready to record; extra command text is optional:
 
 ```text
 /task-new
@@ -39,11 +41,11 @@ conversation context remains a supported fallback.
 ### repository-task-ledger
 
 [`repository-task-ledger`](skills/repository-task-ledger/SKILL.md) is the single
-authoritative protocol shared by both entry skills. It keeps accepted
-implementation work in a repository-owned `tasks/` ledger when that repository
-owns changes outside its own `tasks/**`. Issues remain the open intake surface,
-while task state, worktree claims, decisions, handoffs, and validation travel
-with the code.
+authoritative protocol shared by both entry skills. It keeps implementation
+work that the user explicitly opts into in a repository-owned `tasks/` ledger
+when that repository owns changes outside its own `tasks/**`. Issues remain the
+open intake surface, while task state, worktree claims, decisions, handoffs,
+and validation travel with the code.
 
 Claims, meaningful implementation checkpoints, implementation completion, and
 archival are published autonomously through the repository's shared primary
@@ -65,9 +67,10 @@ slash entry while retaining model loading, and other clients may ignore it or
 present skills without slash commands.
 
 Projects should still require the core skill from their checked-in agent
-instructions. Installation makes the skills discoverable; project instructions
-make the protocol mandatory even when users work through natural-language
-requests instead of the two explicit entry points.
+instructions after a user selects an entry flow or asks to manage an existing
+task. Installation makes the skills discoverable; project instructions must
+preserve explicit opt-in rather than turning ordinary natural-language
+implementation requests into tasks.
 
 ## Deterministic validation
 

@@ -1,456 +1,177 @@
 ---
 name: repository-task-ledger
-description: "Authoritative lifecycle protocol loaded by task-new and task-exec. Use when triaging accepted work expected to change files outside the owning repository's own tasks/**, or when claiming, resuming, handing off, completing, or abandoning an existing repository task."
+description: "Authoritative lifecycle for user-invoked task-new and task-exec flows and existing repository tasks. Ordinary implementation requests remain task-free."
 user-invocable: false
 ---
 
 # Repository Task Ledger
 
-Manage accepted work as versioned repository content so its state and context
-can move across devices, people, agents, worktrees, and hosting platforms.
+Manage explicitly opted-in implementation work as versioned repository state
+that can move across devices, people, agents, and worktrees. This is a
+coordination protocol, not a distributed lock.
 
-This workflow is a coordination protocol, not a distributed lock. Its purpose
-is to make intent and overlap visible early enough to avoid wasted work when
-participants follow the same convention.
+## Admit Work
 
-## Admit Only Implementation Work
+- Create a new task only after the user invokes `task-new`. Ordinary requests
+  remain task-free regardless of size, duration, or changed paths. An agent may
+  suggest `task-new`, but must not invoke it or make it a prerequisite.
+- After opt-in, admit only accepted outcomes that will change at least one file
+  outside the owning repository's `tasks/**`. Source, tests, docs, config,
+  workflows, scripts, instructions, skills, and new tracked files all count.
+- Do not admit read-only work, planning, review, validation-only work,
+  external-only operations, or task-ledger maintenance.
+- Once a task exists, manage it until completion, abandonment, or explicit
+  handoff. The opt-in rule does not release existing ownership.
 
-The admission rule governs creating a new repository task. Evaluate it against
-the repository that owns the accepted implementation outcome. Create a task
-there only when that outcome is expected to add, modify, rename, or delete at
-least one file outside that same repository's own `tasks/**` directory. Use
-this path boundary rather than complexity, duration, number of steps, or which
-skill is involved.
+For cross-repository work, the repository owning the primary design and
+implementation owns the source task. Generated files, installed copies, and
+lockfile refreshes remain part of that task. Create linked tasks only where
+another repository owns independent design, adaptation, tests, or config;
+never copy one task between repositories.
 
-Files outside `tasks/**` include source, tests, documentation, configuration,
-workflows, scripts, instructions, and skills. A new file intended to be
-tracked also counts.
+## Prepare Task Work
 
-Do not create a new task solely to:
+1. Read the repository's agent instructions and `tasks/README.md`; local policy
+   may refine this skill.
+2. Run `repoledger doctor` before claiming or resuming when the repository has
+   adopted the CLI. It must refresh the shared branch, validate full history,
+   and validate the worktree identity; `--offline` is insufficient.
+3. Inspect all backlog and ongoing tasks for duplicates, overlap, and ownership.
+4. Preserve unrelated changes and never move another identity's task to clear
+   a conflict.
 
-- learn, read, configure, or use this skill;
-- answer a question or perform read-only investigation, planning, or review;
-- run commands, tests, validation, inventory, or diagnostics without changing
-   repository files outside `tasks/**`;
-- create, claim, update, hand off, archive, or otherwise maintain task-ledger
-   files; or
-- perform external-only operations that do not change repository files.
+The authoritative identity is the lowercase kebab-case value of
+`task-ledger.identity` in worktree-scoped Git config. It requires
+`extensions.worktreeConfig=true` and a matching
+`tasks/ongoing/<identity>/.gitkeep` on the refreshed shared primary branch.
+Never infer it or fall back to `task-ledger.defaultIdentity`; that global value
+is only an initialization suggestion. If setup is missing, follow the
+[adoption guide](./references/adoption.md) before task work.
 
-If task-free work later reveals that an edit outside `tasks/**` is needed,
-stop before the first such edit, triage the implementation outcome, and create
-or claim its task. Do not create a task retroactively after implementation has
-already begun.
+Run `repoledger check` after task-artifact changes and in CI. The CLI validates
+facts but never decides admission, ownership, acceptance, or lifecycle state,
+and it never mutates task state. Without the CLI, apply the same checks in this
+skill and the repository profile.
 
-This admission rule does not end an existing task during a read-only phase.
-Once implementation work has been admitted, continue updating that task until
-it is completed, abandoned, or handed off. Repositories may also impose a
-separate operational change-management process for external systems.
+## Publish Milestones
 
-### Choose The Owning Repository
+The repository profile names the shared remote, primary branch, and normal
+direct-push, merge, or pull-request path. Accepted task work authorizes routine
+non-force commits and publication through that path; do not ask permission
+solely for those steps.
 
-For work spanning repositories, apply the admission rule to each independently
-owned implementation outcome, not mechanically to every checkout touched:
+Before each publication, refresh the remote, reconcile concurrent work without
+discarding it, run focused checks, publish, and verify the commit is reachable
+from the refreshed remote primary branch. Local commits, side branches, and
+unmerged pull requests are not published milestones.
 
-- Create the source task in the repository that owns the primary design and
-   implementation change.
-- Treat generated files, installed copies, lockfile refreshes, or equivalent
-   downstream updates that only consume that source change as part of the source
-   task. Reference the source task from the downstream change when practical;
-   do not create a mirrored task solely for the synchronization.
-- If a downstream repository needs its own design, adaptation, tests,
-   configuration, or other independently maintained changes outside its own
-   `tasks/**`, create or claim a task in that repository before those edits.
-- Work performed only in another repository never admits a task in the current
-   repository unless the current repository also owns an implementation change
-   outside its own `tasks/**`.
+Authentication, branch protection, required review, failed validation, push
+rejection, and conflicts remain real blockers. Never force-push around them.
+Record the blocker and exact next action in `Progress.md`, then ask only for the
+required user action.
 
-When more than one repository owns implementation, use one task in each owning
-repository and link them rather than copying one task between repositories.
+Every completed task has at least three distinct integrations:
 
-## Start With Local Policy
+1. **Claim:** task moved to the current identity before implementation.
+2. **Implementation complete:** implementation and evidence published while
+   the task is still ongoing.
+3. **Archive:** completed task moved to `tasks/archived/` as a separate final
+   integration.
 
-1. Read the repository's agent instructions and `tasks/README.md`, if present.
-2. Treat project-specific rules as authoritative where they refine this skill.
-3. Resolve and validate the current worktree identity as described below.
-4. Inspect `tasks/backlog/` and every identity below `tasks/ongoing/` before
-   creating or claiming related work.
-5. Preserve unrelated worktree changes. Never move, rewrite, or archive another
-   identity's task merely to clear a conflict.
+Never combine claim with implementation completion or implementation
+completion with archive publication.
 
-## Use Deterministic Validation
+## Create And Claim
 
-The `repoledger` npm CLI is the deterministic companion to this skill. The
-skill remains authoritative for admission, ownership, coordination,
-publication, acceptance, and lifecycle decisions; the CLI checks facts that do
-not require judgment.
+After `task-new` intake and admission:
 
-Repositories that adopt the CLI should pin it as a development dependency and
-track `repoledger.json` against the versioned GitHub schema. The schema URL is
-the contract version; do not duplicate it in another config field or in task
-metadata.
-
-Run `repoledger check` in CI and after task-artifact changes. It reads files and
-existing Git refs without network access, and it requires complete history so
-publication evidence is never silently skipped. Before claiming or resuming
-task work, run `repoledger doctor`; it also validates the real worktree-scoped
-identity, refreshes the configured shared branch, and checks the remote
-identity lane. `doctor --offline` reports degraded freshness and does not
-satisfy the protocol's latest-remote requirement.
-
-The CLI accepts repository-root and ordinary file-relative local links and
-leaves URI references external. It does not create, move, repair, commit, or
-publish task state. When a repository has not adopted the CLI, apply the same
-normative checks described by this skill and its project profile.
-
-## Publish Through The Shared Primary Branch
-
-The shared primary branch is the repository-declared collaboration branch,
-commonly `main` or `master`. The project profile must name the remote and
-branch when they cannot be discovered unambiguously. References to the shared
-primary branch in this skill mean that declared branch, not a hard-coded branch
-name or an agent-created substitute.
-
-Accepted work and repository policy authorize the routine, non-force Git
-operations needed to carry that work through its lifecycle. Once those
-preconditions are satisfied, do not ask the user whether to commit, push, or
-integrate merely because one of those routine operations is the next task
-step. Perform it autonomously through the repository's normal direct-push,
-merge, or pull-request path.
-
-This autonomy does not bypass authentication, protected branches, required
-review, explicit approval rules, failed validation, push rejection, or
-unresolved conflicts. Never force-push as a shortcut. When the normal path
-cannot be completed autonomously, leave the milestone incomplete, record the
-blocker and exact next action in `Progress.md`, and ask only for the user action
-that the repository or hosting platform actually requires.
-
-A publication milestone is complete only when its commit is reachable from the
-refreshed remote shared primary branch. A local commit, a pushed side branch,
-or an open but unmerged pull request does not satisfy it. Before each
-publication, refresh the remote branch, reconcile concurrent work without
-discarding it, run the relevant focused checks, publish through the normal
-integration path, and verify the resulting remote state.
-
-Every completed task requires at least three distinct shared-primary-branch
-integrations:
-
-1. **Claim:** publish the move into the current identity lane before
+1. Create `tasks/backlog/<task-name>/Task.md` from the
+   [task template](./assets/Task.md). Record the accepted goal, scope,
+   constraints, and observable acceptance criteria rather than a transcript.
+2. Keep Issues or another external tracker available for open intake and link
+   it bidirectionally when possible.
+3. Refresh the shared branch and recheck all backlog and ongoing tasks.
+4. Move the whole folder with `git mv` to
+   `tasks/ongoing/<identity>/<task-name>`.
+5. Create `Progress.md` from the [progress template](./assets/Progress.md),
+   record current state and next action, and apply the move checks below.
+6. Commit only the claim artifacts, publish them, and verify the claim before
    substantive implementation.
-2. **Implementation complete:** publish the finished implementation,
-   validation evidence, and any user acceptance guide while the task remains
-   ongoing.
-3. **Archive:** after all required acceptance is satisfied, publish the move to
-   `tasks/archived/` as the task's final recorded action.
 
-Do not combine claim with implementation completion or implementation
-completion with archival. A task may and often should have more publications
-for meaningful substantive checkpoints, fixes after failed acceptance,
-handoffs, or other durable progress.
+## Work And Coordinate
 
-## Separate Intake From Execution
-
-Keep Issues or another external tracker as the open intake surface. People who
-cannot modify the repository must still be able to report bugs and request
-work.
-
-Create a repository task only after triage accepts the work and the admission
-rule above is satisfied:
-
-1. Create `tasks/backlog/<task-name>/Task.md` from
-   [the task template](./assets/Task.md).
-2. Rewrite the accepted outcome, boundaries, constraints, and observable
-   acceptance criteria; do not merely copy the Issue conversation.
-3. Link the Issue and task in both directions when the tracker permits it.
-4. Leave rejected, duplicate, still-unconfirmed, and task-free requests outside
-   the task ledger.
-
-One Issue may produce several tasks, and several Issues may be consolidated
-into one task.
-
-## Establish A Worktree Identity
-
-Each worktree should normally use one stable identity. An identity may name a
-person, an agent, a team, or another actor chosen under the team's convention.
-The workflow does not require identities to represent humans.
-
-An authoritative worktree identity uses two records with different scopes:
-
-- `tasks/ongoing/<identity>/.gitkeep` on the shared primary branch registers and
-  reserves the identity for collaboration.
-- `task-ledger.identity` in Git's worktree-scoped config identifies which
-  registered identity the current worktree uses.
-
-An optional `task-ledger.defaultIdentity` value in Git's global config may
-suggest a candidate during initialization. It is device-local convenience, not
-a third identity record: it neither registers the name in a repository nor
-binds any worktree, and task work must never fall back to it.
-
-Do not store the local binding in `.env`, an environment variable, a tracked
-file, or ordinary repository-local Git config. Application environment files
-have the wrong ownership and may contain secrets; ordinary local Git config is
-shared by linked worktrees.
-
-### Configure An Optional Device Default
-
-Set a usual identity for this device only when that suggestion is useful across
-repositories:
-
-```sh
-git config --global task-ledger.defaultIdentity <identity>
-```
-
-The value must use lowercase kebab-case. Keep it in global Git config, which is
-machine-local, and never copy it into tracked repository configuration. Setting
-or changing it does not initialize any worktree. Remove an obsolete suggestion
-with `git config --global --unset task-ledger.defaultIdentity`.
-
-### Resolve An Existing Binding
-
-Before task work, run:
-
-```sh
-git config --local --get extensions.worktreeConfig
-git config --worktree --get task-ledger.identity
-```
-
-The first command must return `true`. The second must return one lowercase
-kebab-case identity. Fetch the shared primary branch and verify that
-`tasks/ongoing/<identity>/.gitkeep` exists there. If the extension, value, or
-remote registration is missing or invalid, stop before claiming or resuming a
-task. Do not substitute the global default for a missing worktree value, and do
-not infer the identity from the worktree path, branch name, operating system
-user, agent name, or the only visible identity lane.
-
-To inspect where Git read the value from, use:
-
-```sh
-git config --show-origin --show-scope --get task-ledger.identity
-```
-
-It must report worktree-scoped configuration. A new clone or worktree must
-establish its own binding; the value intentionally does not travel with Git
-history. The optional device default is deliberately outside this resolution
-path.
-
-### Initialize A New Binding
-
-Before using a new identity:
-
-1. Inspect `core.worktree` and `core.bare` before enabling worktree config:
-
-   ```sh
-   git config --local --get core.worktree
-   git config --local --type=bool --get core.bare
-   ```
-
-   For an ordinary non-bare repository, `core.worktree` is absent and
-   `core.bare` is absent or `false`. If `core.worktree` is present or
-   `core.bare` is `true`, stop and follow Git's `extensions.worktreeConfig`
-   migration requirements before continuing.
-2. Enable worktree-specific configuration once for the repository:
-
-   ```sh
-   git config --local extensions.worktreeConfig true
-   ```
-
-3. Fetch the shared primary branch and inspect the identity directories already
-   present under `tasks/ongoing/` on that branch.
-4. Choose a short lowercase kebab-case candidate explicitly. As input to this
-   choice, initialization may read the device suggestion:
-
-   ```sh
-   git config --global --get task-ledger.defaultIdentity
-   ```
-
-   An absent value means there is no suggestion. Reject an invalid value rather
-   than writing it. An explicit choice overrides the suggestion.
-5. Check `tasks/ongoing/<identity>/.gitkeep` on the refreshed shared primary
-   branch. A
-   matching existing lane satisfies registration only after the initializer
-   deliberately confirms it is the identity to bind; the global match alone
-   is not confirmation. If another actor reserved the name, choose another.
-6. When the selected identity is not registered, add
-   `tasks/ongoing/<identity>/.gitkeep` in a clean coordination change.
-7. Commit only that reservation and publish it through the repository's normal
-   non-force shared-primary-branch integration path before using the identity
-   for work.
-8. If the push is rejected or the name appeared after the fetch, do not force
-   the push. Fetch again, choose another identity, and retry.
-9. Only after an existing or newly published registration is confirmed, bind
-   the current worktree explicitly and verify the value and its origin:
-
-   ```sh
-   git config --worktree task-ledger.identity <identity>
-   git config --show-origin --show-scope --get task-ledger.identity
-   ```
-
-Repeat registration validation and explicit binding for every worktree. For an
-additional worktree on the same device, choose a registered override explicitly
-instead of silently reusing the global suggestion; leave the device default
-unchanged unless the usual identity for the device itself has changed.
-
-The `.gitkeep` preserves the identity lane when it has no active task and
-reserves the name against accidental reuse. Keep the identity stable for the
-life of the worktree unless the team deliberately transfers it.
-
-## Claim Accepted Work
-
-Before substantive implementation:
-
-1. Refresh the shared primary branch state.
-2. Recheck the backlog, active claims, and nearby affected areas for overlap.
-3. Move the whole task folder with Git history preserved:
-
-   ```sh
-   git mv tasks/backlog/<task-name> tasks/ongoing/<identity>/<task-name>
-   ```
-
-4. Apply the post-move checks in [Verify Every Task Move](./SKILL.md#verify-every-task-move).
-5. Create `Progress.md` from [the progress template](./assets/Progress.md).
-6. Record the current state and the next concrete action.
-7. Commit only the claim and its task artifacts, then publish and verify the
-   claim milestone through the normal shared-primary-branch integration path
-   before investing in substantive implementation.
-
-## Verify Every Task Move
-
-After a claim, handoff, completion, abandonment, or layout migration:
-
-1. Verify that the destination contains every task artifact.
-2. Verify that the source task directory no longer exists. Git does not track
-   directories, so moving or deleting every tracked file can still leave an
-   empty source directory behind. Remove it if it is empty; if it contains
-   unexpected files, stop and reconcile them instead of deleting recursively.
-3. Re-scan the task positions under `backlog`, every ongoing identity, and
-   `archived`. Count every non-hidden directory in a task position even when it
-   is empty, and verify that the task name appears in exactly one location.
-
-Never copy a task between status or identity directories. Preserve each
-identity lane and its `.gitkeep`; the source task directory beneath the lane is
-what must disappear.
-
-## Work And Record Progress
-
-- Keep `Task.md` focused on the durable problem, scope, constraints, and
-  acceptance criteria. Do not use it as a chronological log.
-- Update `Progress.md` at meaningful checkpoints with the checklist, latest
-  verified state, next action, decisions, validation evidence, and blockers.
-- Before pausing, make the next action specific enough that another actor can
-  resume without reconstructing the session.
-- Commit substantive work at meaningful, validated checkpoints rather than
-   accumulating one large uncommitted change. Update `Progress.md` with the
-   checkpoint state and evidence, then publish each checkpoint that is safe for
-   the shared primary branch through the repository's normal integration path.
-   Do not publish a known-broken state merely to create a checkpoint.
-- Keep task-specific research, inventories, plans, and captures in the task
-  folder so they move with it.
-- Put only accepted, stable project consensus in `docs/`; link extracted
-  documents from `Task.md`.
+- Keep `Task.md` durable; put chronology, current state, decisions, validation,
+   blockers, checklist state, and the next concrete action in `Progress.md`.
+- Publish meaningful validated checkpoints with current progress evidence. Do
+   not publish known-broken work merely to create a checkpoint.
+- Keep task-specific research with the task. Put only stable project consensus
+   in `docs/`.
 - Never store credentials, tokens, private keys, private customer data, or
-  machine-local secrets in task artifacts.
+   machine-local secrets in task artifacts.
 
-## Run User Acceptance When Required
+A claim advertises intent but is not a lock. If another task overlaps, stop
+before expanding the implementation, refresh the shared branch, compare scope
+and state, coordinate ownership or sequencing, record the resolution, and
+preserve both actors' work.
 
-Manual user acceptance is required only when an acceptance criterion explicitly
-depends on user judgment, user-only access, physical interaction, or another
-result the agent cannot validate. Do not invent a confirmation gate for work
-whose acceptance criteria can be completed and verified autonomously.
+## Verify Every Move
 
-When manual user acceptance is required:
+After a claim, handoff, archive, abandonment, or layout migration:
 
-1. Create `UserAcceptance.md` in the task folder from
-   [the user acceptance template](./assets/UserAcceptance.md).
-2. Replace every placeholder with task-specific prerequisites, exact numbered
-   actions, expected results for each action, and an unambiguous way to report
-   acceptance or failure. Keep it written for the user, not as an agent log.
-3. Publish the guide with the implementation-complete milestone so the user
-   tests the integrated shared-primary-branch result rather than unpublished
-   local state.
-4. Keep the task ongoing while acceptance is pending. Ask the user to follow
-   the guide, and record only the result the user actually reports; never infer
-   or fabricate acceptance.
-5. If acceptance fails, record the observed result, resume implementation,
-   publish the fix as another substantive checkpoint and refreshed
-   implementation-complete milestone, then repeat the documented acceptance.
+1. Verify the destination contains every artifact.
+2. Verify the source task directory is gone. Remove it only when empty; stop if
+    unexpected files remain.
+3. Count non-hidden task directories across backlog, every ongoing identity,
+    and archive, including empty directories. The task must appear exactly once.
 
-Once the user reports acceptance, record it and continue directly to archival.
-Do not ask for a separate confirmation to commit or archive unless repository
-policy requires one.
+Never copy tasks between positions. Preserve identity `.gitkeep` files.
 
-### Choose Stable Task Links
+## Run User Acceptance
 
-Standard Markdown defines file-relative links but does not define a repository
-root. A project may use `/path/from/repository/root` for repository-local links
-in task artifacts only when its checked-in task profile declares that all
-supported renderers resolve a leading `/` from the repository or workspace
-root. GitHub and VS Code support this convention. These links stay valid when a
-task moves among backlog, identity-scoped ongoing, and archived locations.
+Require manual acceptance only when a criterion depends on user judgment,
+user-only access, physical interaction, or another result the agent cannot
+verify. Otherwise do not invent a confirmation gate.
 
-When any supported renderer does not provide that behavior, use portable
-file-relative Markdown links instead and update them as part of each task move.
-Do not translate external URLs or fragment-only links, and do not couple local
-links to a repository owner, remote URL, branch, or local filesystem path.
-
-## Handle Overlap And Races
-
-An identity lane and a task claim advertise intent; they do not guarantee
-mutual exclusion.
-
-When another claim or overlapping code area appears:
-
-1. Stop before expanding the implementation.
-2. Refresh the shared primary branch and compare the two tasks' goals, scope,
-   and current state.
-3. Coordinate ownership, collaboration, splitting, or sequencing explicitly.
-4. Record the resolution and changed assumptions in the affected
-   `Progress.md` files.
-5. Preserve both actors' work until the owners agree on consolidation.
-
-Early visibility and small coordination commits are the conflict-avoidance
-mechanism. Do not claim that this workflow provides an absolute lock.
+When required, create `UserAcceptance.md` from the
+[template](./assets/UserAcceptance.md) with exact prerequisites, numbered
+actions, expected results, and an unambiguous reporting method. Publish it with
+implementation completion and keep the task ongoing. Record only the result
+the user reports. On failure, record the observation, fix and republish, then
+repeat acceptance. On success, archive without requesting another routine Git
+confirmation.
 
 ## Handoff
 
-Before handing work to another identity:
+Update `Progress.md`, verify the destination identity is registered, move the
+whole task to `tasks/ongoing/<new-identity>/<task-name>`, apply the move checks,
+and publish the handoff before either identity continues.
 
-1. Update the checklist, current verified state, decisions, validation,
-   blockers, and next concrete action.
-2. Ensure the destination identity is already registered on the shared primary
-   branch.
-3. Move the whole task folder to `tasks/ongoing/<new-identity>/<task-name>`.
-4. Apply the post-move checks in [Verify Every Task Move](./SKILL.md#verify-every-task-move).
-5. Commit and publish the handoff before either identity continues.
+## Complete Or Abandon
 
-## Complete Or Abandon Work
+To complete:
 
-To complete work:
+1. Finish all agent-verifiable criteria, run focused validation, and update
+   `Task.md` and `Progress.md` with actual results.
+2. Publish implementation completion while the task remains ongoing and verify
+   it on the refreshed remote branch.
+3. Complete any required user acceptance. Mark `Completed` only after every
+   required criterion passes.
+4. Mark archive publication as the final checklist action, move the whole task
+   to `tasks/archived/<task-name>`, apply the move checks, then commit, publish,
+   and verify this separate final integration.
 
-1. Finish the scoped implementation and every agent-verifiable acceptance
-   criterion, then run the narrowest required validation.
-2. Update `Task.md` and `Progress.md` with the verified state, validation
-   evidence, and any still-pending manual user acceptance.
-3. Commit and publish the implementation-complete milestone while the task is
-   still under `tasks/ongoing/<identity>/`, then verify it on the refreshed
-   remote shared primary branch.
-4. If manual user acceptance is required, follow
-   [Run User Acceptance When Required](./SKILL.md#run-user-acceptance-when-required) and
-   leave the task ongoing until the user reports acceptance.
-5. Check every remaining acceptance criterion and record the actual result.
-   Set the outcome to `Completed` only after all required acceptance passes.
-6. Mark archive publication as the final task checklist action, move the whole
-   task to `tasks/archived/<task-name>`, and apply the post-move checks in
-   [Verify Every Task Move](./SKILL.md#verify-every-task-move).
-7. Commit the archive artifacts separately from implementation completion,
-   publish through the normal shared-primary-branch integration path, and
-   verify the remote archive state.
+To abandon, record the reason, useful findings, validation state, and follow-up
+in `Progress.md`; set `Abandoned`, archive, and publish. Do not claim
+implementation completion for unfinished work.
 
-To abandon work, preserve the reason, useful findings, validation state, and
-follow-up in `Progress.md`; set the outcome to `Abandoned`; move and verify the
-task as above; and publish the archive move. Do not falsely record an
-implementation-complete milestone for unfinished work.
+Archived tasks have no identity layer; Git history preserves prior ownership.
 
-Archived tasks do not retain an identity layer because they no longer have an
-active owner. The Git history preserves prior claims and handoffs.
+## Link Task Artifacts
+
+Use `/path/from/repository/root` only when the repository profile declares that
+all supported renderers resolve it. Otherwise use portable file-relative links
+and update them when tasks move. Preserve external and fragment-only links, and
+never couple local links to a machine path, repository owner, remote, or branch.
 
 ## Canonical Layout
 

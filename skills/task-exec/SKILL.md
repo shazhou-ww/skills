@@ -7,50 +7,35 @@ user-invocable: true
 
 # Execute Repository Task
 
-Use this entry skill for execution. The repository task lifecycle itself
-belongs to the `repository-task-ledger` skill.
+Use this entry to resolve one existing task and execute it through the
+`repository-task-ledger` lifecycle.
 
-## Load The Protocol
+## Load The Core
 
-Before resolving, claiming, or changing a task:
+Load `repository-task-ledger` by name, then the repository's agent instructions
+and task profile. If the core is unavailable, stop and request the complete
+skill package. Do not reconstruct it, invent a substitute, or change task or
+implementation files.
 
-1. Load the installed `repository-task-ledger` skill by name and follow it as
-   the authoritative protocol.
-2. Load the repository's local agent instructions and task profile as required
-   by that protocol.
+## Resolve One Task
 
-If `repository-task-ledger` is unavailable, stop and identify that missing
-skill as the blocker. Ask for the complete skill package to be installed. Do
-not reconstruct the protocol from memory, invent a substitute workflow, or
-change task or implementation files without it.
+1. Prefer exactly one attached canonical `Task.md` as a locator, not a content
+   snapshot. Otherwise resolve from the supplied name or description, then the
+   latest explicit conversation context.
+2. Refresh the shared branch and read the latest canonical `Task.md` and
+   `Progress.md` before routing status.
+3. Require one unambiguous task in one owning repository. For no match,
+   conflicting locators, multiple plausible matches, or ambiguous ownership,
+   ask for the smallest clarification. Never create a task; route new intake
+   through `task-new`.
+4. Route by current status:
+   - **Backlog:** validate identity and overlap, then claim and publish before
+     implementation.
+   - **Ongoing here:** resume from canonical task and progress state.
+   - **Ongoing elsewhere:** coordinate or hand off; never take over implicitly.
+   - **Archived:** report the recorded outcome and stop.
 
-## Resolve The Execution Target
-
-- Prefer one attached canonical `Task.md` as the execution locator. Use its
-  owning repository and task identity to find the task in the latest ledger;
-  treat the attachment as a locator, not as an authoritative content or status
-  snapshot.
-- When there is no usable task attachment, resolve from an optional supplied
-  task name or description, then from explicit conversation context. The
-  latest explicit user instruction takes precedence over older context.
-- Refresh the shared primary branch and read the latest canonical `Task.md` and
-  `Progress.md`, when present, before deciding the task's current backlog,
-  ongoing, or archived route.
-- Proceed only with one unambiguous task in one owning repository. If there is
-  no match, conflicting locators, multiple attachments or plausible matches,
-  or ambiguous repository ownership, stop and ask for the smallest
-  clarification. Do not silently create a new task; route new intake through
-  `task-new`.
-- For a backlog match, follow the core protocol to validate identity and
-  overlap, claim and publish the task, and only then begin implementation.
-- For a task already ongoing under the current worktree identity, refresh its
-  shared state and resume from its durable task and progress records.
-- For a task owned by another identity, do not take it over implicitly. Follow
-  the core protocol's overlap, coordination, and handoff guidance.
-- For an archived match, report its recorded outcome and stop rather than
-  silently reopening or duplicating it.
-
-## Execute Through The Core Lifecycle
+## Execute The Lifecycle
 
 After resolving the route, follow `repository-task-ledger` and the repository
 profile as the sole authority for implementation, validation, progress,

@@ -1,57 +1,42 @@
 ---
 name: task-new
-description: "Discuss, triage, and record a repository implementation task from the current conversation. Use when the user invokes /task-new with or without extra context, proposes an idea, or asks to add accepted work to a backlog."
+description: "Record a repository implementation task only when the user explicitly invokes /task-new. Use active conversation context when available; never trigger from an ordinary implementation request or proposal alone."
 argument-hint: "[optional task context]"
 user-invocable: true
 ---
 
 # New Repository Task
 
-Use this entry skill for intake. The repository task lifecycle itself belongs
-to the `repository-task-ledger` skill.
+Use this entry only after explicit user invocation. Never invoke it because
+work appears large or long-running. Lifecycle rules belong to
+`repository-task-ledger`.
 
-## Load The Protocol
+## Load The Core
 
-Before reading or changing task-ledger state:
+Load `repository-task-ledger` by name, then the repository's agent instructions
+and task profile. If the core is unavailable, stop and request the complete
+skill package. Do not reconstruct it, invent a substitute, or change task
+state.
 
-1. Load the installed `repository-task-ledger` skill by name and follow it as
-   the authoritative protocol.
-2. Load the repository's local agent instructions and task profile as required
-   by that protocol.
+## Record The Candidate
 
-If `repository-task-ledger` is unavailable, stop and identify that missing
-skill as the blocker. Ask for the complete skill package to be installed. Do
-not reconstruct the protocol from memory, invent a substitute workflow, or
-create task files without it.
-
-## Route The Intake Intent
-
-- Resolve the candidate from the latest explicit user direction and the settled
-  outcome of the active conversation. Text supplied with `/task-new` is
-  optional and supplements or overrides older context. When the conversation
-  already contains exactly one sufficiently specified outcome, do not ask the
-  user to restate it.
-- Treat invoking `/task-new` as an explicit request to record that candidate.
-  When the outcome is sufficiently specified and passes the core admission
-  rule, the invocation counts as acceptance; exploratory discussion without
-  that request does not.
-- Discuss only enough to identify the owning repository, one testable outcome,
-  important boundaries, and observable acceptance criteria.
-- Inspect the latest backlog and ongoing task definitions only for an active
-  task that plausibly tracks the same implementation outcome. Do not turn
-  unrelated claims, dirty files, or implementation-surface overlap into intake
-  blockers or questions, and preserve unrelated work during publication.
-- When an active task plausibly matches, identify it and ask the user whether
-  to merge the new context into that task or create a distinct task. Do not
-  choose, mutate the match, or create another task until the user decides.
-- Apply the core protocol's admission rule. Create a backlog task only when the
-  implementation outcome is accepted and admission passes. Ask only for the
-  smallest missing decision when the candidate, repository, boundaries,
-  acceptance criteria, or duplicate route remains ambiguous.
-- Leave rejected, duplicate, still-unconfirmed, and task-free requests outside
-  the task ledger, following the core protocol's intake guidance.
-- When a task is admitted, use the core protocol's template, location,
-  repository profile, validation, and publication requirements.
+1. If the user did not explicitly invoke `task-new`, stop before reading or
+   changing the ledger. Ordinary requests, discussion, and agent suggestions
+   are not invocations.
+2. Resolve the candidate from the latest explicit direction and settled
+   conversation outcome. Command text is optional and overrides older context;
+   do not ask the user to restate one clear outcome.
+3. Identify the owning repository, one testable outcome, important boundaries,
+   and observable acceptance criteria. Invocation counts as acceptance only
+   when the candidate is sufficiently specified and passes core admission.
+4. Inspect current backlog and ongoing definitions only for a plausible match.
+   Ignore unrelated claims, dirty files, and surface overlap during intake. If
+   a match exists, ask whether to merge context or create a distinct task; do
+   not mutate either route until the user decides.
+5. Apply core admission and ask only for the smallest missing decision. Keep
+   rejected, duplicate, unconfirmed, and task-free requests outside the ledger.
+   For admitted work, use the core template, profile, validation, and
+   publication rules.
 
 Finish by reporting whether the candidate was admitted and whether it was
 merged or created. When created, include the task's canonical backlog path and

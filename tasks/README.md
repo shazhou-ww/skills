@@ -7,16 +7,23 @@ the generic lifecycle; this file is the skills-repository profile.
 
 ## Admission boundary
 
-Create a new task only when accepted work is expected to add, modify, rename,
-or delete at least one file outside this repository's `tasks/**` directory.
-The boundary is repository-local: changes in another checkout do not by
-themselves admit a task here.
+Begin new task intake only when the user explicitly invokes `task-new` through
+the client. Ordinary implementation requests remain task-free regardless of
+their size, duration, or expected files. Agents may recommend `task-new` when
+durable coordination would help, but they must not invoke it for the user or
+treat the recommendation as a prerequisite.
+
+After explicit opt-in, create a task only when accepted work is expected to
+add, modify, rename, or delete at least one file outside this repository's
+`tasks/**` directory. This repository-local boundary is an eligibility filter,
+not an automatic trigger; changes in another checkout do not by themselves
+admit a task here.
 
 Do not create a task for skill learning, questions, read-only investigation,
 planning or review without implementation, validation-only commands,
-external-only operations, or task-ledger maintenance. If that work later
-requires an edit outside this repository's `tasks/**`, stop before the first
-edit and create or claim the implementation task.
+external-only operations, or task-ledger maintenance. If task-free work later
+requires an edit outside this repository's `tasks/**`, continue task-free
+unless the user explicitly opts into `task-new`.
 
 ## Layout
 
