@@ -39,17 +39,17 @@ compatibility boundary and a fallback for other renderers.
 
 ## Acceptance criteria
 
-- [ ] The skill distinguishes renderer-supported repository-root links from
+- [x] The skill distinguishes renderer-supported repository-root links from
       portable file-relative links.
-- [ ] This repository declares GitHub and VS Code root-link compatibility.
-- [ ] New task artifacts use stable `/...` references for repository-local
+- [x] This repository declares GitHub and VS Code root-link compatibility.
+- [x] New task artifacts use stable `/...` references for repository-local
       files.
-- [ ] Link validation resolves `/...` from the repository root and still
+- [x] Link validation resolves `/...` from the repository root and still
       validates ordinary relative links.
-- [ ] Claiming, handing off, or archiving a task does not require rewriting its
+- [x] Claiming, handing off, or archiving a task does not require rewriting its
       repository-local references.
-- [ ] The identity-scoped ongoing layout remains unchanged.
-- [ ] Skill discovery, link checks, and diff hygiene pass.
+- [x] The identity-scoped ongoing layout remains unchanged.
+- [x] Skill discovery, link checks, and diff hygiene pass.
 
 ## Constraints
 

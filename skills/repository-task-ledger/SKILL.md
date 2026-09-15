@@ -271,6 +271,20 @@ what must disappear.
 - Never store credentials, tokens, private keys, private customer data, or
   machine-local secrets in task artifacts.
 
+### Choose Stable Task Links
+
+Standard Markdown defines file-relative links but does not define a repository
+root. A project may use `/path/from/repository/root` for repository-local links
+in task artifacts only when its checked-in task profile declares that all
+supported renderers resolve a leading `/` from the repository or workspace
+root. GitHub and VS Code support this convention. These links stay valid when a
+task moves among backlog, identity-scoped ongoing, and archived locations.
+
+When any supported renderer does not provide that behavior, use portable
+file-relative Markdown links instead and update them as part of each task move.
+Do not translate external URLs or fragment-only links, and do not couple local
+links to a repository owner, remote URL, branch, or local filesystem path.
+
 ## Handle Overlap And Races
 
 An identity lane and a task claim advertise intent; they do not guarantee

@@ -2,7 +2,7 @@
 
 This directory is the repository-owned task ledger for shared skill
 implementation. The local
-[`repository-task-ledger`](../skills/repository-task-ledger/SKILL.md) defines
+[`repository-task-ledger`](/skills/repository-task-ledger/SKILL.md) defines
 the generic lifecycle; this file is the skills-repository profile.
 
 ## Admission boundary
@@ -39,6 +39,19 @@ tasks/
 The first directory is the task status. Only ongoing work has an identity
 layer. Keep task and identity names in lowercase kebab-case, and keep each task
 in exactly one status location.
+
+## Task links
+
+This repository supports task artifacts rendered on GitHub and in VS Code when
+the repository root is the workspace root. Both resolve a leading `/` from that
+root, so new or edited backlog and ongoing task artifacts use
+`/path/from/repository/root` for repository-local references. This is a
+renderer-specific convention, not standard Markdown behavior.
+
+Leave external URLs and fragment-only links unchanged. Link checks resolve
+leading `/` targets from the Git repository root and ordinary relative targets
+from the directory containing the Markdown file. Do not rewrite archived task
+history solely to change its link style.
 
 ## Identity
 

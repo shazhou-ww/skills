@@ -63,6 +63,24 @@ Keep repository-specific commands, boundaries, and exceptions in the project
 instruction or `tasks/README.md`; do not fork the generic lifecycle without a
 project need.
 
+## Choose A Task-Link Convention
+
+Task artifacts move between directories with different depths, so each project
+should declare its preferred repository-local link convention and supported
+renderers in `tasks/README.md` or equivalent checked-in policy:
+
+- Use `/path/from/repository/root` when every supported renderer resolves a
+   leading `/` from the repository or workspace root. GitHub does this for
+   repository Markdown, and VS Code does it when the repository root is the
+   workspace root. This is a renderer-supported convention, not standard
+   Markdown behavior.
+- Use ordinary file-relative links when the project must support other Markdown
+   renderers. They are portable, but links from task artifacts may need to be
+   updated whenever a task moves.
+
+Root-link projects may still contain ordinary relative links, so validation
+must support both forms. Leave external URLs and fragment-only links unchanged.
+
 ## Worktree identity setup
 
 Repository registration, worktree binding, and an optional device suggestion
@@ -160,7 +178,16 @@ Automated checks should verify at least:
 - backlog tasks do not contain `Progress.md`;
 - ongoing and archived tasks contain `Progress.md`;
 - archived progress records an outcome;
-- local links in task artifacts resolve.
+- local links in task artifacts resolve according to the project's declared
+   convention.
+
+Link checks must first determine the Git repository root, for example with
+`git rev-parse --show-toplevel`. After separating any fragment from the path,
+resolve a target beginning with one `/` from that repository root when the
+project declares root-link support. Resolve every ordinary relative target from
+the directory containing the task artifact. Skip absolute and protocol-relative
+external URLs, non-file URI schemes, and fragment-only targets. A leading `/`
+must not silently use the process working directory or filesystem root.
 
 CI checks structure after the fact. They complement, but do not replace, the
 early identity reservation and claim publication protocol. CI cannot validate a

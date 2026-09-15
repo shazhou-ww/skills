@@ -16,6 +16,9 @@ The latest verified state and the next concrete action.
 
 ## Validation
 
+Link repository-local evidence using the project's declared root-relative or
+portable file-relative convention.
+
 - Command or behavior checked, with its result.
 
 ## Blockers

@@ -4,26 +4,34 @@ Updated: 2026-09-15
 
 ## Checklist
 
-- [ ] Inventory task-link guidance, templates, validation examples, and current
+- [x] Inventory task-link guidance, templates, validation examples, and current
       non-archived task references.
-- [ ] Define the renderer compatibility boundary and portable fallback.
-- [ ] Configure this repository and its task templates to use stable root links.
-- [ ] Update link validation to resolve leading `/` from the repository root.
-- [ ] Update active and backlog references without rewriting archived history.
-- [ ] Run skill discovery, link checks, and diff hygiene validation.
+- [x] Define the renderer compatibility boundary and portable fallback.
+- [x] Configure this repository and its task templates to use stable root links.
+- [x] Update link validation to resolve leading `/` from the repository root.
+- [x] Update active and backlog references without rewriting archived history.
+- [x] Run skill discovery, link checks, and diff hygiene validation.
 
 ## Current state
 
-Claimed from backlog after refreshing `origin/main`, confirming a clean matching
-base, validating the worktree-scoped identity, and finding no overlapping active
-claim. Next, inventory the owning guidance, templates, and validation examples
-to identify the smallest coherent implementation.
+The skill now defines renderer-supported root links and the portable
+file-relative fallback. The adoption guide specifies profile selection and
+root-aware validation, while this repository profile declares GitHub and VS
+Code compatibility and applies `/...` to new or edited non-archived task
+artifacts. Both artifact templates defer to the declared project convention.
+The active task references already use root links, backlog has no task to
+update, and archived history is unchanged. The complete prepublish validation
+passes; next, publish the implementation commit before archiving the task.
 
 ## Decisions
 
 - Keep the identity-scoped ongoing layout unchanged.
 - Treat leading `/` links as a renderer capability rather than standard
   Markdown behavior, with file-relative links retained as the portable fallback.
+- Resolve leading `/` from the Git repository root during validation, never
+  from the process working directory or filesystem root.
+- Keep the generic templates conditional so projects with other supported
+  Markdown renderers can retain file-relative links.
 
 ## Validation
 
@@ -31,6 +39,15 @@ to identify the smallest coherent implementation.
   `scottwei-office-pc` registered on current `origin/main`.
 - Verified the backlog source directory is absent, the destination `Task.md`
   exists, and the task appears in exactly one ledger position after the move.
+- Focused policy, adoption-guide, profile, and template assertions passed.
+- `npx skills add . --list` discovered `repository-task-ledger`.
+- A root-aware check resolved all links across 17 tracked Markdown files,
+  including 3 root links and 13 ordinary relative links.
+- Editor diagnostics reported no errors in the five implementation files.
+- The combined prepublish check printed `PREPUBLISH_ROOT_LINKS_OK` after also
+  verifying current task-link style, unique task ownership, the registered
+  identity lane, unchanged archived history, template formatting, and diff
+  hygiene.
 
 ## Blockers
 
