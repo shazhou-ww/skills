@@ -47,27 +47,27 @@ its lifecycle rules or pretending the dependency is runtime-enforced.
 
 ## Acceptance criteria
 
-- [ ] Skill discovery lists `task-new`, `task-exec`, and
+- [x] Skill discovery lists `task-new`, `task-exec`, and
   `repository-task-ledger` as valid independently installable Agent Skills.
-- [ ] Invoking `task-new` with an idea directs the agent to load the core
+- [x] Invoking `task-new` with an idea directs the agent to load the core
   protocol, inspect current task state for overlap, refine the proposal, and
   create a backlog task only after acceptance and admission both pass.
-- [ ] Invoking `task-exec` with a task name or description directs the agent to
+- [x] Invoking `task-exec` with a task name or description directs the agent to
   load the core protocol, resolve the task and ownership state, and claim or
   resume it through completion without bypassing identity or publication rules.
-- [ ] Both entry skills stop with an actionable explanation when the core skill
+- [x] Both entry skills stop with an actionable explanation when the core skill
   is unavailable, and stop for clarification rather than guessing when task or
   ownership resolution is ambiguous.
-- [ ] Lifecycle policy remains authoritative in `repository-task-ledger`; the
+- [x] Lifecycle policy remains authoritative in `repository-task-ledger`; the
   entry skills contain only intent-specific routing and do not duplicate rules
   that can drift from the core.
-- [ ] The core skill is hidden as a direct slash entry on clients that support
+- [x] The core skill is hidden as a direct slash entry on clients that support
   that control while remaining available for model loading and composition;
   documentation states how other clients may differ.
-- [ ] Repository documentation explains the two user-facing commands, installs
+- [x] Repository documentation explains the two user-facing commands, installs
   all required skills together, and accurately describes the model-mediated
   cross-agent composition boundary.
-- [ ] Focused validation exercises both routing paths, confirms local Markdown
+- [x] Focused validation exercises both routing paths, confirms local Markdown
   links, passes `npx skills add . --list`, and reports no `git diff --check`
   errors.
 

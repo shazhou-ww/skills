@@ -1,7 +1,7 @@
 ---
 name: repository-task-ledger
-description: "Use when triaging accepted work expected to change files outside the owning repository's own tasks/**, or when claiming, resuming, handing off, completing, or abandoning an existing repository task. Does not create tasks for learning the skill, read-only work, or task-ledger-only maintenance."
-user-invocable: true
+description: "Authoritative lifecycle protocol loaded by task-new and task-exec. Use when triaging accepted work expected to change files outside the owning repository's own tasks/**, or when claiming, resuming, handing off, completing, or abandoning an existing repository task."
+user-invocable: false
 ---
 
 # Repository Task Ledger

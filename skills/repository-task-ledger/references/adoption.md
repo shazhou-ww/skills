@@ -1,5 +1,31 @@
 # Project adoption
 
+## Install The Complete Skill Set
+
+Install the protocol core and both intent-specific entry skills together:
+
+```sh
+npx skills add shazhou-ww/skills --skill repository-task-ledger --skill task-new --skill task-exec
+```
+
+Run the installation for each desired agent target, or select multiple targets
+when the installer supports it. The three skills are independently discoverable
+and installable artifacts, but `task-new` and `task-exec` are not supported as
+standalone workflows: both must load `repository-task-ledger` before operating
+on task state and must stop visibly when it is unavailable.
+
+This composition is deliberately portable but model-mediated. The Agent Skills
+specification does not define aliases, runtime-enforced dependencies, or a
+universal slash-command interface. Clients that honor `user-invocable: false`
+hide the core from their command menu while retaining model invocation; other
+clients may show the core or expose all three skills through a different UI.
+The stable contract is the skill name and instructions, not the presentation of
+`/task-new` and `/task-exec`.
+
+The entry skills are convenient intent routers, not policy enforcement. Keep
+the checked-in project instruction below so natural-language requests and
+agents that do not expose slash commands still load the authoritative core.
+
 ## Admission boundary
 
 Use the ledger for accepted implementation work: a new task is required in the
