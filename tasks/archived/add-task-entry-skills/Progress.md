@@ -5,20 +5,20 @@ Updated: 2026-09-15
 ## Checklist
 
 - [x] Publish the claim to the shared primary branch.
-- [ ] Commit and publish substantive work at meaningful checkpoints.
-- [ ] Publish implementation completion while the task is still ongoing.
+- [x] Commit and publish substantive work at meaningful checkpoints.
+- [x] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented user acceptance, if required. Not required because
   every acceptance criterion is agent-verifiable.
-- [ ] Archive and publish the task as its final action.
+- [x] Archive and publish the task as its final action.
 
 ## Current state
 
-Claim commit `844b0e1` is published on `origin/main`. The two user-facing entry
-skills are implemented and validated, the protocol core is hidden from command
-menus that honor `user-invocable`, and repository documentation explains the
-complete installation and compatibility boundary. Every technical acceptance
-criterion passes locally. The next action is to publish implementation
-completion while the task remains ongoing.
+Claim commit `844b0e1` and implementation commit `17027a5` are published on
+`origin/main`. The two user-facing entry skills are implemented and validated,
+the protocol core is hidden from command menus that honor `user-invocable`, and
+repository documentation explains the complete installation and compatibility
+boundary. Every acceptance criterion passes, and this final record accompanies
+the task's archive commit on `origin/main`.
 
 ## Decisions
 
@@ -36,8 +36,8 @@ completion while the task remains ongoing.
 | Milestone | Evidence | Status |
 | --- | --- | --- |
 | Claim | Commit `844b0e1` on `origin/main`. | Complete |
-| Implementation complete | Validated locally; pending publication to `origin/main`. | Pending |
-| Archive | Pending. | Pending |
+| Implementation complete | Commit `17027a5` on `origin/main`. | Complete |
+| Archive | This final archive commit on `origin/main`; its immutable ID is the commit containing this row. | Complete |
 
 ## Validation
 
@@ -71,6 +71,12 @@ completion while the task remains ongoing.
   reported no errors.
 - Editor diagnostics reported no errors in the core, both entry skills,
   adoption guide, README, task, or progress record.
+- Verified implementation commit `17027a5` is the refreshed `origin/main` tip,
+  both entry skills and ongoing task evidence exist there, the core has
+  `user-invocable: false`, and no premature archive existed in that milestone.
+- The archive move check found both task artifacts in the archive, confirmed
+  the ongoing source directory is absent, found exactly one canonical task
+  position, and preserved the `scottwei-office-pc` identity marker.
 
 ## Blockers
 
@@ -78,4 +84,6 @@ completion while the task remains ongoing.
 
 ## Outcome
 
-Pending.
+Completed. Users now have portable `task-new` and `task-exec` intent entry
+skills backed by one authoritative `repository-task-ledger` protocol, with
+fail-closed composition and documented cross-agent presentation limits.
