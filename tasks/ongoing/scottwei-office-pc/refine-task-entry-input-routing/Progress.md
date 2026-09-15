@@ -5,19 +5,19 @@ Updated: 2026-09-15
 ## Checklist
 
 - [x] Publish the claim to the shared primary branch.
-- [ ] Commit and publish substantive work at meaningful checkpoints.
-- [ ] Publish implementation completion while the task is still ongoing.
+- [x] Commit and publish substantive work at meaningful checkpoints.
+- [x] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented user acceptance, if required. Not required because
   every acceptance criterion is agent-verifiable.
 - [ ] Archive and publish the task as its final action.
 
 ## Current state
 
-The claim is published on `origin/main`. The two entry skills now implement
-conversation-first intake and attachment-first execution, and README usage
-matches the new routes. All acceptance criteria pass locally; the next action
-is to publish implementation completion while the task remains ongoing and
-record its immutable commit evidence.
+The claim and implementation completion are published on `origin/main`. The two
+entry skills implement conversation-first intake and attachment-first
+execution, README usage matches the new routes, and every acceptance criterion
+passes. No manual acceptance is required; the next action is to archive and
+publish the completed task.
 
 ## Decisions
 
@@ -36,7 +36,7 @@ record its immutable commit evidence.
 | Milestone | Evidence | Status |
 | --- | --- | --- |
 | Claim | `origin/main` commit `d4772bfb758d34ebe9e64eb9eef791cf22927242`. | Published |
-| Implementation complete | Pending. | Pending |
+| Implementation complete | `origin/main` commit `0ef798f30bdaec6442c6fe5ef6693a1c2e398983`. | Published |
 | Archive | Pending. | Pending |
 
 ## Validation
@@ -61,6 +61,10 @@ record its immutable commit evidence.
   smoke checks, and repository ledger validation with full history.
 - `git diff --check` passed, and the implementation diff contains only README,
   the two entry skills, and this task's ongoing records.
+- Verified implementation commit
+  `0ef798f30bdaec6442c6fe5ef6693a1c2e398983` is reachable from refreshed
+  `origin/main`, with both updated entry skills and the ongoing task record
+  present on the remote branch.
 
 ## Blockers
 
