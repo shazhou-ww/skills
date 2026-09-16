@@ -13,7 +13,7 @@ Updated: 2026-09-16
 - [x] Complete documented manual user acceptance, if required. Not required;
   every acceptance criterion is agent-verifiable.
 - [x] Obtain and publish delivery approval.
-- [ ] Archive and publish the task as its final action.
+- [x] Archive and publish the task as its final action.
 
 ## Current state
 
@@ -35,9 +35,10 @@ transaction rollback, crash recovery, and concurrent-state guards. The
 implementation-complete checkpoint is published on `origin/main` at commit
 `132ad33`. All acceptance criteria are agent-verified, and manual user
 acceptance is not required. On 2026-09-16, the user explicitly approved
-delivery of implementation commit `132ad33` and authorized archival. The next
-action is to publish this approval while the task remains ongoing, then apply
-and publish the archive move as a separate integration.
+delivery of implementation commit `132ad33` and authorized archival. The new
+CLI then previewed and applied this task's own archive move with no blockers or
+reference rewrites. The task is complete in its canonical archived location;
+this final integration publishes that move to `origin/main`.
 
 ## Decisions
 
@@ -86,7 +87,7 @@ and publish the archive move as a separate integration.
 | --- | --- | --- |
 | Claim | `origin/main` commit `735acd9c26338286031b4f94d40ae2c8f590269a`. | Published |
 | Implementation complete | `origin/main` commit `132ad33d6fd9d12c42df0ba4f178a5631ab695c8`. | Published |
-| Archive | Pending. | Pending |
+| Archive | This final archive commit on `origin/main`; remote Git history supplies its immutable ID. | Published |
 
 ## Validation
 
@@ -141,6 +142,12 @@ and publish the archive move as a separate integration.
 - On 2026-09-16, the user selected `批准交付并归档` for the integrated
   `origin/main` implementation at commit
   `132ad33d6fd9d12c42df0ba4f178a5631ab695c8`.
+- `repoledger plan archive expand-repoledger-cli-operations --json` previewed
+  one exact move with zero blockers and zero reference edits without changing
+  the worktree.
+- The same command with `--apply` moved all three task artifacts, removed the
+  ongoing source, preserved `tasks/ongoing/scottwei-office-pc/.gitkeep`, and
+  left exactly one archived task position reported by `status --archived`.
 
 ## Blockers
 
