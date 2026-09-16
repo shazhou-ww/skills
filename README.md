@@ -84,8 +84,8 @@ publication evidence, Git history, and worktree identity configuration. It
 does not replace the skill's judgment or lifecycle rules.
 
 ```sh
-npx repoledger@0.2.0 check
-npx repoledger@0.2.0 doctor
+npx repoledger@0.3.0 check
+npx repoledger@0.3.0 doctor
 ```
 
 Repositories should pin the package for CI. `check` is network-free and
@@ -99,3 +99,16 @@ Newer source versions also expose `status`, `check --task`, preview-first
 worktree can use `plan claim <task> --take-from <identity>` to guard against a
 stale source owner. Only explicit `--apply` changes local files or worktree
 configuration; no command stages, commits, or publishes those changes.
+
+## Project release skill
+
+Repository maintainers can invoke the project-only release workflow with:
+
+```text
+/publish repoledger minor
+```
+
+The [`publish` skill](.github/skills/publish/SKILL.md) prepares and validates
+the release commit, creates the protected `npm/repoledger/v<version>` tag on
+`origin/main`, follows the GitHub Actions trusted-publishing run, and verifies
+the immutable npm result. It never runs `npm publish` locally.
