@@ -20,9 +20,10 @@ The task is claimed by `scottwei-office-pc` in published commit `735acd9`. The
 move preserves the complete task directory, removes the backlog source, and
 leaves one canonical task position. The combined
 [CLI expansion design](./Design.md) is published on `origin/main` at commit
-`443af5f`. The next action is to obtain explicit user approval for its scope,
-interface, business and data model, and architecture decisions before
-protected implementation.
+`443af5f`. On 2026-09-16, the user selected `需要修改` for the combined design
+review without supplying the requested changes. The next action is to obtain
+those specific changes, revise and republish the artifact, and request a new
+decision before protected implementation.
 
 ## Decisions
 
@@ -43,10 +44,10 @@ protected implementation.
 
 | Checkpoint | Status | Review artifact and decision evidence |
 | --- | --- | --- |
-| Scope | Pending | Review the command set, mutation boundaries, exclusions, constraints, and acceptance criteria in [the design](./Design.md). |
-| Interface | Pending | Review the exact grammar, defaults, options, output contracts, exit codes, and compatibility behavior in [the design](./Design.md). |
-| Business and data model | Pending | Review transition states, initialization phases, reference graph rules, archived-history policy, and transaction guarantees in [the design](./Design.md). |
-| Architecture | Pending | Review module ownership, structured Markdown dependencies, preflight, journaling, rollback, and test boundaries in [the design](./Design.md). |
+| Scope | Pending | User requested changes to the combined design on 2026-09-16 but did not identify them; obtain the details and publish a revised artifact. |
+| Interface | Pending | User requested changes to the combined design on 2026-09-16 but did not identify them; obtain the details and publish a revised artifact. |
+| Business and data model | Pending | User requested changes to the combined design on 2026-09-16 but did not identify them; obtain the details and publish a revised artifact. |
+| Architecture | Pending | User requested changes to the combined design on 2026-09-16 but did not identify them; obtain the details and publish a revised artifact. |
 | Delivery acceptance | Pending | Integrated revision and validation evidence are required after implementation publication. |
 
 ## Publication milestones
@@ -74,12 +75,14 @@ protected implementation.
 - `pnpm check` passed 41 package tests, package and packed-tarball checks, 11
   release tests, and the repository ledger check before the design was
   published as commit `443af5fe31e13896b15e1cd162e06021c176b4d6`.
+- On 2026-09-16, the user declined to approve the combined design and selected
+  `需要修改`; no requested change text was supplied.
 
 ## Blockers
 
 - Scope, interface, business and data model, and architecture implementation
-  remain blocked pending explicit user approval of the design published at
-  `origin/main` commit `443af5fe31e13896b15e1cd162e06021c176b4d6`.
+  remain blocked. The user must identify the requested design changes before
+  the artifact can be revised, republished, and reviewed again.
 
 ## Outcome
 
