@@ -138,12 +138,16 @@ duration, or expected files.
 - Publish the claim before substantive implementation, commit and publish
    meaningful validated checkpoints, and publish implementation completion
    while the task remains ongoing.
+- Plan scope, interface, business and data model, architecture, and delivery
+   checkpoints in `Task.md`. Publish each applicable review artifact and obtain,
+   record, and publish explicit human approval before crossing its gate.
 - When manual user acceptance is required, publish a standalone
    `UserAcceptance.md` guide with the implementation and keep the task ongoing
-   until the user reports the documented result.
-- After all acceptance passes, archive and publish the task as a separate final
-   integration. A completed task has at least claim, implementation-complete,
-   and archive integrations on the shared primary branch.
+   until the user reports the documented test result.
+- After all acceptance and explicit delivery approval pass, archive and publish
+   the task as a separate final integration. A completed task has at least
+   claim, implementation-complete, and archive integrations on the shared
+   primary branch.
 ```
 
 Keep repository-specific commands, boundaries, and exceptions in the project
@@ -272,11 +276,17 @@ Automated checks should verify at least:
 - every non-hidden entry below an identity is a task directory;
 - every task-position directory is treated as a task even when it is empty and
    contains `Task.md` with the required headings;
+- every backlog and ongoing task plans scope, interface, business and data
+   model, architecture, and delivery review checkpoints;
 - no task name appears in more than one backlog, ongoing identity, or archived
    position;
 - backlog tasks do not contain `Progress.md`;
 - ongoing and archived tasks contain `Progress.md`;
+- progress for a task with a review plan records all five human approval states
+   consistently with that plan, including dated evidence for approvals;
 - archived progress records an outcome;
+- a completed archive with a review plan has approved scope and delivery
+   checkpoints, with every conditional checkpoint approved or not applicable;
 - progress records claim, implementation-complete, and archive publication
    milestones;
 - a completed task's history contains at least three distinct integrations on
@@ -300,6 +310,10 @@ CI checks structure after the fact. They complement, but do not replace, the
 early identity reservation and claim publication protocol. CI cannot validate a
 developer's local `config.worktree`; agents and local tooling validate that at
 the start of task work.
+
+When adopting this checkpoint format, update backlog and ongoing tasks before
+their next substantive work. Preserve archived task history unless another
+change already requires editing that task.
 
 ## Migrating a flat ongoing directory
 

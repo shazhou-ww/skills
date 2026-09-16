@@ -15,15 +15,15 @@ deterministic companion CLI for the `repository-task-ledger` Agent Skill.
 Run without installation:
 
 ```sh
-npx repoledger@0.1.0 check
-npx repoledger@0.1.0 doctor
+npx repoledger@0.2.0 check
+npx repoledger@0.2.0 doctor
 ```
 
 For CI, install and lock a development dependency instead of resolving
 `latest` on every run:
 
 ```sh
-pnpm add --save-dev repoledger@0.1.0
+pnpm add --save-dev repoledger@0.2.0
 pnpm exec repoledger check
 ```
 
@@ -78,6 +78,9 @@ informational diagnostics rather than migration edits.
   portable names, task-directory types, and unique task positions;
 - required `Task.md`, state-dependent `Progress.md`, task acceptance
   checklists, final outcomes, and publication milestone tables;
+- five-part human review plans for active tasks, consistent approval states,
+  dated decision evidence, and completed delivery approval for new-format
+  archives;
 - optional `UserAcceptance.md` structure, numbered steps and results,
   reporting instructions, and accepted status for completed archives;
 - move-stable task-local links and repository-local Markdown links under the

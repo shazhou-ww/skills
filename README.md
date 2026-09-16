@@ -47,10 +47,13 @@ when that repository owns changes outside its own `tasks/**`. Issues remain the
 open intake surface, while task state, worktree claims, decisions, handoffs,
 and validation travel with the code.
 
-Claims, meaningful implementation checkpoints, implementation completion, and
-archival are published autonomously through the repository's shared primary
-branch. Tasks that need manual user acceptance carry a standalone, user-facing
-guide while they remain ongoing.
+Claims, review artifacts, human approval evidence, meaningful implementation
+checkpoints, implementation completion, and archival are published through the
+repository's shared primary branch. Every task plans scope and delivery gates,
+plus interface, business and data model, and architecture gates when relevant.
+Tasks that need manual user testing carry a standalone, user-facing guide while
+they remain ongoing; final delivery approval remains a separate explicit
+decision.
 
 Install all three skills together with:
 
@@ -80,8 +83,8 @@ Git history, and worktree identity configuration. It does not replace the
 skill's judgment or lifecycle rules.
 
 ```sh
-npx repoledger@0.1.0 check
-npx repoledger@0.1.0 doctor
+npx repoledger@0.2.0 check
+npx repoledger@0.2.0 doctor
 ```
 
 Repositories should pin the package for CI. `check` is network-free and

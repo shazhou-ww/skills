@@ -91,11 +91,17 @@ A milestone is published only when its commit is reachable from the refreshed
 Every completed task has at least three distinct integrations on `origin/main`:
 the claim before substantive implementation, implementation completion while
 the task is ongoing, and the archive move after acceptance. Commit and publish
-additional substantive work at meaningful validated checkpoints. When manual
-user acceptance is an explicit prerequisite, publish a task-specific
-`UserAcceptance.md` with the implementation, keep the task ongoing until the
-user reports the result, and then archive without asking for another routine
-Git confirmation.
+additional substantive work at meaningful validated checkpoints.
+
+Each new task plans scope, interface, business and data model, architecture,
+and delivery review checkpoints. Scope and delivery are required; classify the
+middle checkpoints against the actual impact. At each applicable gate, publish
+the review artifact and pending state, obtain explicit human approval, then
+record and publish the decision in `Progress.md` before continuing. Routine Git
+authorization is not approval. When manual user testing is required, publish a
+task-specific `UserAcceptance.md` with the implementation and keep the task
+ongoing until the user reports the result. Record explicit delivery approval
+separately before completion and archival.
 
 ## Skill repository profile
 

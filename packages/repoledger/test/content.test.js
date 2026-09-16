@@ -8,6 +8,15 @@ import { checkRepository } from "../src/index.js";
 import { fullHistoryGit, projectConfig } from "../test-support/support.js";
 
 const temporaryDirectories = [];
+const HUMAN_REVIEW_PLAN = `## Human review checkpoints
+
+| Checkpoint | Applicability | Reviewer | Planned review artifact | Approval required before |
+| --- | --- | --- | --- | --- |
+| Scope | Required | Fixture owner | Fixture scope and acceptance criteria. | Fixture implementation. |
+| Interface | Not applicable: the fixture has no interface. | Not applicable | Not applicable. | Not applicable. |
+| Business and data model | Not applicable: the fixture has no business data. | Not applicable | Not applicable. | Not applicable. |
+| Architecture | Not applicable: the fixture has no architecture change. | Not applicable | Not applicable. | Not applicable. |
+| Delivery acceptance | Required | Fixture owner | Integrated fixture and validation evidence. | Completion and archive. |`;
 const TASK = `# Fixture task
 
 Created: 2026-09-15
@@ -36,10 +45,21 @@ Fixture context.
 
 - Preserve fixture state.
 
+${HUMAN_REVIEW_PLAN}
+
 ## References
 
 - [Profile](/tasks/README.md)
 `;
+const HUMAN_APPROVALS = `## Human approvals
+
+| Checkpoint | Status | Review artifact and decision evidence |
+| --- | --- | --- |
+| Scope | Approved | Fixture owner approved the fixture scope on 2026-09-15. |
+| Interface | Not applicable | The fixture has no interface. |
+| Business and data model | Not applicable | The fixture has no business data. |
+| Architecture | Not applicable | The fixture has no architecture change. |
+| Delivery acceptance | Pending | Review the integrated fixture after implementation. |`;
 const PROGRESS = `# Progress
 
 Updated: 2026-09-15
@@ -47,7 +67,10 @@ Updated: 2026-09-15
 ## Checklist
 
 - [x] Publish the claim to the shared primary branch.
+- [x] Obtain scope approval before substantive implementation.
+- [x] Complete conditional human approvals.
 - [ ] Publish implementation completion while the task is still ongoing.
+- [ ] Obtain and publish delivery approval.
 - [ ] Archive and publish the task as its final action.
 
 ## Current state
@@ -57,6 +80,8 @@ In progress.
 ## Decisions
 
 - None.
+
+${HUMAN_APPROVALS}
 
 ## Publication milestones
 
@@ -134,6 +159,10 @@ test("preserves an unversioned archived task as legacy", async () => {
     join(task, "Progress.md"),
     PROGRESS.replace("## Publication milestones\n\n| Milestone | Evidence | Status |\n| --- | --- | --- |\n| Claim | origin/main commit abcdef0. | Published |\n| Implementation complete | Pending. | Pending |\n| Archive | Pending. | Pending |\n\n", "")
       .replaceAll("- [ ]", "- [x]")
+      .replace(
+        "| Delivery acceptance | Pending | Review the integrated fixture after implementation. |",
+        "| Delivery acceptance | Approved | Fixture owner approved delivery on 2026-09-15. |",
+      )
       .replace("In progress.\n", "Completed.\n")
       .replace("In progress.\n", "Completed.\n"),
   );
@@ -144,6 +173,32 @@ test("preserves an unversioned archived task as legacy", async () => {
   const legacy = report.diagnostics.find(({ code }) => code === "task.archive.legacy");
   assert.equal(legacy?.level, "info");
   assert.equal(report.capabilities.history, "full");
+});
+
+test("rejects completed archives with pending delivery approval", async () => {
+  const root = await createRepository();
+  const task = join(root, "tasks", "archived", "pending-delivery-task");
+  await mkdir(task);
+  await writeFile(
+    join(task, "Task.md"),
+    TASK.replace("- [ ] Observable result.", "- [x] Observable result."),
+  );
+  await writeFile(
+    join(task, "Progress.md"),
+    PROGRESS.replace("## Publication milestones\n\n| Milestone | Evidence | Status |\n| --- | --- | --- |\n| Claim | origin/main commit abcdef0. | Published |\n| Implementation complete | Pending. | Pending |\n| Archive | Pending. | Pending |\n\n", "")
+      .replaceAll("- [ ]", "- [x]")
+      .replace("In progress.\n", "Completed.\n")
+      .replace("In progress.\n", "Completed.\n"),
+  );
+
+  const report = await checkRepository({ git: fullHistoryGit, root });
+
+  assert.equal(report.ok, false);
+  assert.ok(
+    report.diagnostics.some(
+      ({ code }) => code === "progress.human-approvals.incomplete",
+    ),
+  );
 });
 
 test("allows an abandoned legacy archive to retain unchecked acceptance", async () => {
@@ -166,6 +221,70 @@ test("allows an abandoned legacy archive to retain unchecked acceptance", async 
   assert.equal(report.ok, true);
   assert.ok(report.diagnostics.some(({ code }) => code === "task.archive.legacy"));
   assert.ok(!report.diagnostics.some(({ code }) => code === "task.acceptance.incomplete"));
+});
+
+test("requires a human review plan for active tasks", async () => {
+  const root = await createRepository();
+  const task = join(root, "tasks", "backlog", "unplanned-task");
+  await mkdir(task);
+  await writeFile(
+    join(task, "Task.md"),
+    TASK.replace(`${HUMAN_REVIEW_PLAN}\n\n`, ""),
+  );
+
+  const report = await checkRepository({ git: fullHistoryGit, root });
+
+  assert.equal(report.ok, false);
+  assert.ok(
+    report.diagnostics.some(({ code }) => code === "task.human-review.missing"),
+  );
+});
+
+test("rejects unresolved placeholders in a human review plan", async () => {
+  const root = await createRepository();
+  const task = join(root, "tasks", "backlog", "placeholder-task");
+  await mkdir(task);
+  await writeFile(
+    join(task, "Task.md"),
+    TASK.replace(
+      "| Interface | Not applicable: the fixture has no interface. | Not applicable | Not applicable. | Not applicable. |",
+      "| Interface | Not applicable: the fixture has no interface. | `<Reviewer or role>` | Not applicable. | Not applicable. |",
+    ),
+  );
+
+  const report = await checkRepository({ git: fullHistoryGit, root });
+
+  assert.equal(report.ok, false);
+  assert.ok(
+    report.diagnostics.some(
+      ({ code }) => code === "task.human-review.details-missing",
+    ),
+  );
+});
+
+test("rejects approval states that conflict with the task review plan", async () => {
+  const root = await createRepository();
+  const lane = join(root, "tasks", "ongoing", "fixture-identity");
+  const task = join(lane, "conflicting-review-task");
+  await mkdir(task, { recursive: true });
+  await writeFile(join(lane, ".gitkeep"), "");
+  await writeFile(join(task, "Task.md"), TASK);
+  await writeFile(
+    join(task, "Progress.md"),
+    PROGRESS.replace(
+      "| Scope | Approved | Fixture owner approved the fixture scope on 2026-09-15. |",
+      "| Scope | Not applicable | Scope approval was skipped. |",
+    ),
+  );
+
+  const report = await checkRepository({ git: fullHistoryGit, root });
+
+  assert.equal(report.ok, false);
+  assert.ok(
+    report.diagnostics.some(
+      ({ code }) => code === "progress.human-approvals.plan-conflict",
+    ),
+  );
 });
 
 test("reports task artifacts, milestones, acceptance, and local link failures", async () => {

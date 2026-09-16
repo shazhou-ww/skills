@@ -96,13 +96,28 @@ Integration fixture.
 
 - Keep commits distinct.
 
+## Human review checkpoints
+
+| Checkpoint | Applicability | Reviewer | Planned review artifact | Approval required before |
+| --- | --- | --- | --- | --- |
+| Scope | Required | Fixture owner | Fixture scope and acceptance criteria. | Fixture implementation. |
+| Interface | Not applicable: the fixture has no interface. | Not applicable | Not applicable. | Not applicable. |
+| Business and data model | Not applicable: the fixture has no business data. | Not applicable | Not applicable. | Not applicable. |
+| Architecture | Not applicable: the fixture has no architecture change. | Not applicable | Not applicable. | Not applicable. |
+| Delivery acceptance | Required | Fixture owner | Integrated fixture and validation evidence. | Completion and archive. |
+
 ## References
 
 - None.
 `;
 }
 
-function progressDocument({ archive = false, claim, implementation }) {
+function progressDocument({
+  archive = false,
+  claim,
+  deliveryApproved = archive,
+  implementation,
+}) {
   return `# Progress
 
 Updated: 2026-09-15
@@ -110,9 +125,12 @@ Updated: 2026-09-15
 ## Checklist
 
 - [x] Publish the claim to the shared primary branch.
+- [x] Obtain scope approval before substantive implementation.
+- [x] Complete conditional human approvals.
 - [x] Commit and publish substantive work at meaningful checkpoints.
 - [${implementation ? "x" : " "}] Publish implementation completion while the task is still ongoing.
-- [x] Complete documented user acceptance, if required.
+- [x] Complete documented manual user acceptance, if required.
+- [${deliveryApproved ? "x" : " "}] Obtain and publish delivery approval.
 - [${archive ? "x" : " "}] Archive and publish the task as its final action.
 
 ## Current state
@@ -122,6 +140,16 @@ ${archive ? "Archived." : "In progress."}
 ## Decisions
 
 - Use real Git commits.
+
+## Human approvals
+
+| Checkpoint | Status | Review artifact and decision evidence |
+| --- | --- | --- |
+| Scope | Approved | Fixture owner approved the fixture scope on 2026-09-15. |
+| Interface | Not applicable | The fixture has no interface. |
+| Business and data model | Not applicable | The fixture has no business data. |
+| Architecture | Not applicable | The fixture has no architecture change. |
+| Delivery acceptance | ${deliveryApproved ? "Approved" : "Pending"} | ${deliveryApproved ? "Fixture owner approved delivery on 2026-09-15." : "Review the integrated fixture after implementation."} |
 
 ## Publication milestones
 
@@ -175,7 +203,7 @@ test("rejects a real shallow clone", async () => {
   assert.ok(report.diagnostics.some(({ code }) => code === "history.shallow"));
 });
 
-test("validates a real archive move with three distinct publications", async () => {
+test("validates a real archive move with phased publications and approval", async () => {
   const { root } = await createGitRepository();
   const backlog = join(root, "tasks", "backlog", "real-history-task");
   await mkdir(backlog);
@@ -199,9 +227,9 @@ test("validates a real archive move with three distinct publications", async () 
 
   await writeFile(
     join(ongoing, "Progress.md"),
-    progressDocument({ claim, implementation }),
+    progressDocument({ claim, deliveryApproved: true, implementation }),
   );
-  commitAndPush(root, "Record implementation evidence");
+  commitAndPush(root, "Record delivery approval");
 
   const archived = join(root, "tasks", "archived", "real-history-task");
   await rename(ongoing, archived);

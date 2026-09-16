@@ -2,6 +2,10 @@
 
 Updated: YYYY-MM-DD
 
+This guide records manual test execution, not the delivery approval decision.
+Record delivery approval separately under Human approvals in `./Progress.md`.
+A single response satisfies both only when the user explicitly reports both.
+
 ## Purpose
 
 State the user-visible behavior or decision this guide validates.

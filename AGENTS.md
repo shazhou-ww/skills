@@ -27,16 +27,22 @@ task-free regardless of which files they change, their size, or their duration.
 - Create accepted work in `tasks/backlog/<task-name>/Task.md`, then move the
   whole folder under `tasks/ongoing/<identity>/` and add `Progress.md` before
   implementation.
+- Plan scope, interface, business and data model, architecture, and delivery
+  checkpoints in `Task.md`. Scope and delivery approval are always required;
+  classify the middle checkpoints for the specific task.
 - Treat accepted task work as authorization for routine non-force commits and
   pushes to `origin/main`; do not ask for confirmation solely for those steps.
-- Publish the claim before substantial implementation, then commit and publish
-  meaningful validated checkpoints with current `Progress.md` evidence.
+- Publish the claim before substantial implementation. At each applicable
+  human review gate, publish the review artifact, obtain explicit approval,
+  record and publish the decision in `Progress.md`, then continue.
 - Publish implementation completion while the task remains ongoing. If manual
   user acceptance is required, include `UserAcceptance.md` and wait for the
-  documented result without archiving.
-- After all acceptance passes, move the task to `tasks/archived/` and publish
-  that move as a separate final commit. Completed tasks require at least claim,
-  implementation-complete, and archive commits on `origin/main`.
+  documented test result without archiving. Manual testing does not replace
+  explicit delivery approval.
+- After all acceptance and the delivery checkpoint pass, move the task to
+  `tasks/archived/` and publish that move as a separate final commit. Completed
+  tasks require at least claim, implementation-complete, and archive commits on
+  `origin/main`.
 - Preserve unrelated work and never copy one task into multiple locations.
 
 ## npm releases

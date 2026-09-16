@@ -29,6 +29,23 @@ const USER_ACCEPTANCE_HEADINGS = [
   "Report outcome",
   "Status",
 ];
+const HUMAN_REVIEW_CHECKPOINTS = [
+  "Scope",
+  "Interface",
+  "Business and data model",
+  "Architecture",
+  "Delivery acceptance",
+];
+const REQUIRED_HUMAN_REVIEW_CHECKPOINTS = new Set([
+  "Scope",
+  "Delivery acceptance",
+]);
+const HUMAN_APPROVAL_STATUSES = new Set([
+  "Pending",
+  "Approved",
+  "Not applicable",
+  "Reopened",
+]);
 
 function diagnostic(code, level, path, message, remediation) {
   return { code, level, path, message, remediation };
@@ -100,12 +117,107 @@ function validateAcceptanceCriteria({
   }
 }
 
-function milestoneRows(document) {
+function namedTableRows(document, sectionName) {
   const table = document
-    .section("Publication milestones")
+    .section(sectionName)
     .find(({ type }) => type === "table");
   if (!table) return null;
-  return new Map(table.rows.map((row) => [row[0]?.text.trim(), row.map((cell) => cell.text.trim())]));
+  return new Map(
+    table.rows.map((row) => [
+      row[0]?.text.trim(),
+      row.map((cell) => cell.text.trim()),
+    ]),
+  );
+}
+
+function hasPlaceholder(value) {
+  return !value || /<[^>]+>/.test(value);
+}
+
+function validateHumanReviewPlan({ diagnostics, document, filePath, root, state }) {
+  const path = displayPath(root, filePath);
+  if (!document.headings.has("Human review checkpoints")) {
+    if (state !== "archived") {
+      diagnostics.push(
+        error(
+          "task.human-review.missing",
+          path,
+          "Active task is missing its human review checkpoint plan.",
+          "Add the Human review checkpoints section from the current task template.",
+        ),
+      );
+    }
+    return null;
+  }
+
+  const rows = namedTableRows(document, "Human review checkpoints");
+  if (!rows) {
+    diagnostics.push(
+      error(
+        "task.human-review.table-missing",
+        path,
+        "Human review checkpoints are missing their planning table.",
+        "Add the checkpoint, applicability, reviewer, artifact, and approval-gate table from the current task template.",
+      ),
+    );
+    return new Map();
+  }
+
+  for (const checkpoint of HUMAN_REVIEW_CHECKPOINTS) {
+    const row = rows.get(checkpoint);
+    if (!row) {
+      diagnostics.push(
+        error(
+          "task.human-review.row-missing",
+          path,
+          `Human review plan is missing the ${checkpoint} checkpoint.`,
+          `Add the ${checkpoint} row from the current task template.`,
+        ),
+      );
+      continue;
+    }
+
+    const applicability = row[1] ?? "";
+    const required = applicability === "Required";
+    const notApplicable = /^Not applicable:\s+\S/.test(applicability);
+    const assessLater = /^Assess during execution:\s+\S/.test(applicability);
+    if (
+      hasPlaceholder(applicability) ||
+      (!required && !notApplicable && !assessLater) ||
+      (REQUIRED_HUMAN_REVIEW_CHECKPOINTS.has(checkpoint) && !required)
+    ) {
+      diagnostics.push(
+        error(
+          "task.human-review.applicability-invalid",
+          path,
+          `Human review checkpoint ${checkpoint} has invalid applicability: ${applicability || "missing"}.`,
+          REQUIRED_HUMAN_REVIEW_CHECKPOINTS.has(checkpoint)
+            ? `Mark ${checkpoint} as Required.`
+            : `Use Required, Not applicable: <reason>, or Assess during execution: <decision trigger>.`,
+        ),
+      );
+      continue;
+    }
+
+    if (row.slice(2, 5).some(hasPlaceholder)) {
+      diagnostics.push(
+        error(
+          "task.human-review.details-missing",
+          path,
+          `Human review checkpoint ${checkpoint} contains an unresolved review detail.`,
+          notApplicable
+            ? "Replace remaining placeholders with Not applicable."
+            : "Replace every placeholder with task-specific reviewer, artifact, and gate details.",
+        ),
+      );
+    }
+  }
+
+  return rows;
+}
+
+function milestoneRows(document) {
+  return namedTableRows(document, "Publication milestones");
 }
 
 function validateMilestones({ diagnostics, document, filePath, outcome, root, state }) {
@@ -190,7 +302,113 @@ function validateProgressChecklist({ diagnostics, document, filePath, outcome, r
   }
 }
 
-async function validateProgress({ diagnostics, root, state, strict, task }) {
+function validateHumanApprovals({
+  diagnostics,
+  document,
+  filePath,
+  outcome,
+  reviewPlan,
+  root,
+  state,
+}) {
+  const path = displayPath(root, filePath);
+  const rows = namedTableRows(document, "Human approvals");
+  if (!rows) {
+    diagnostics.push(
+      error(
+        "progress.human-approvals.table-missing",
+        path,
+        "Progress is missing its human approval table.",
+        "Copy all five checkpoints from Task.md and record their current status and evidence.",
+      ),
+    );
+    return;
+  }
+
+  for (const checkpoint of HUMAN_REVIEW_CHECKPOINTS) {
+    const row = rows.get(checkpoint);
+    if (!row) {
+      diagnostics.push(
+        error(
+          "progress.human-approvals.row-missing",
+          path,
+          `Human approvals are missing the ${checkpoint} checkpoint.`,
+          `Add the ${checkpoint} row and copy its applicability from Task.md.`,
+        ),
+      );
+      continue;
+    }
+
+    const status = row[1] ?? "";
+    const evidence = row[2] ?? "";
+    if (!HUMAN_APPROVAL_STATUSES.has(status)) {
+      diagnostics.push(
+        error(
+          "progress.human-approvals.status-invalid",
+          path,
+          `Human approval checkpoint ${checkpoint} has invalid status: ${status || "missing"}.`,
+          "Use Pending, Approved, Not applicable, or Reopened.",
+        ),
+      );
+      continue;
+    }
+
+    const applicability = reviewPlan.get(checkpoint)?.[1] ?? "";
+    if (
+      (applicability === "Required" && status === "Not applicable") ||
+      (applicability.startsWith("Not applicable:") && status !== "Not applicable")
+    ) {
+      diagnostics.push(
+        error(
+          "progress.human-approvals.plan-conflict",
+          path,
+          `Human approval status for ${checkpoint} conflicts with Task.md applicability.`,
+          "Update the task plan and progress status together before proceeding.",
+        ),
+      );
+    }
+
+    if (
+      status === "Approved" &&
+      (hasPlaceholder(evidence) || !/\b\d{4}-\d{2}-\d{2}\b/.test(evidence))
+    ) {
+      diagnostics.push(
+        error(
+          "progress.human-approvals.evidence-invalid",
+          path,
+          `Approved checkpoint ${checkpoint} lacks dated decision evidence.`,
+          "Record the human reviewer, YYYY-MM-DD date, reviewed artifact, and decision evidence.",
+        ),
+      );
+    }
+    if (status === "Not applicable" && hasPlaceholder(evidence)) {
+      diagnostics.push(
+        error(
+          "progress.human-approvals.evidence-invalid",
+          path,
+          `Not-applicable checkpoint ${checkpoint} lacks a rationale.`,
+          "Repeat the task-specific reason from Task.md.",
+        ),
+      );
+    }
+    if (
+      state === "archived" &&
+      outcome === "Completed" &&
+      !["Approved", "Not applicable"].includes(status)
+    ) {
+      diagnostics.push(
+        error(
+          "progress.human-approvals.incomplete",
+          path,
+          `Completed archived task has unresolved ${checkpoint} approval status: ${status}.`,
+          "Obtain and record approval, or mark a conditional checkpoint not applicable with its rationale.",
+        ),
+      );
+    }
+  }
+}
+
+async function validateProgress({ diagnostics, reviewPlan, root, state, strict, task }) {
   const filePath = resolve(task.path, "Progress.md");
   const path = displayPath(root, filePath);
   const exists = await isFile(filePath);
@@ -227,9 +445,11 @@ async function validateProgress({ diagnostics, root, state, strict, task }) {
     (rows === null || [...rows.values()].some((row) => row[2] === "Complete"));
   const usesCurrentSchema =
     strict ?? !legacyArchive;
-  const required = usesCurrentSchema
-    ? [...PROGRESS_HEADINGS, "Publication milestones"]
-    : PROGRESS_HEADINGS;
+  const required = [
+    ...PROGRESS_HEADINGS,
+    ...(usesCurrentSchema ? ["Publication milestones"] : []),
+  ];
+  if (reviewPlan) required.push("Human approvals");
   for (const heading of missingHeadings(document, required)) {
     diagnostics.push(
       error(
@@ -252,6 +472,17 @@ async function validateProgress({ diagnostics, root, state, strict, task }) {
         "Record the actual final outcome and concise reason.",
       ),
     );
+  }
+  if (reviewPlan) {
+    validateHumanApprovals({
+      diagnostics,
+      document,
+      filePath,
+      outcome,
+      reviewPlan,
+      root,
+      state,
+    });
   }
   validateProgressChecklist({ diagnostics, document, filePath, outcome, root, state });
   if (usesCurrentSchema) {
@@ -466,9 +697,17 @@ export async function inspectTaskContents({ root, tasks }) {
         ),
       );
     }
+    const reviewPlan = validateHumanReviewPlan({
+      diagnostics,
+      document,
+      filePath: taskFile,
+      root,
+      state: task.state,
+    });
 
     const progress = await validateProgress({
       diagnostics,
+      reviewPlan,
       root,
       state: task.state,
       task,
