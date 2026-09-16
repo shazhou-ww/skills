@@ -26,8 +26,9 @@ After comparing `--force`, `--take`, and `--take-over`, the user selected
 `plan claim <task> --take-from <identity>` so the source owner is an explicit
 concurrency guard. The design now makes the current worktree identity the fixed
 destination and fails if the task is no longer owned by the named source. The
-next action is to validate and publish the revision, then request a new decision
-before protected implementation.
+revision is published on `origin/main` at commit `1ea1470`. The next action is
+to obtain explicit approval of the complete revised design before protected
+implementation.
 
 ## Decisions
 
@@ -92,12 +93,15 @@ before protected implementation.
 - The user selected `plan claim <task-name> --take-from <identity>` as the final
   public grammar because naming the expected source avoids accidental takeover
   after concurrent ownership changes.
+- The finalized revision passed `pnpm check` and editor diagnostics before
+  publication as commit `1ea14701a78b7cde795d8191a323247a45ace898`.
 
 ## Blockers
 
 - Scope, interface, business and data model, and architecture implementation
-  remain blocked pending explicit approval of the revised expected-source
-  takeover design after publication.
+  remain blocked pending explicit approval of the expected-source takeover
+  design published at `origin/main` commit
+  `1ea14701a78b7cde795d8191a323247a45ace898`.
 
 ## Outcome
 
