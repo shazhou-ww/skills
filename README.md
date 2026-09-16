@@ -84,8 +84,8 @@ publication evidence, Git history, and worktree identity configuration. It
 does not replace the skill's judgment or lifecycle rules.
 
 ```sh
-npx repoledger@0.3.1 check
-npx repoledger@0.3.1 doctor
+npx repoledger@0.4.0 check
+npx repoledger@0.4.0 doctor
 ```
 
 Repositories should pin the package for CI. `check` is network-free and

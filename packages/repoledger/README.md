@@ -16,15 +16,15 @@ Skill.
 Run without installation:
 
 ```sh
-npx repoledger@0.3.1 check
-npx repoledger@0.3.1 doctor
+npx repoledger@0.4.0 check
+npx repoledger@0.4.0 doctor
 ```
 
 For CI, install and lock a development dependency instead of resolving
 `latest` on every run:
 
 ```sh
-pnpm add --save-dev repoledger@0.3.1
+pnpm add --save-dev repoledger@0.4.0
 pnpm exec repoledger check
 ```
 
