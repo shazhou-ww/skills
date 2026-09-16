@@ -18,9 +18,10 @@ Updated: 2026-09-16
 
 The task is claimed by `scottwei-office-pc` in published commit `735acd9`. The
 move preserves the complete task directory, removes the backlog source, and
-leaves one canonical task position. The next action is to prepare and publish
-the concrete scope, interface, lifecycle model, and architecture review
-artifact without beginning protected implementation.
+leaves one canonical task position. The combined
+[CLI expansion design](./Design.md) is prepared for scope, interface, business
+and data model, and architecture review. The next action is to publish it and
+obtain explicit user approval before protected implementation.
 
 ## Decisions
 
@@ -32,15 +33,19 @@ artifact without beginning protected implementation.
   applied move; treat an archived inbound reference as an atomic blocker.
 - Keep admission, ownership, approvals, commits, and publication outside CLI
   lifecycle decisions.
+- Preserve both inbound links to a moved task and relative outbound links from
+  its moved Markdown when their resolved targets would otherwise change.
+- Use explicit local apply operations with preflight, journaling, rollback, and
+  no automatic Git staging or publication.
 
 ## Human approvals
 
 | Checkpoint | Status | Review artifact and decision evidence |
 | --- | --- | --- |
-| Scope | Pending | The scoped command set, boundaries, constraints, and acceptance criteria in `Task.md` require explicit user review. |
-| Interface | Pending | Exact command grammar, options, output contracts, exit codes, and compatibility behavior will be prepared before CLI implementation. |
-| Business and data model | Pending | Transition states, preconditions, reference graph behavior, archived-history policy, and atomicity rules will be prepared before mutation implementation. |
-| Architecture | Pending | Module ownership and boundaries for discovery, validation, planning, reference rewriting, preflight, and apply will be prepared before structural implementation. |
+| Scope | Pending | Review the command set, mutation boundaries, exclusions, constraints, and acceptance criteria in [the design](./Design.md). |
+| Interface | Pending | Review the exact grammar, defaults, options, output contracts, exit codes, and compatibility behavior in [the design](./Design.md). |
+| Business and data model | Pending | Review transition states, initialization phases, reference graph rules, archived-history policy, and transaction guarantees in [the design](./Design.md). |
+| Architecture | Pending | Review module ownership, structured Markdown dependencies, preflight, journaling, rollback, and test boundaries in [the design](./Design.md). |
 | Delivery acceptance | Pending | Integrated revision and validation evidence are required after implementation publication. |
 
 ## Publication milestones
@@ -62,10 +67,14 @@ artifact without beginning protected implementation.
 - Claim move commit `735acd9c26338286031b4f94d40ae2c8f590269a`
   is published on `origin/main`; its initial publication contained the move,
   while this immediate follow-up records the required progress evidence.
+- The design review reconciles the existing read-only CLI promise with explicit
+  local apply operations and covers both inbound and outbound move-sensitive
+  Markdown references.
 
 ## Blockers
 
-- None before preparing and publishing the required review artifact.
+- Scope, interface, business and data model, and architecture implementation
+  remain blocked pending explicit user approval of [the design](./Design.md).
 
 ## Outcome
 

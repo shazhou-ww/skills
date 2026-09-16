@@ -42,8 +42,10 @@ approval, publication, and completion decisions in the Agent Skill.
   verify that the task occupies exactly one canonical position.
 - Find inbound repository-local Markdown links whose resolved target is inside
   the moved task directory and update them to the destination when they occur
-  outside archived task history. Preserve link fragments, external URLs,
-  fragment-only links, and links that remain valid without rewriting.
+  outside archived task history. Also update relative outbound links from
+  Markdown inside the moved task when its new location would otherwise change
+  their resolved target. Preserve link fragments, external URLs, fragment-only
+  links, and links that remain valid without rewriting.
 - Treat an inbound reference from `tasks/archived/**` as a blocking precondition
   and make no partial move or reference edits, rather than rewriting archived
   history automatically.
@@ -83,9 +85,10 @@ approval, publication, and completion decisions in the Agent Skill.
 - [ ] A successful `plan --apply` moves every task artifact, leaves no source
       task directory, preserves identity markers, and leaves exactly one task
       position; failed preconditions produce no partial filesystem changes.
-- [ ] Applied moves rewrite inbound Markdown links outside archived task
-      history to the new canonical target while preserving valid syntax and
-      fragments; archived inbound references block the entire apply operation.
+- [ ] Applied moves rewrite affected inbound links outside archived task
+  history and relative outbound links from the moving task while preserving
+  targets, valid syntax, queries, and fragments; archived inbound
+  references block the entire apply operation.
 - [ ] Existing `check`, `doctor`, configuration, human-readable output, JSON
       contracts, and exit-code behavior remain backward compatible except for
       documented additive fields or options.
@@ -130,6 +133,7 @@ acceptance are always required for completed work.
 
 ## References
 
+- [CLI expansion design](./Design.md)
 - [Current CLI routing](/packages/repoledger/src/cli.js)
 - [Current layout inspection](/packages/repoledger/src/layout.js)
 - [Current Markdown parsing](/packages/repoledger/src/markdown.js)
