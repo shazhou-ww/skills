@@ -19,9 +19,10 @@ Updated: 2026-09-16
 The task is claimed by `scottwei-office-pc` in published commit `735acd9`. The
 move preserves the complete task directory, removes the backlog source, and
 leaves one canonical task position. The combined
-[CLI expansion design](./Design.md) is prepared for scope, interface, business
-and data model, and architecture review. The next action is to publish it and
-obtain explicit user approval before protected implementation.
+[CLI expansion design](./Design.md) is published on `origin/main` at commit
+`443af5f`. The next action is to obtain explicit user approval for its scope,
+interface, business and data model, and architecture decisions before
+protected implementation.
 
 ## Decisions
 
@@ -70,11 +71,15 @@ obtain explicit user approval before protected implementation.
 - The design review reconciles the existing read-only CLI promise with explicit
   local apply operations and covers both inbound and outbound move-sensitive
   Markdown references.
+- `pnpm check` passed 41 package tests, package and packed-tarball checks, 11
+  release tests, and the repository ledger check before the design was
+  published as commit `443af5fe31e13896b15e1cd162e06021c176b4d6`.
 
 ## Blockers
 
 - Scope, interface, business and data model, and architecture implementation
-  remain blocked pending explicit user approval of [the design](./Design.md).
+  remain blocked pending explicit user approval of the design published at
+  `origin/main` commit `443af5fe31e13896b15e1cd162e06021c176b4d6`.
 
 ## Outcome
 
