@@ -168,9 +168,15 @@ Archived tasks have no identity layer; Git history preserves prior ownership.
 
 ## Link Task Artifacts
 
-Use `/path/from/repository/root` only when the repository profile declares that
-all supported renderers resolve it. Otherwise use portable file-relative links
-and update them when tasks move. Preserve external and fragment-only links, and
+Use a file-relative link for every target stored inside the current task
+directory, such as `./Progress.md` or `./UserAcceptance.md`. The task directory
+moves as a unit, so these links remain valid across lifecycle moves regardless
+of renderer behavior.
+
+For repository-local targets outside the task directory, use
+`/path/from/repository/root` only when the repository profile declares that all
+supported renderers resolve it. Otherwise use portable file-relative links and
+update them when tasks move. Preserve external and fragment-only links, and
 never couple local links to a machine path, repository owner, remote, or branch.
 
 ## Canonical Layout

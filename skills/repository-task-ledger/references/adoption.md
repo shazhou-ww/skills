@@ -160,17 +160,24 @@ satisfies a publication milestone.
 
 ## Link Task References
 
-Task artifacts move between directories with different depths. Prefer
-`/path/from/repository/root` for repository-local links when the supported
-renderer resolves a leading `/` from the repository or workspace root. GitHub
-does this for repository Markdown, and VS Code does it when the repository root
-is the workspace root. This is renderer behavior, not standard Markdown.
+Task artifacts move between directories with different depths. A link to a
+target stored inside the same task directory must be relative to the linking
+file, such as `./Progress.md` or `./UserAcceptance.md`. Because the source and
+target move together, this form remains valid across lifecycle moves and in
+standard Markdown renderers.
 
-Ordinary file-relative links remain valid and are required when another
-renderer lacks repository-root behavior, though they may need updates when a
-task moves. External URI references and fragment-only links remain unchanged.
-The validator resolves both local forms without a project link-policy setting
-and does not interpret external URIs as repository paths.
+For repository-local targets outside the task directory, prefer
+`/path/from/repository/root` when the supported renderer resolves a leading `/`
+from the repository or workspace root. GitHub does this for repository
+Markdown, and VS Code does it when the repository root is the workspace root.
+This is renderer behavior, not standard Markdown.
+
+When another renderer lacks repository-root behavior, links to targets outside
+the task directory must also be file-relative and may need updates when a task
+moves. External URI references and fragment-only links remain unchanged. The
+validator rejects repository-root links back into the current task directory,
+resolves both allowed local forms without a project link-policy setting, and
+does not interpret external URIs as repository paths.
 
 
 ## Worktree identity setup
@@ -276,15 +283,17 @@ Automated checks should verify at least:
    the shared primary branch for those milestones;
 - any `UserAcceptance.md` contains a test target, prerequisites, numbered
    steps, matching expected results, reporting instructions, and actual status;
-- repository-root and ordinary relative local links in task artifacts resolve,
-   while external URI and fragment-only references remain external.
+- targets inside the current task directory use file-relative links;
+- repository-root and ordinary relative local links to other targets resolve,
+  while external URI and fragment-only references remain external.
 
 Link checks must first determine the Git repository root, for example with
 `git rev-parse --show-toplevel`. After separating any fragment from the path,
 resolve a target beginning with one `/` from that repository root. Resolve
 every ordinary relative target from the directory containing the task
-artifact. Skip absolute and protocol-relative external URLs, non-file URI
-schemes, and fragment-only targets. A leading `/` must not silently use the
+artifact. Reject a leading `/` when its resolved target is inside the current
+task directory. Skip absolute and protocol-relative external URLs, non-file
+URI schemes, and fragment-only targets. A leading `/` must not silently use the
 process working directory or filesystem root.
 
 CI checks structure after the fact. They complement, but do not replace, the

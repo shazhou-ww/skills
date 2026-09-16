@@ -204,7 +204,7 @@ test("reports task artifacts, milestones, acceptance, and local link failures", 
   assert.ok(codes.includes("link.target.missing"));
 });
 
-test("accepts repository-root, relative, encoded, and external URI references", async () => {
+test("accepts repository-root, task-local, encoded, and external URI references", async () => {
   const root = await createRepository();
   const task = join(root, "tasks", "backlog", "linked-task");
   await mkdir(task);
@@ -213,7 +213,7 @@ test("accepts repository-root, relative, encoded, and external URI references", 
     join(task, "Task.md"),
     TASK.replace(
       "[Profile](/tasks/README.md)",
-      "[Root](/tasks/README.md), [relative](../../../tasks/README.md), [encoded](notes%20file.md), [web](https://example.com/tasks), [mail](mailto:owner@example.com), and [protocol-relative](//example.com/tasks).",
+      "[Root](/tasks/README.md), [relative](../../../tasks/README.md), [task-local](./notes%20file.md), [web](https://example.com/tasks), [mail](mailto:owner@example.com), and [protocol-relative](//example.com/tasks).",
     ),
   );
 
@@ -221,6 +221,30 @@ test("accepts repository-root, relative, encoded, and external URI references", 
 
   assert.equal(report.ok, true);
   assert.deepEqual(report.diagnostics, []);
+});
+
+test("rejects repository-root links within the current task directory", async () => {
+  const root = await createRepository();
+  const task = join(root, "tasks", "backlog", "root-linked-task");
+  await mkdir(task);
+  await writeFile(join(task, "notes.md"), "# Notes\n");
+  await writeFile(
+    join(task, "Task.md"),
+    TASK.replace(
+      "[Profile](/tasks/README.md)",
+      "[Notes](/tasks/backlog/root-linked-task/notes.md)",
+    ),
+  );
+
+  const report = await checkRepository({ git: fullHistoryGit, root });
+
+  assert.equal(report.ok, false);
+  assert.ok(
+    report.diagnostics.some(
+      ({ code }) => code === "link.task-local.root-relative",
+    ),
+  );
+  assert.ok(!report.diagnostics.some(({ code }) => code === "link.target.missing"));
 });
 
 test("rejects machine paths, repository escapes, and invalid encoding", async () => {

@@ -28,7 +28,9 @@ Why the task exists and the current behavior.
 
 ## References
 
-Use `/path/from/repository/root` when the project profile declares root-link
-support. Otherwise use a portable file-relative link.
+Use a file-relative link for anything stored in this task directory. For other
+repository-local targets, use `/path/from/repository/root` when the project
+profile declares root-link support; otherwise use a portable file-relative
+link.
 
 - External Issue or canonical repository document.

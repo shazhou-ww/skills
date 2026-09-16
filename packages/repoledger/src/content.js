@@ -392,6 +392,16 @@ async function validateLinks({ diagnostics, root, task }) {
       const targetPath = rootRelative
         ? resolve(root, decoded.replace(/^[/\\]+/, ""))
         : resolve(dirname(filePath), decoded);
+      if (rootRelative && !escapesRoot(task.path, targetPath)) {
+        diagnostics.push(
+          error(
+            "link.task-local.root-relative",
+            displayPath(root, filePath),
+            `Task-local link uses a repository-root path: ${rawTarget}`,
+            "Use a path relative to the linking file so it moves with the task directory.",
+          ),
+        );
+      }
       if (escapesRoot(root, targetPath)) {
         diagnostics.push(
           error(

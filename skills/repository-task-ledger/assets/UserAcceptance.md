@@ -11,6 +11,8 @@ State the user-visible behavior or decision this guide validates.
 - Integrated revision: `<remote>/<primary-branch>` at `<commit-or-release>`.
 - Environment or entry point: Exact location the user should open or operate.
 
+Use a file-relative link for any target stored in this task directory.
+
 ## Preconditions
 
 - Required setup, account, data, device, or access. Do not include secrets.

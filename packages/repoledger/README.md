@@ -57,9 +57,11 @@ which is the configuration contract and carries its version in the path. A
 future incompatible contract uses a different schema rather than a second
 version field.
 
-Repository-local Markdown references may begin with `/` to resolve from the
-repository root or use ordinary file-relative paths. URI references such as
-HTTPS links are external and are not resolved as repository files.
+Markdown references to targets inside the current task directory must use
+file-relative paths so they remain valid when the task moves. Other
+repository-local references may begin with `/` to resolve from the repository
+root or use ordinary file-relative paths. URI references such as HTTPS links
+are external and are not resolved as repository files.
 
 `check` requires complete Git history and the configured remote ref so it can
 verify publication evidence without silently weakening the protocol. It never
@@ -78,7 +80,8 @@ informational diagnostics rather than migration edits.
   checklists, final outcomes, and publication milestone tables;
 - optional `UserAcceptance.md` structure, numbered steps and results,
   reporting instructions, and accepted status for completed archives;
-- repository-local Markdown links under the declared renderer convention;
+- move-stable task-local links and repository-local Markdown links under the
+  declared renderer convention;
 - recorded published commit references, shared-branch reachability, archive
   move history, and distinct lifecycle integrations when history is present.
 

@@ -50,14 +50,17 @@ in exactly one status location.
 ## Task links
 
 This repository supports task artifacts rendered on GitHub and in VS Code when
-the repository root is the workspace root. Both resolve a leading `/` from that
-root, so new or edited backlog and ongoing task artifacts use
-`/path/from/repository/root` for repository-local references. This is a
-renderer-specific convention, not standard Markdown behavior.
+the repository root is the workspace root. Links to targets stored inside the
+same task directory use file-relative paths such as `./Progress.md`; those
+targets move together with the task. For repository-local targets outside the
+task directory, new or edited backlog and ongoing task artifacts use
+`/path/from/repository/root`. This is a renderer-specific convention, not
+standard Markdown behavior.
 
 Leave external URLs and fragment-only links unchanged. Link checks resolve
-leading `/` targets from the Git repository root and ordinary relative targets
-from the directory containing the Markdown file. Do not rewrite archived task
+leading `/` targets from the Git repository root, reject that form for targets
+inside the current task directory, and resolve ordinary relative targets from
+the directory containing the Markdown file. Do not rewrite archived task
 history solely to change its link style.
 
 ## Identity

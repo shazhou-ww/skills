@@ -33,7 +33,8 @@ resulting remote Git history supplies its immutable commit ID.
 
 ## Validation
 
-Link repository-local evidence using the project's declared root-relative or
+Link evidence stored in this task directory using a file-relative path. Link
+other repository-local evidence using the project's declared root-relative or
 portable file-relative convention.
 
 - Command or behavior checked, with its result.
