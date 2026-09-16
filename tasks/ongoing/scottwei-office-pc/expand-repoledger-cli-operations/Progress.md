@@ -5,8 +5,8 @@ Updated: 2026-09-16
 ## Checklist
 
 - [x] Publish the claim to the shared primary branch.
-- [ ] Obtain scope approval before substantive implementation.
-- [ ] Complete each applicable interface, business and data model, and
+- [x] Obtain scope approval before substantive implementation.
+- [x] Complete each applicable interface, business and data model, and
   architecture approval before the affected implementation.
 - [ ] Commit and publish substantive work at meaningful checkpoints.
 - [ ] Publish implementation completion while the task is still ongoing.
@@ -27,8 +27,8 @@ After comparing `--force`, `--take`, and `--take-over`, the user selected
 concurrency guard. The design now makes the current worktree identity the fixed
 destination and fails if the task is no longer owned by the named source. The
 revision is published on `origin/main` at commit `1ea1470`. The next action is
-to obtain explicit approval of the complete revised design before protected
-implementation.
+to publish the user's explicit approval of all four design checkpoints, then
+implement the approved command slices with focused validation after each one.
 
 ## Decisions
 
@@ -54,10 +54,10 @@ implementation.
 
 | Checkpoint | Status | Review artifact and decision evidence |
 | --- | --- | --- |
-| Scope | Pending | Review the revised command set and receiver-initiated takeover boundary in [the design](./Design.md). |
-| Interface | Pending | Review the revised `plan claim <task-name> --take-from <identity>` grammar, `operation: "takeover"` output, and fixed current-identity destination in [the design](./Design.md). |
-| Business and data model | Pending | Review expected-source identity checks, external transfer authorization, reference graph rules, and transaction guarantees in [the design](./Design.md). |
-| Architecture | Pending | Review module ownership, structured Markdown dependencies, preflight, journaling, rollback, and test boundaries in [the design](./Design.md). |
+| Scope | Approved | User approved the complete revised scope in [the design](./Design.md) on 2026-09-16. |
+| Interface | Approved | User approved the command grammar, structured output, and compatibility contract in [the design](./Design.md) revision `1ea1470` on 2026-09-16. |
+| Business and data model | Approved | User approved expected-source takeover, initialization phases, reference rules, and transaction guarantees in [the design](./Design.md) revision `1ea1470` on 2026-09-16. |
+| Architecture | Approved | User approved module boundaries, structured Markdown processing, journaling, rollback, and test strategy in [the design](./Design.md) revision `1ea1470` on 2026-09-16. |
 | Delivery acceptance | Pending | Integrated revision and validation evidence are required after implementation publication. |
 
 ## Publication milestones
@@ -95,13 +95,12 @@ implementation.
   after concurrent ownership changes.
 - The finalized revision passed `pnpm check` and editor diagnostics before
   publication as commit `1ea14701a78b7cde795d8191a323247a45ace898`.
+- On 2026-09-16, the user explicitly selected `全部批准，进入实现` for Scope,
+  Interface, Business and Data Model, and Architecture.
 
 ## Blockers
 
-- Scope, interface, business and data model, and architecture implementation
-  remain blocked pending explicit approval of the expected-source takeover
-  design published at `origin/main` commit
-  `1ea14701a78b7cde795d8191a323247a45ace898`.
+- None.
 
 ## Outcome
 
