@@ -70,35 +70,35 @@ approval, publication, and completion decisions in the Agent Skill.
 
 ## Acceptance criteria
 
-- [ ] `repoledger status` deterministically lists active task positions and the
+- [x] `repoledger status` deterministically lists active task positions and the
       current identity; an explicit option includes archived positions, and
       JSON output exposes stable task name, state, identity, and path fields.
-- [ ] `repoledger check --task <task-name>` focuses task-scoped diagnostics,
+- [x] `repoledger check --task <task-name>` focuses task-scoped diagnostics,
       fails clearly for no match or duplicate positions, retains required
       repository-wide safety checks, and does not change existing unfiltered
       `check` behavior.
-- [ ] `repoledger init --dry-run` reports every proposed repository and identity
+- [x] `repoledger init --dry-run` reports every proposed repository and identity
       setup action without mutation; applying initialization creates only safe
       missing prerequisites, refuses conflicts, and never commits or publishes.
-- [ ] Each supported `repoledger plan` transition reports its exact source,
+- [x] Each supported `repoledger plan` transition reports its exact source,
       destination, preconditions, blockers, and reference edits without
       changing files unless `--apply` is supplied.
-- [ ] A successful `plan --apply` moves every task artifact, leaves no source
+- [x] A successful `plan --apply` moves every task artifact, leaves no source
       task directory, preserves identity markers, and leaves exactly one task
       position; failed preconditions produce no partial filesystem changes.
-- [ ] Applied moves rewrite affected inbound links outside archived task
+- [x] Applied moves rewrite affected inbound links outside archived task
   history and relative outbound links from the moving task while preserving
   targets, valid syntax, queries, and fragments; archived inbound
   references block the entire apply operation.
-- [ ] Existing `check`, `doctor`, configuration, human-readable output, JSON
+- [x] Existing `check`, `doctor`, configuration, human-readable output, JSON
       contracts, and exit-code behavior remain backward compatible except for
       documented additive fields or options.
-- [ ] Automated tests cover preview versus apply, claim,
+- [x] Automated tests cover preview versus apply, claim,
       `claim --take-from <identity>`, and archive, duplicate and missing tasks,
       source-identity races, conflicting initialization, relative and
       repository-root links, archived-reference blockers, Windows paths, and
       rollback or no-partial-write behavior.
-- [ ] Package and skill documentation explain the command boundaries, mutation
+- [x] Package and skill documentation explain the command boundaries, mutation
       guarantees, remaining human decisions, and the required publication
       steps after local initialization or transition application.
 

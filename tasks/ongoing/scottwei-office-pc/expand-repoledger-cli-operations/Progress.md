@@ -8,9 +8,10 @@ Updated: 2026-09-16
 - [x] Obtain scope approval before substantive implementation.
 - [x] Complete each applicable interface, business and data model, and
   architecture approval before the affected implementation.
-- [ ] Commit and publish substantive work at meaningful checkpoints.
-- [ ] Publish implementation completion while the task is still ongoing.
-- [ ] Complete documented manual user acceptance, if required.
+- [x] Commit and publish substantive work at meaningful checkpoints.
+- [x] Publish implementation completion while the task is still ongoing.
+- [x] Complete documented manual user acceptance, if required. Not required;
+  every acceptance criterion is agent-verifiable.
 - [ ] Obtain and publish delivery approval.
 - [ ] Archive and publish the task as its final action.
 
@@ -30,10 +31,11 @@ revision and all four design approvals are published on `origin/main`. The
 approved implementation is complete locally: it adds `status`, focused
 `check`, preview-first `init`, and preview-first claim, expected-source
 takeover, and archive transitions with structured reference rewriting,
-transaction rollback, crash recovery, and concurrent-state guards. The next
-action is to publish this substantive implementation checkpoint, record its
-immutable commit, then publish the implementation-complete milestone while the
-task remains ongoing.
+transaction rollback, crash recovery, and concurrent-state guards. The
+implementation-complete checkpoint is published on `origin/main` at commit
+`132ad33`. All acceptance criteria are agent-verified, and manual user
+acceptance is not required. The next action is explicit delivery review of the
+integrated revision before completion and archival.
 
 ## Decisions
 
@@ -81,7 +83,7 @@ task remains ongoing.
 | Milestone | Evidence | Status |
 | --- | --- | --- |
 | Claim | `origin/main` commit `735acd9c26338286031b4f94d40ae2c8f590269a`. | Published |
-| Implementation complete | Pending. | Pending |
+| Implementation complete | `origin/main` commit `132ad33d6fd9d12c42df0ba4f178a5631ab695c8`. | Published |
 | Archive | Pending. | Pending |
 
 ## Validation
@@ -130,10 +132,16 @@ task remains ongoing.
   identity, encoding, and concurrency risks; each confirmed issue was repaired
   with focused regression coverage. A final claimed backup-order defect was
   disproved by the current source ordering and injected rename-failure test.
+- Implementation commit `132ad33d6fd9d12c42df0ba4f178a5631ab695c8`
+  is reachable from refreshed `origin/main`; the worktree is clean, the real
+  `repoledger status` reports this unique ongoing task under
+  `scottwei-office-pc`, and focused `check --task` passes with zero diagnostics.
 
 ## Blockers
 
-- None.
+- Delivery acceptance is pending explicit user review of the integrated
+  `origin/main` revision at commit
+  `132ad33d6fd9d12c42df0ba4f178a5631ab695c8`.
 
 ## Outcome
 
