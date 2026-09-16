@@ -1,4 +1,4 @@
-import { readdir, stat } from "node:fs/promises";
+import { lstat, readdir } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 
 const PORTABLE_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -14,7 +14,7 @@ function error(code, path, message, remediation) {
 
 async function directoryEntries(path) {
   try {
-    const metadata = await stat(path);
+    const metadata = await lstat(path);
     if (!metadata.isDirectory()) return { entries: null, kind: "not-directory" };
     const entries = await readdir(path, { withFileTypes: true });
     return {
@@ -96,7 +96,7 @@ async function collectOngoingTasks({ diagnostics, root, statePath }) {
     });
 
     try {
-      const marker = await stat(resolve(identityPath, ".gitkeep"));
+      const marker = await lstat(resolve(identityPath, ".gitkeep"));
       if (!marker.isFile()) throw new Error("not a file");
     } catch {
       diagnostics.push(

@@ -1,4 +1,4 @@
-import { access, readFile, readdir, stat } from "node:fs/promises";
+import { access, readFile, readdir, realpath, stat } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 
 import { parseMarkdown, sectionText } from "./markdown.js";
@@ -220,7 +220,15 @@ function milestoneRows(document) {
   return namedTableRows(document, "Publication milestones");
 }
 
-function validateMilestones({ diagnostics, document, filePath, outcome, root, state }) {
+function validateMilestones({
+  allowPendingArchive,
+  diagnostics,
+  document,
+  filePath,
+  outcome,
+  root,
+  state,
+}) {
   const path = displayPath(root, filePath);
   const rows = milestoneRows(document);
   if (!rows) {
@@ -274,7 +282,12 @@ function validateMilestones({ diagnostics, document, filePath, outcome, root, st
       ),
     );
   }
-  if (state === "archived" && rows.get("Archive")?.[2] !== "Published") {
+  const archiveStatus = rows.get("Archive")?.[2];
+  if (
+    state === "archived" &&
+    archiveStatus !== "Published" &&
+    !(allowPendingArchive && archiveStatus === "Pending")
+  ) {
     diagnostics.push(
       error(
         "progress.milestones.archive-unpublished",
@@ -286,10 +299,23 @@ function validateMilestones({ diagnostics, document, filePath, outcome, root, st
   }
 }
 
-function validateProgressChecklist({ diagnostics, document, filePath, outcome, root, state }) {
+function validateProgressChecklist({
+  allowPendingArchive,
+  diagnostics,
+  document,
+  filePath,
+  outcome,
+  root,
+  state,
+}) {
   if (state !== "archived" || outcome !== "Completed") return;
   const list = firstList(document.section("Checklist"));
-  const unchecked = list?.items.filter(({ task, checked }) => task && checked !== true) ?? [];
+  let unchecked = list?.items.filter(({ task, checked }) => task && checked !== true) ?? [];
+  if (allowPendingArchive) {
+    unchecked = unchecked.filter(
+      ({ text }) => !/(?:\barchive\b.*\bpublish\b|\bpublish\b.*\barchive\b)/i.test(text),
+    );
+  }
   if (unchecked.length > 0) {
     diagnostics.push(
       error(
@@ -408,7 +434,15 @@ function validateHumanApprovals({
   }
 }
 
-async function validateProgress({ diagnostics, reviewPlan, root, state, strict, task }) {
+async function validateProgress({
+  allowPendingArchive,
+  diagnostics,
+  reviewPlan,
+  root,
+  state,
+  strict,
+  task,
+}) {
   const filePath = resolve(task.path, "Progress.md");
   const path = displayPath(root, filePath);
   const exists = await isFile(filePath);
@@ -484,9 +518,25 @@ async function validateProgress({ diagnostics, reviewPlan, root, state, strict, 
       state,
     });
   }
-  validateProgressChecklist({ diagnostics, document, filePath, outcome, root, state });
+  validateProgressChecklist({
+    allowPendingArchive,
+    diagnostics,
+    document,
+    filePath,
+    outcome,
+    root,
+    state,
+  });
   if (usesCurrentSchema) {
-    validateMilestones({ diagnostics, document, filePath, outcome, root, state });
+    validateMilestones({
+      allowPendingArchive,
+      diagnostics,
+      document,
+      filePath,
+      outcome,
+      root,
+      state,
+    });
   }
   return { outcome, strict: usesCurrentSchema };
 }
@@ -582,6 +632,7 @@ function escapesRoot(root, path) {
 }
 
 async function validateLinks({ diagnostics, root, task }) {
+  const realRoot = await realpath(root);
   for (const filePath of await markdownFiles(task.path)) {
     const document = parseMarkdown(await readFile(filePath, "utf8"));
     for (const rawTarget of document.links) {
@@ -646,6 +697,17 @@ async function validateLinks({ diagnostics, root, task }) {
       }
       try {
         await access(targetPath);
+        const realTarget = await realpath(targetPath);
+        if (escapesRoot(realRoot, realTarget)) {
+          diagnostics.push(
+            error(
+              "link.target.symlink-escape",
+              displayPath(root, filePath),
+              `Local link resolves outside the repository: ${rawTarget}`,
+              "Replace the escaping symlink with a repository-local target.",
+            ),
+          );
+        }
       } catch {
         diagnostics.push(
           error(
@@ -660,7 +722,7 @@ async function validateLinks({ diagnostics, root, task }) {
   }
 }
 
-export async function inspectTaskContents({ root, tasks }) {
+export async function inspectTaskContents({ allowPendingArchive = false, root, tasks }) {
   const diagnostics = [];
 
   for (const task of tasks) {
@@ -706,6 +768,7 @@ export async function inspectTaskContents({ root, tasks }) {
     });
 
     const progress = await validateProgress({
+      allowPendingArchive,
       diagnostics,
       reviewPlan,
       root,

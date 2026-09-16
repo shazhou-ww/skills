@@ -3,6 +3,9 @@ import { Command, CommanderError } from "commander";
 
 import { doctorRepository } from "./doctor.js";
 import { checkRepository } from "./index.js";
+import { initRepository } from "./init.js";
+import { statusRepository } from "./status.js";
+import { transitionRepository } from "./transitions.js";
 
 const { version: VERSION } = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
@@ -44,11 +47,92 @@ function renderReport(report, json, io) {
   }
 }
 
+function renderStatus(report, json, io) {
+  if (json) {
+    io.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  for (const diagnostic of report.diagnostics.filter(
+    ({ level }) => level === "error" || level === "warning",
+  )) {
+    const output = diagnostic.level === "error" ? io.error : io.log;
+    output(
+      `${diagnostic.level.toUpperCase()} ${diagnostic.code} ${diagnostic.path}: ${diagnostic.message}`,
+    );
+    output(`  Fix: ${diagnostic.remediation}`);
+  }
+  if (report.command === "plan") {
+    io.log(`Operation: ${report.operation}`);
+    if (report.source) io.log(`Source: ${report.source}`);
+    if (report.destination) io.log(`Destination: ${report.destination}`);
+    if (report.sourceIdentity) io.log(`Source identity: ${report.sourceIdentity}`);
+    if (report.destinationIdentity) {
+      io.log(`Destination identity: ${report.destinationIdentity}`);
+    }
+    for (const reference of report.referenceEdits) {
+      const blocked = reference.blocked ? " BLOCKED" : "";
+      io.log(`Reference${blocked}: ${reference.file} ${reference.from} -> ${reference.to}`);
+    }
+  }
+  if (!report.ok) {
+    io.error(`FAILED: ${report.summary.errors} error(s)`);
+    return;
+  }
+
+  const identity = report.identity.value
+    ? `${report.identity.value} (${report.identity.scope})`
+    : "unbound";
+  io.log(`Identity: ${identity}`);
+  if (report.tasks.length === 0) {
+    io.log("No tasks.");
+    return;
+  }
+  for (const task of report.tasks) {
+    const owner = task.identity ? ` [${task.identity}]` : "";
+    io.log(`${task.state.toUpperCase()} ${task.name}${owner} ${task.path}`);
+  }
+}
+
+function renderOperation(report, json, io) {
+  if (json) {
+    io.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  for (const diagnostic of report.diagnostics.filter(
+    ({ level }) => level === "error" || level === "warning",
+  )) {
+    const output = diagnostic.level === "error" ? io.error : io.log;
+    output(
+      `${diagnostic.level.toUpperCase()} ${diagnostic.code} ${diagnostic.path}: ${diagnostic.message}`,
+    );
+    output(`  Fix: ${diagnostic.remediation}`);
+  }
+  if (!report.ok) {
+    io.error(`FAILED: ${report.summary.errors} error(s)`);
+    return;
+  }
+
+  io.log(`${report.mode === "apply" ? "Applied" : "Preview"}: ${report.command}`);
+  for (const change of report.changes) {
+    const detail = change.key ? ` ${change.key}=${change.value}` : "";
+    const target = change.from
+      ? `${change.from} -> ${change.to}`
+      : change.path;
+    io.log(`  ${change.action} ${target}${detail}`);
+  }
+  if (report.mode === "preview" && report.changes.length > 0) {
+    io.log("Preview only; rerun with --apply to apply these changes.");
+  }
+  for (const nextAction of report.nextActions) io.log(`Next: ${nextAction}`);
+}
+
 export function createProgram(io = console) {
   const program = new Command();
   program
     .name("repoledger")
-    .description("Validate repository-owned task ledgers and worktree identities.")
+    .description("Inspect, validate, initialize, and safely move repository-owned task ledgers.")
     .version(VERSION, "-v, --version", "display the installed version")
     .showHelpAfterError("(run with --help for usage)")
     .showSuggestionAfterError()
@@ -63,8 +147,14 @@ export function createProgram(io = console) {
       "after",
       `
 Examples:
+  $ repoledger status
+  $ repoledger init
   $ repoledger check
+  $ repoledger check --task <task-name>
   $ repoledger check --json
+  $ repoledger plan claim <task-name>
+  $ repoledger plan claim <task-name> --take-from <identity>
+  $ repoledger plan archive <task-name>
   $ repoledger doctor
   $ repoledger doctor --offline`,
     );
@@ -73,13 +163,108 @@ Examples:
     program
       .command("check")
       .description("validate task files, links, layout, and available publication history")
-      .summary("validate repository task state"),
+      .summary("validate repository task state")
+      .option("--task <name>", "validate one unambiguously named task"),
   ).action(async (options) => {
     const report = await checkRepository({
       configPath: options.config,
       root: options.root,
+      taskName: options.task,
     });
     renderReport(report, options.json, io);
+    program.setOptionValue("resultCode", report.ok ? 0 : 1);
+  });
+
+  addCommonOptions(
+    program
+      .command("init")
+      .description("plan or apply safe repository task-ledger initialization")
+      .summary("initialize repository task state")
+      .option("--apply", "apply the recomputed initialization plan")
+      .option("--branch <name>", "shared primary branch")
+      .option("--dry-run", "explicitly preview without changing local state")
+      .option("--identity <identity>", "explicit worktree identity to initialize")
+      .option("--remote <name>", "shared Git remote")
+      .option("--tasks-directory <path>", "repository-relative task directory"),
+  ).action(async (options) => {
+    if (options.apply && options.dryRun) {
+      program.error(
+        "error: options '--apply' and '--dry-run' cannot be used together",
+        { exitCode: 2, code: "repoledger.init.conflicting-mode" },
+      );
+    }
+    const report = await initRepository({
+      apply: options.apply,
+      branch: options.branch,
+      configPath: options.config,
+      identity: options.identity,
+      remote: options.remote,
+      root: options.root,
+      tasksDirectory: options.tasksDirectory,
+    });
+    renderOperation(report, options.json, io);
+    program.setOptionValue("resultCode", report.ok ? 0 : 1);
+  });
+
+  addCommonOptions(
+    program
+      .command("status")
+      .description("list canonical task positions and the local worktree identity")
+      .summary("show repository task status")
+      .option("--archived", "include archived task positions"),
+  ).action(async (options) => {
+    const report = await statusRepository({
+      configPath: options.config,
+      includeArchived: options.archived,
+      root: options.root,
+    });
+    renderStatus(report, options.json, io);
+    program.setOptionValue("resultCode", report.ok ? 0 : 1);
+  });
+
+  const plan = program
+    .command("plan")
+    .description("preview or apply a validated local task transition")
+    .summary("plan a task transition");
+
+  addCommonOptions(
+    plan
+      .command("claim <task-name>")
+      .description("plan a backlog claim or explicit ownership takeover")
+      .summary("plan a task claim")
+      .option("--apply", "apply the recomputed transition plan")
+      .option(
+        "--take-from <identity>",
+        "take an ongoing task only from this expected source identity",
+      ),
+  ).action(async (taskName, options) => {
+    const report = await transitionRepository({
+      apply: options.apply,
+      configPath: options.config,
+      operation: "claim",
+      root: options.root,
+      takeFrom: options.takeFrom,
+      taskName,
+    });
+    renderOperation(report, options.json, io);
+    program.setOptionValue("resultCode", report.ok ? 0 : 1);
+  });
+
+  addCommonOptions(
+    plan
+      .command("archive <task-name>")
+      .description("plan archival of a completed or abandoned current task")
+      .summary("plan task archival")
+      .option("--apply", "apply the recomputed transition plan"),
+  ).action(async (taskName, options) => {
+    const report = await transitionRepository({
+      apply: options.apply,
+      configPath: options.config,
+      operation: "archive",
+      root: options.root,
+      taskName,
+    });
+    renderOperation(report, options.json, io);
     program.setOptionValue("resultCode", report.ok ? 0 : 1);
   });
 

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, test } from "node:test";
@@ -385,4 +385,32 @@ test("rejects machine paths, repository escapes, and invalid encoding", async ()
   assert.ok(codes.includes("link.absolute-machine-path"));
   assert.ok(codes.includes("link.repository.escape"));
   assert.ok(codes.includes("link.encoding.invalid"));
+});
+
+test("rejects a local link that escapes through a symbolic directory", async () => {
+  const root = await createRepository();
+  const external = await mkdtemp(join(tmpdir(), "repoledger-external-link-"));
+  temporaryDirectories.push(external);
+  await writeFile(join(external, "target.md"), "# External\n");
+  await symlink(
+    external,
+    join(root, "external-link"),
+    process.platform === "win32" ? "junction" : "dir",
+  );
+  const task = join(root, "tasks", "backlog", "symlink-link-task");
+  await mkdir(task);
+  await writeFile(
+    join(task, "Task.md"),
+    TASK.replace(
+      "[Profile](/tasks/README.md)",
+      "[External](/external-link/target.md)",
+    ),
+  );
+
+  const report = await checkRepository({ git: fullHistoryGit, root });
+
+  assert.equal(report.ok, false);
+  assert.ok(
+    report.diagnostics.some(({ code }) => code === "link.target.symlink-escape"),
+  );
 });

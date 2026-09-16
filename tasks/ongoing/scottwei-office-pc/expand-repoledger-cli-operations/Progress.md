@@ -26,9 +26,14 @@ After comparing `--force`, `--take`, and `--take-over`, the user selected
 `plan claim <task> --take-from <identity>` so the source owner is an explicit
 concurrency guard. The design now makes the current worktree identity the fixed
 destination and fails if the task is no longer owned by the named source. The
-revision is published on `origin/main` at commit `1ea1470`. The next action is
-to publish the user's explicit approval of all four design checkpoints, then
-implement the approved command slices with focused validation after each one.
+revision and all four design approvals are published on `origin/main`. The
+approved implementation is complete locally: it adds `status`, focused
+`check`, preview-first `init`, and preview-first claim, expected-source
+takeover, and archive transitions with structured reference rewriting,
+transaction rollback, crash recovery, and concurrent-state guards. The next
+action is to publish this substantive implementation checkpoint, record its
+immutable commit, then publish the implementation-complete milestone while the
+task remains ongoing.
 
 ## Decisions
 
@@ -49,6 +54,17 @@ implement the approved command slices with focused validation after each one.
   expected-owner guard and the current worktree identity as the fixed
   destination. Keep transfer authorization and coordination in the Agent Skill
   rather than treating the CLI move as consent.
+- Keep task discovery and selection in `layout.js` and `discovery.js`; share
+  authoritative identity facts through `identity.js` across status, doctor,
+  initialization, and transitions.
+- Use structured mdast parsing for move-sensitive links while retaining the
+  existing marked-based validation path to minimize compatibility risk.
+- Stage reference edits and generated files, snapshot every source artifact,
+  journal mutation progress under Git's private directory, roll back ordinary
+  failures, and recover preparing or committed journals before a later apply.
+- Permit only the final archive action and publication milestone to remain
+  pending during prospective archive validation; normal archived validation
+  remains strict after publication.
 
 ## Human approvals
 
@@ -97,6 +113,23 @@ implement the approved command slices with focused validation after each one.
   publication as commit `1ea14701a78b7cde795d8191a323247a45ace898`.
 - On 2026-09-16, the user explicitly selected `全部批准，进入实现` for Scope,
   Interface, Business and Data Model, and Architecture.
+- `pnpm check` passed 82 package tests, the 20-file package allowlist, installed
+  tarball smoke tests, 11 release tests, and the full repository ledger check.
+- The packed tarball smoke imported all four public APIs and exercised
+  `status`, `init` preview, takeover help, `check`, and online `doctor` from a
+  clean npm consumer.
+- `pnpm check:skills` discovered all three skills after the lifecycle guidance
+  was updated, and editor diagnostics reported no workspace errors.
+- Real Git tests cover claim, `claim --take-from`, completed and abandoned
+  archive, CLI JSON apply, archived-reference blocking, remote OID races, and
+  exact source/destination postconditions.
+- Transaction tests cover write and rename failures, generated-file
+  collisions, source artifact races, symlink rejection, rollback, committed
+  cleanup recovery, and simulated process interruption recovery.
+- Independent safety reviews identified path, rollback, journal, archive,
+  identity, encoding, and concurrency risks; each confirmed issue was repaired
+  with focused regression coverage. A final claimed backup-order defect was
+  disproved by the current source ordering and injected rename-failure test.
 
 ## Blockers
 

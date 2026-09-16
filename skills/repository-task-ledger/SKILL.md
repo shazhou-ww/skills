@@ -36,7 +36,8 @@ never copy one task between repositories.
 2. Run `repoledger doctor` before claiming or resuming when the repository has
    adopted the CLI. It must refresh the shared branch, validate full history,
    and validate the worktree identity; `--offline` is insufficient.
-3. Inspect all backlog and ongoing tasks for duplicates, overlap, and ownership.
+3. Use `repoledger status` when available, then inspect all backlog and ongoing
+   task definitions for duplicates, semantic overlap, and ownership.
 4. Preserve unrelated changes and never move another identity's task to clear
    a conflict.
 
@@ -48,10 +49,13 @@ Never infer it or fall back to `task-ledger.defaultIdentity`; that global value
 is only an initialization suggestion. If setup is missing, follow the
 [adoption guide](./references/adoption.md) before task work.
 
-Run `repoledger check` after task-artifact changes and in CI. The CLI validates
-facts but never decides admission, ownership, acceptance, or lifecycle state,
-and it never mutates task state. Without the CLI, apply the same checks in this
-skill and the repository profile.
+Run `repoledger check` after task-artifact changes and in CI; use
+`repoledger check --task <task-name>` for focused feedback while retaining
+repository-wide layout safety checks. The CLI validates facts but never decides
+admission, ownership consent, acceptance, or lifecycle state. Explicit
+`init --apply` and `plan ... --apply` operations may perform a prevalidated
+local mutation, but never stage, commit, push, merge, or publish it. Without the
+CLI, apply the same checks and moves in this skill and the repository profile.
 
 ## Publish Milestones
 
@@ -93,11 +97,14 @@ After `task-new` intake and admission:
 2. Keep Issues or another external tracker available for open intake and link
    it bidirectionally when possible.
 3. Refresh the shared branch and recheck all backlog and ongoing tasks.
-4. Move the whole folder with `git mv` to
-   `tasks/ongoing/<identity>/<task-name>`.
-5. Create `Progress.md` from the [progress template](./assets/Progress.md),
-   copy the planned human checkpoints and their current status, record current
-   state and next action, and apply the move checks below.
+4. When available, preview with `repoledger plan claim <task-name>`, then use
+   the same command with `--apply` to move the whole folder and generate the
+   initial `Progress.md`. Otherwise move it with `git mv` to
+   `tasks/ongoing/<identity>/<task-name>` and create `Progress.md` from the
+   [progress template](./assets/Progress.md).
+5. Review the generated or copied human checkpoints, current state, and next
+   action, then apply the move checks below. The CLI does not record approval or
+   publication evidence on the caller's behalf.
 6. Commit only the claim artifacts, publish them, and verify the claim before
    substantive implementation.
 
@@ -196,9 +203,20 @@ when it explicitly states both decisions; record them separately.
 
 ## Handoff
 
-Update `Progress.md`, verify the destination identity is registered, move the
-whole task to `tasks/ongoing/<new-identity>/<task-name>`, apply the move checks,
-and publish the handoff before either identity continues.
+Coordinate the ownership transfer explicitly and update `Progress.md` before
+moving the task. The receiving worktree may preview and apply the move with:
+
+```sh
+repoledger plan claim <task-name> --take-from <source-identity>
+repoledger plan claim <task-name> --take-from <source-identity> --apply
+```
+
+The named source is an expected-owner guard: if ownership changed, stop and
+coordinate again rather than following the task automatically. Without the
+CLI, verify the destination identity and move the whole task to
+`tasks/ongoing/<new-identity>/<task-name>`. In either path, apply the move
+checks and publish the transfer before either identity continues. The command
+does not establish consent merely because it was invoked.
 
 ## Complete Or Abandon
 
@@ -212,9 +230,10 @@ To complete:
 4. Present the delivery checkpoint, obtain explicit human approval, record and
    publish it, and mark `Completed` only after every required criterion and
    review checkpoint passes.
-5. Mark archive publication as the final checklist action, move the whole task
-   to `tasks/archived/<task-name>`, apply the move checks, then commit, publish,
-   and verify this separate final integration.
+5. Mark archive publication as the final checklist action. When available,
+   preview and apply `repoledger plan archive <task-name> --apply`; otherwise
+   move the whole task to `tasks/archived/<task-name>` manually. Apply the move
+   checks, then commit, publish, and verify this separate final integration.
 
 To abandon, record the reason, useful findings, validation state, and follow-up
 in `Progress.md`; set `Abandoned`, archive, and publish. Do not claim

@@ -1,7 +1,7 @@
 {
   "name": "repoledger",
   "version": "0.2.0",
-  "description": "Validate repository-owned task ledgers and worktree identities.",
+  "description": "Inspect, validate, initialize, and safely move repository-owned task ledgers.",
   "type": "module",
   "bin": {
     "repoledger": "bin/repoledger.js"
@@ -43,6 +43,8 @@
   },
   "dependencies": {
     "commander": "^14.0.3",
-    "marked": "^18.0.13"
+    "marked": "^18.0.13",
+    "mdast-util-from-markdown": "^2.0.3",
+    "mdast-util-to-markdown": "^2.1.2"
   }
 }

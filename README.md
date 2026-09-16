@@ -78,9 +78,10 @@ implementation requests into tasks.
 ## Deterministic validation
 
 [`repoledger`](packages/repoledger/README.md) is the npm-distributed companion
-CLI for facts such as task layout, Markdown artifacts, publication evidence,
-Git history, and worktree identity configuration. It does not replace the
-skill's judgment or lifecycle rules.
+CLI for task inventory, focused or repository-wide validation, safe
+initialization, previewable local moves, Markdown reference preservation,
+publication evidence, Git history, and worktree identity configuration. It
+does not replace the skill's judgment or lifecycle rules.
 
 ```sh
 npx repoledger@0.2.0 check
@@ -92,3 +93,9 @@ requires full existing Git history; `doctor` refreshes the configured shared
 branch and validates the local identity before task work. The versioned
 configuration contract is the GitHub-hosted
 [`schema/v1.json`](packages/repoledger/schema/v1.json).
+
+Newer source versions also expose `status`, `check --task`, preview-first
+`init`, and preview-first `plan claim|archive`. A coordinated receiving
+worktree can use `plan claim <task> --take-from <identity>` to guard against a
+stale source owner. Only explicit `--apply` changes local files or worktree
+configuration; no command stages, commits, or publishes those changes.

@@ -78,11 +78,37 @@ try {
   assert.match(help, /Usage: repoledger \[options\] \[command\]/);
   const version = npm(["exec", "--", "repoledger", "--version"], consumer);
   assert.equal(version, packed.version);
+  const exported = run(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      "import { checkRepository, initRepository, statusRepository, transitionRepository } from 'repoledger'; console.log([checkRepository, initRepository, statusRepository, transitionRepository].map((value) => typeof value).join(','));",
+    ],
+    consumer,
+  );
+  assert.equal(exported, "function,function,function,function");
   const checked = JSON.parse(
     npm(["exec", "--", "repoledger", "check", "--json"], consumer),
   );
   assert.equal(checked.ok, true);
   assert.equal(checked.capabilities.history, "full");
+  const status = JSON.parse(
+    npm(["exec", "--", "repoledger", "status", "--json"], consumer),
+  );
+  assert.equal(status.ok, true);
+  assert.equal(status.identity.value, "smoke-identity");
+  const initialized = JSON.parse(
+    npm(["exec", "--", "repoledger", "init", "--json"], consumer),
+  );
+  assert.equal(initialized.ok, true);
+  assert.equal(initialized.mode, "preview");
+  assert.deepEqual(initialized.changes, []);
+  const planHelp = npm(
+    ["exec", "--", "repoledger", "plan", "claim", "--help"],
+    consumer,
+  );
+  assert.match(planHelp, /--take-from <identity>/);
   const doctored = JSON.parse(
     npm(["exec", "--", "repoledger", "doctor", "--json"], consumer),
   );

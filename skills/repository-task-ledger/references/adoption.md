@@ -64,9 +64,17 @@ optional device-default boundary, and remote identity registration, then runs
 the same repository checks. `--offline` is diagnostic only and does not meet
 the latest-remote prerequisite.
 
-The CLI never decides admission, ownership, acceptance, handoff, completion,
-or abandonment, and it never mutates task files, Git configuration, commits,
-or branches. Keep the skill installed and required by project instructions.
+Use `repoledger status` to inventory current task positions, and use
+`repoledger check --task <task-name>` when focused task diagnostics are useful.
+For a new repository, `repoledger init` previews canonical configuration,
+layout, and optional identity setup; add `--apply` only after reviewing that
+plan.
+
+The CLI never decides admission, ownership consent, acceptance, completion, or
+abandonment. Explicit `init --apply` and `plan ... --apply` operations may
+modify local task files or worktree Git configuration after preflight. They
+never stage, commit, push, merge, force-update, or publish those changes. Keep
+the skill installed and required by project instructions.
 
 ## Admission boundary
 

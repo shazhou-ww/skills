@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { lstat, readFile } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 
 export const DEFAULT_CONFIG_NAME = "repoledger.json";
@@ -60,6 +60,21 @@ export async function loadConfig({ root, configPath = DEFAULT_CONFIG_NAME }) {
   let value;
 
   try {
+    const metadata = await lstat(absolutePath);
+    if (metadata.isSymbolicLink()) {
+      return {
+        config: null,
+        configPath: absolutePath,
+        diagnostics: [
+          configDiagnostic(
+            "config.path.symlink",
+            displayPath,
+            "The repoledger configuration path must not be a symbolic link.",
+            "Replace the link with a regular repository-owned configuration file.",
+          ),
+        ],
+      };
+    }
     value = JSON.parse(await readFile(absolutePath, "utf8"));
   } catch (error) {
     const diagnostic =

@@ -3,8 +3,12 @@ import { resolve } from "node:path";
 import { checkRepository } from "./index.js";
 import { loadConfig } from "./config.js";
 import { runGit } from "./git.js";
-
-const PORTABLE_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+import {
+  PORTABLE_IDENTITY,
+  identityRegistered,
+  readDefaultIdentity,
+  readIdentityState,
+} from "./identity.js";
 
 function diagnostic(code, level, path, message, remediation) {
   return { code, level, path, message, remediation };
@@ -53,14 +57,8 @@ export async function doctorRepository({
         ),
       );
     } else {
-      const extension = git(repositoryRoot, [
-        "config",
-        "--local",
-        "--type=bool",
-        "--get",
-        "extensions.worktreeConfig",
-      ]);
-      if (!extension.ok || extension.stdout !== "true") {
+      const identityState = readIdentityState(repositoryRoot, git);
+      if (!identityState.extensionEnabled) {
         diagnostics.push(
           error(
             "doctor.worktree-config.disabled",
@@ -71,13 +69,7 @@ export async function doctorRepository({
         );
       }
 
-      const binding = git(repositoryRoot, [
-        "config",
-        "--worktree",
-        "--get",
-        "task-ledger.identity",
-      ]);
-      if (!binding.ok || !binding.stdout) {
+      if (!identityState.identity) {
         diagnostics.push(
           error(
             "doctor.identity.missing",
@@ -87,8 +79,8 @@ export async function doctorRepository({
           ),
         );
       } else {
-        identity = binding.stdout;
-        if (!PORTABLE_NAME.test(identity)) {
+        identity = identityState.identity;
+        if (!PORTABLE_IDENTITY.test(identity)) {
           diagnostics.push(
             error(
               "doctor.identity.invalid-name",
@@ -100,18 +92,9 @@ export async function doctorRepository({
         }
       }
 
-      const origin = git(repositoryRoot, [
-        "config",
-        "--show-origin",
-        "--show-scope",
-        "--get",
-        "task-ledger.identity",
-      ]);
-      const originMatch = /^(\S+)\s+(\S+)\s+(.+)$/.exec(origin.stdout);
       if (
-        !origin.ok ||
-        originMatch?.[1] !== "worktree" ||
-        originMatch?.[3] !== identity
+        identityState.scope !== "worktree" ||
+        identityState.resolvedIdentity !== identity
       ) {
         diagnostics.push(
           error(
@@ -123,15 +106,9 @@ export async function doctorRepository({
         );
       }
 
-      const deviceDefault = git(repositoryRoot, [
-        "config",
-        "--global",
-        "--get",
-        "task-ledger.defaultIdentity",
-      ]);
-      if (deviceDefault.ok && deviceDefault.stdout) {
-        defaultIdentity = deviceDefault.stdout;
-        if (!PORTABLE_NAME.test(defaultIdentity)) {
+      defaultIdentity = readDefaultIdentity(repositoryRoot, git);
+      if (defaultIdentity) {
+        if (!PORTABLE_IDENTITY.test(defaultIdentity)) {
           diagnostics.push(
             error(
               "doctor.default-identity.invalid-name",
@@ -181,10 +158,8 @@ export async function doctorRepository({
         }
       }
 
-      if (identity && PORTABLE_NAME.test(identity)) {
-        const lane = `${config.remote}/${config.branch}:${config.tasksDirectory}/ongoing/${identity}/.gitkeep`;
-        const registered = git(repositoryRoot, ["cat-file", "-e", lane]);
-        if (!registered.ok) {
+      if (identity && PORTABLE_IDENTITY.test(identity)) {
+        if (!identityRegistered({ config, git, identity, root: repositoryRoot })) {
           diagnostics.push(
             error(
               "doctor.identity.unregistered",
