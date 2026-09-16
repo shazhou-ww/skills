@@ -12,7 +12,7 @@ Updated: 2026-09-16
 - [x] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented manual user acceptance, if required. Not required;
   every acceptance criterion is agent-verifiable.
-- [ ] Obtain and publish delivery approval.
+- [x] Obtain and publish delivery approval.
 - [ ] Archive and publish the task as its final action.
 
 ## Current state
@@ -34,8 +34,10 @@ takeover, and archive transitions with structured reference rewriting,
 transaction rollback, crash recovery, and concurrent-state guards. The
 implementation-complete checkpoint is published on `origin/main` at commit
 `132ad33`. All acceptance criteria are agent-verified, and manual user
-acceptance is not required. The next action is explicit delivery review of the
-integrated revision before completion and archival.
+acceptance is not required. On 2026-09-16, the user explicitly approved
+delivery of implementation commit `132ad33` and authorized archival. The next
+action is to publish this approval while the task remains ongoing, then apply
+and publish the archive move as a separate integration.
 
 ## Decisions
 
@@ -76,7 +78,7 @@ integrated revision before completion and archival.
 | Interface | Approved | User approved the command grammar, structured output, and compatibility contract in [the design](./Design.md) revision `1ea1470` on 2026-09-16. |
 | Business and data model | Approved | User approved expected-source takeover, initialization phases, reference rules, and transaction guarantees in [the design](./Design.md) revision `1ea1470` on 2026-09-16. |
 | Architecture | Approved | User approved module boundaries, structured Markdown processing, journaling, rollback, and test strategy in [the design](./Design.md) revision `1ea1470` on 2026-09-16. |
-| Delivery acceptance | Pending | Integrated revision and validation evidence are required after implementation publication. |
+| Delivery acceptance | Approved | User approved delivery of integrated revision `132ad33` and authorized archival on 2026-09-16 after reviewing the command scope and validation evidence. |
 
 ## Publication milestones
 
@@ -136,13 +138,15 @@ integrated revision before completion and archival.
   is reachable from refreshed `origin/main`; the worktree is clean, the real
   `repoledger status` reports this unique ongoing task under
   `scottwei-office-pc`, and focused `check --task` passes with zero diagnostics.
+- On 2026-09-16, the user selected `批准交付并归档` for the integrated
+  `origin/main` implementation at commit
+  `132ad33d6fd9d12c42df0ba4f178a5631ab695c8`.
 
 ## Blockers
 
-- Delivery acceptance is pending explicit user review of the integrated
-  `origin/main` revision at commit
-  `132ad33d6fd9d12c42df0ba4f178a5631ab695c8`.
+- None.
 
 ## Outcome
 
-Pending.
+Completed. All accepted CLI operations, safety guarantees, tests, and
+documentation are integrated and explicitly approved for delivery.
