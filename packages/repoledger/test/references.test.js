@@ -67,7 +67,7 @@ test("plans inbound and outbound Markdown rewrites while preserving suffixes", a
     git,
     root,
     sourcePath: source,
-    tasksDirectory: "tasks",
+    updateAllReferences: true,
   });
 
   assert.deepEqual(result.diagnostics, []);
@@ -94,7 +94,7 @@ test("plans inbound and outbound Markdown rewrites while preserving suffixes", a
   );
 });
 
-test("blocks an archived inbound reference", async () => {
+test("skips all affected references with warnings by default", async () => {
   const { destination, git, root, source } = await fixture({ archivedReference: true });
 
   const result = await planReferenceUpdates({
@@ -102,42 +102,34 @@ test("blocks an archived inbound reference", async () => {
     git,
     root,
     sourcePath: source,
-    tasksDirectory: "tasks",
   });
 
-  assert.ok(
-    result.diagnostics.some(({ code }) => code === "reference.archived-source"),
-  );
-  assert.ok(result.references.some(({ blocked }) => blocked));
+  assert.equal(result.edits.length, 0);
+  assert.ok(result.references.length > 0);
+  assert.ok(result.references.every(({ updated }) => !updated));
+  assert.ok(result.diagnostics.every(
+    ({ code, level }) => code === "reference.update-skipped" && level === "warning",
+  ));
 });
 
-test("blocks archived references with a custom task directory", async () => {
-  const root = await mkdtemp(join(tmpdir(), "repoledger-custom-references-"));
-  temporaryDirectories.push(root);
-  const source = join(root, "backlog", "move-task");
-  const destination = join(root, "ongoing", "fixture-identity", "move-task");
-  const archived = join(root, "archived", "old-task");
-  await mkdir(source, { recursive: true });
-  await mkdir(archived, { recursive: true });
-  await writeFile(join(source, "Task.md"), "# Task\n");
-  await writeFile(
-    join(archived, "Progress.md"),
-    "[task](../../backlog/move-task/Task.md)\n",
-  );
-  const git = () => ({
-    ok: true,
-    stdout: "archived/old-task/Progress.md\nbacklog/move-task/Task.md",
-  });
+test("plans an archived inbound rewrite when explicitly allowed", async () => {
+  const { destination, git, root, source } = await fixture({ archivedReference: true });
 
   const result = await planReferenceUpdates({
     destinationPath: destination,
     git,
     root,
     sourcePath: source,
-    tasksDirectory: ".",
+    updateAllReferences: true,
   });
 
-  assert.ok(
-    result.diagnostics.some(({ code }) => code === "reference.archived-source"),
+  assert.deepEqual(result.diagnostics, []);
+  const archivedEdit = result.edits.find(
+    ({ path }) => path === "tasks/archived/old-task/Progress.md",
   );
+  assert.match(
+    archivedEdit.content,
+    /\.\.\/\.\.\/ongoing\/fixture-identity\/move-task\/Task\.md/,
+  );
+  assert.ok(result.references.every(({ updated }) => updated));
 });

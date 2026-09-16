@@ -62,7 +62,7 @@ function renderStatus(report, json, io) {
     );
     output(`  Fix: ${diagnostic.remediation}`);
   }
-  if (report.command === "plan") {
+  if (report.command === "task") {
     io.log(`Operation: ${report.operation}`);
     if (report.source) io.log(`Source: ${report.source}`);
     if (report.destination) io.log(`Destination: ${report.destination}`);
@@ -71,8 +71,8 @@ function renderStatus(report, json, io) {
       io.log(`Destination identity: ${report.destinationIdentity}`);
     }
     for (const reference of report.referenceEdits) {
-      const blocked = reference.blocked ? " BLOCKED" : "";
-      io.log(`Reference${blocked}: ${reference.file} ${reference.from} -> ${reference.to}`);
+      const action = reference.updated ? "UPDATE" : "SKIP";
+      io.log(`Reference ${action}: ${reference.file} ${reference.from} -> ${reference.to}`);
     }
   }
   if (!report.ok) {
@@ -122,6 +122,10 @@ function renderOperation(report, json, io) {
       : change.path;
     io.log(`  ${change.action} ${target}${detail}`);
   }
+  for (const reference of report.referenceEdits ?? []) {
+    const action = reference.updated ? "UPDATE" : "SKIP";
+    io.log(`  reference-${action.toLowerCase()} ${reference.file} ${reference.from} -> ${reference.to}`);
+  }
   if (report.mode === "preview" && report.changes.length > 0) {
     io.log("Preview only; rerun with --apply to apply these changes.");
   }
@@ -152,9 +156,9 @@ Examples:
   $ repoledger check
   $ repoledger check --task <task-name>
   $ repoledger check --json
-  $ repoledger plan claim <task-name>
-  $ repoledger plan claim <task-name> --take-from <identity>
-  $ repoledger plan archive <task-name>
+  $ repoledger task claim <task-name>
+  $ repoledger task claim <task-name> --take-from <identity>
+  $ repoledger task archive <task-name>
   $ repoledger doctor
   $ repoledger doctor --offline`,
     );
@@ -222,17 +226,21 @@ Examples:
     program.setOptionValue("resultCode", report.ok ? 0 : 1);
   });
 
-  const plan = program
-    .command("plan")
+  const task = program
+    .command("task")
     .description("preview or apply a validated local task transition")
-    .summary("plan a task transition");
+    .summary("manage a task transition");
 
   addCommonOptions(
-    plan
+    task
       .command("claim <task-name>")
       .description("plan a backlog claim or explicit ownership takeover")
       .summary("plan a task claim")
       .option("--apply", "apply the recomputed transition plan")
+      .option(
+        "--update-all-refs",
+        "update all affected references, including archived task history",
+      )
       .option(
         "--take-from <identity>",
         "take an ongoing task only from this expected source identity",
@@ -245,17 +253,22 @@ Examples:
       root: options.root,
       takeFrom: options.takeFrom,
       taskName,
+      updateAllReferences: options.updateAllRefs,
     });
     renderOperation(report, options.json, io);
     program.setOptionValue("resultCode", report.ok ? 0 : 1);
   });
 
   addCommonOptions(
-    plan
+    task
       .command("archive <task-name>")
       .description("plan archival of a completed or abandoned current task")
       .summary("plan task archival")
-      .option("--apply", "apply the recomputed transition plan"),
+      .option("--apply", "apply the recomputed transition plan")
+      .option(
+        "--update-all-refs",
+        "update all affected references, including archived task history",
+      ),
   ).action(async (taskName, options) => {
     const report = await transitionRepository({
       apply: options.apply,
@@ -263,6 +276,7 @@ Examples:
       operation: "archive",
       root: options.root,
       taskName,
+      updateAllReferences: options.updateAllRefs,
     });
     renderOperation(report, options.json, io);
     program.setOptionValue("resultCode", report.ok ? 0 : 1);

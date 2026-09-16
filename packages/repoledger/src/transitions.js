@@ -171,7 +171,7 @@ function identityDiagnostics({ config, git, root }) {
 function addStateDiagnostic({ currentIdentity, diagnostics, operation, takeFrom, task }) {
   if (operation === "claim" && !takeFrom && task.state !== "backlog") {
     const remediation = task.state === "ongoing" && task.identity
-      ? `Coordinate the transfer, then use plan claim ${task.name} --take-from ${task.identity}.`
+      ? `Coordinate the transfer, then use task claim ${task.name} --take-from ${task.identity}.`
       : "Choose a backlog task to claim.";
     diagnostics.push(
       error(
@@ -218,6 +218,7 @@ export async function transitionRepository({
   root = process.cwd(),
   takeFrom,
   taskName,
+  updateAllReferences = false,
 } = {}) {
   const repositoryRoot = resolve(root);
   const loaded = await loadConfig({ root: repositoryRoot, configPath });
@@ -242,7 +243,7 @@ export async function transitionRepository({
         "transition.takeover.invalid-operation",
         "--take-from",
         "Expected-source takeover is valid only with the claim transition.",
-        "Use plan claim <task-name> --take-from <identity>.",
+        "Use task claim <task-name> --take-from <identity>.",
       ),
     );
   }
@@ -416,7 +417,7 @@ export async function transitionRepository({
       git,
       root: repositoryRoot,
       sourcePath: task.path,
-      tasksDirectory: config.tasksDirectory,
+      updateAllReferences,
     });
     diagnostics.push(...referencePlan.diagnostics);
   }
@@ -590,11 +591,14 @@ export async function transitionRepository({
     }
   } else if (ok && changes.length > 0) {
     const takeover = takeFrom ? ` --take-from ${takeFrom}` : "";
-    nextActions.push(`Rerun plan ${operation} ${taskName}${takeover} --apply to apply this recomputed plan.`);
+    const referenceUpdates = updateAllReferences
+      ? " --update-all-refs"
+      : "";
+    nextActions.push(`Rerun task ${operation} ${taskName}${takeover}${referenceUpdates} --apply to apply this recomputed plan.`);
   }
 
   return {
-    command: "plan",
+    command: "task",
     operation: actualOperation,
     mode: apply ? "apply" : "preview",
     task: taskName,

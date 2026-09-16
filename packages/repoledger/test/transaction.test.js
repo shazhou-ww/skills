@@ -254,9 +254,14 @@ test("rejects a symbolic-link move source before mutation", async () => {
 
 test("rejects a symbolic-link artifact inside the moving task", async () => {
   const { destination, git, root, source } = await fixture();
-  const external = join(root, "external-artifact.txt");
-  await writeFile(external, "external artifact\n");
-  await symlink(external, join(source, "artifact-link.txt"), "file");
+  const external = join(root, "external-artifact");
+  await mkdir(external);
+  await writeFile(join(external, "artifact.txt"), "external artifact\n");
+  await symlink(
+    external,
+    join(source, "artifact-link"),
+    process.platform === "win32" ? "junction" : "dir",
+  );
 
   await assert.rejects(
     applyMoveTransaction({
@@ -269,7 +274,10 @@ test("rejects a symbolic-link artifact inside the moving task", async () => {
     /Task artifacts must not be symbolic links/,
   );
 
-  assert.equal(await readFile(external, "utf8"), "external artifact\n");
+  assert.equal(
+    await readFile(join(external, "artifact.txt"), "utf8"),
+    "external artifact\n",
+  );
   await nodeFs.access(source);
   await assert.rejects(nodeFs.access(destination));
 });

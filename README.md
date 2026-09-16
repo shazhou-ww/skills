@@ -95,10 +95,12 @@ configuration contract is the GitHub-hosted
 [`schema/v1.json`](packages/repoledger/schema/v1.json).
 
 Newer source versions also expose `status`, `check --task`, preview-first
-`init`, and preview-first `plan claim|archive`. A coordinated receiving
-worktree can use `plan claim <task> --take-from <identity>` to guard against a
-stale source owner. Only explicit `--apply` changes local files or worktree
-configuration; no command stages, commits, or publishes those changes.
+`init`, and preview-first `task claim|archive`. A coordinated receiving
+worktree can use `task claim <task> --take-from <identity>` to guard against a
+stale source owner. Task moves report affected references without changing
+them unless `--update-all-refs` is present. Only explicit `--apply` changes
+local files or worktree configuration; no command stages, commits, or publishes
+those changes.
 
 ## Project release skill
 

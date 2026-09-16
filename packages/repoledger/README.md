@@ -42,8 +42,8 @@ repoledger status [--archived]
 repoledger check [--task <task-name>]
 repoledger doctor [--offline]
 repoledger init [--identity <identity>] [--dry-run | --apply]
-repoledger plan claim <task-name> [--take-from <identity>] [--apply]
-repoledger plan archive <task-name> [--apply]
+repoledger task claim <task-name> [--take-from <identity>] [--update-all-refs] [--apply]
+repoledger task archive <task-name> [--update-all-refs] [--apply]
 ```
 
 `status` lists deterministic task positions and the local identity without
@@ -58,17 +58,18 @@ lane; the worktree is bound only after that lane is visible on the refreshed
 shared branch. `--dry-run` is an explicit preview alias, while `--apply`
 recomputes and applies the local plan.
 
-Every `plan` command previews by default and reports its source, destination,
-preconditions, blockers, and Markdown reference edits. `plan claim` moves
+Every `task` command previews by default and reports its source, destination,
+preconditions, blockers, and Markdown reference decisions. `task claim` moves
 backlog work to the current identity. `--take-from <identity>` instead requires
 the task to remain ongoing under exactly that source identity before moving it
-to the current worktree. `plan archive` requires an already completed or
+to the current worktree. `task archive` requires an already completed or
 abandoned current task. Only `--apply` performs the recomputed move.
 
-Applied moves preserve the complete task directory and update affected inbound
-and outbound repository-local Markdown links. References from archived task
-history block the operation instead of being rewritten. File changes are
-journaled and rolled back on ordinary failures.
+Applied moves preserve the complete task directory. By default, affected
+repository-local Markdown references are reported but left unchanged; this
+does not block `--apply`. Pass `--update-all-refs` to rewrite every affected
+inbound and outbound reference, including archived task history, in the same
+journaled transaction. File changes are rolled back on ordinary failures.
 
 Use `--json` for a complete structured report. Successful validation exits
 with status `0`, ledger failures use `1`, and CLI usage errors use `2`.
@@ -134,10 +135,11 @@ informational diagnostics rather than migration edits.
 
 `status`, `check`, initialization previews, and transition previews are
 read-only. `doctor` and apply operations may refresh remote refs. Only explicit
-`init --apply` and `plan ... --apply` operations modify local task files or Git
-worktree configuration. The CLI never stages, commits, pushes, merges,
-force-updates, or rewrites archived task history. Admission, ownership consent,
-completion, acceptance, and archive decisions remain in the Agent Skill.
+`init --apply` and `task ... --apply` operations modify local task files or Git
+worktree configuration. The CLI never stages, commits, pushes, merges, or
+force-updates. It rewrites task references only with the explicit
+`--update-all-refs` option. Admission, ownership consent, completion, acceptance,
+and archive decisions remain in the Agent Skill.
 
 ## Development
 

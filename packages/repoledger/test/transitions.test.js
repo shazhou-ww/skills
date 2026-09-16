@@ -149,7 +149,7 @@ async function prepareOngoingTask(root, identity) {
   return { claim, path: destination };
 }
 
-test("previews and applies a claim with generated progress and rewritten references", async () => {
+test("previews and applies a claim without rewriting references by default", async () => {
   const root = await createRepository();
   const source = join(root, "tasks", "backlog", "move-task");
   const destination = join(
@@ -181,15 +181,18 @@ test("previews and applies a claim with generated progress and rewritten referen
 
   assert.equal(applied.ok, true);
   assert.equal(applied.applied, true);
+  assert.ok(
+    applied.diagnostics.some(({ code }) => code === "reference.update-skipped"),
+  );
   await assert.rejects(access(source));
   await access(join(destination, "Task.md"));
   const progress = await readFile(join(destination, "Progress.md"), "utf8");
   assert.match(progress, /\| Scope \| Pending \|/);
   assert.match(progress, /\| Interface \| Not applicable \| no interface change\. \|/);
   const taskText = await readFile(join(destination, "Task.md"), "utf8");
-  assert.match(taskText, /\.\.\/\.\.\/\.\.\/\.\.\/docs\/spec\.md#goal/);
+  assert.match(taskText, /\.\.\/\.\.\/\.\.\/docs\/spec\.md#goal/);
   const inbound = await readFile(join(root, "docs", "links.md"), "utf8");
-  assert.match(inbound, /tasks\/ongoing\/fixture-identity\/move-task\/Task\.md/);
+  assert.match(inbound, /tasks\/backlog\/move-task\/Task\.md/);
 });
 
 test("applies a claim through the CLI with a complete JSON report", async () => {
@@ -202,14 +205,23 @@ test("applies a claim through the CLI with a complete JSON report", async () => 
   };
 
   const exitCode = await runCli(
-    ["plan", "claim", "move-task", "--root", root, "--apply", "--json"],
+    [
+      "task",
+      "claim",
+      "move-task",
+      "--root",
+      root,
+      "--update-all-refs",
+      "--apply",
+      "--json",
+    ],
     io,
   );
   const report = JSON.parse(output.join("\n"));
 
   assert.equal(exitCode, 0);
   assert.deepEqual(errors, []);
-  assert.equal(report.command, "plan");
+  assert.equal(report.command, "task");
   assert.equal(report.operation, "claim");
   assert.equal(report.mode, "apply");
   assert.equal(report.applied, true);
@@ -222,6 +234,10 @@ test("applies a claim through the CLI with a complete JSON report", async () => 
   assert.ok(Array.isArray(report.preconditions));
   assert.ok(Array.isArray(report.referenceEdits));
   assert.deepEqual(report.blockers, []);
+  assert.match(
+    await readFile(join(root, "docs", "links.md"), "utf8"),
+    /tasks\/ongoing\/fixture-identity\/move-task\/Task\.md/,
+  );
 });
 
 test("takes over only from the explicitly named source identity", async () => {
@@ -291,7 +307,7 @@ test("takes over only from the explicitly named source identity", async () => {
   await assert.rejects(access(source));
   await access(join(destination, "Progress.md"));
   const inbound = await readFile(join(root, "docs", "links.md"), "utf8");
-  assert.match(inbound, /tasks\/ongoing\/fixture-identity\/move-task\/Task\.md/);
+  assert.match(inbound, /tasks\/ongoing\/source-identity\/move-task\/Task\.md/);
 });
 
 test("archives a completed current task after prospective content validation", async () => {
@@ -335,6 +351,7 @@ test("archives a completed current task after prospective content validation", a
     operation: "archive",
     root,
     taskName: "move-task",
+    updateAllReferences: true,
   });
 
   assert.equal(preview.ok, true);
@@ -346,6 +363,7 @@ test("archives a completed current task after prospective content validation", a
     operation: "archive",
     root,
     taskName: "move-task",
+    updateAllReferences: true,
   });
 
   assert.equal(applied.ok, true);
@@ -356,7 +374,7 @@ test("archives a completed current task after prospective content validation", a
   assert.match(archivedTask, /\.\.\/\.\.\/\.\.\/docs\/spec\.md#goal/);
 });
 
-test("blocks a claim with an archived inbound reference before mutation", async () => {
+test("moves a claim while leaving affected references unchanged by default", async () => {
   const root = await createRepository();
   const source = join(root, "tasks", "backlog", "move-task");
   const destination = join(
@@ -379,14 +397,61 @@ test("blocks a claim with an archived inbound reference before mutation", async 
     taskName: "move-task",
   });
 
-  assert.equal(report.ok, false);
-  assert.equal(report.applied, false);
+  assert.equal(report.ok, true);
+  assert.equal(report.applied, true);
   assert.ok(
-    report.diagnostics.some(({ code }) => code === "reference.archived-source"),
+    report.diagnostics.some(({ code }) => code === "reference.update-skipped"),
   );
-  await access(source);
-  await assert.rejects(access(destination));
+  await assert.rejects(access(source));
+  await access(destination);
   assert.equal(await readFile(join(archived, "Progress.md"), "utf8"), archivedProgress);
+});
+
+test("applies a claim and archived inbound rewrite when explicitly allowed", async () => {
+  const root = await createRepository();
+  const source = join(root, "tasks", "backlog", "move-task");
+  const destination = join(
+    root,
+    "tasks",
+    "ongoing",
+    "fixture-identity",
+    "move-task",
+  );
+  const archived = join(root, "tasks", "archived", "historical-task");
+  await mkdir(archived);
+  await writeFile(
+    join(archived, "Progress.md"),
+    "[Old task](../../backlog/move-task/Task.md#goal)\n",
+  );
+  commitAndPush(root, "Add archived inbound reference");
+
+  const preview = await transitionRepository({
+    operation: "claim",
+    root,
+    taskName: "move-task",
+    updateAllReferences: true,
+  });
+
+  assert.equal(preview.ok, true);
+  assert.match(preview.nextActions[0], /--update-all-refs --apply/);
+
+  const report = await transitionRepository({
+    apply: true,
+    now: "2026-09-16",
+    operation: "claim",
+    root,
+    taskName: "move-task",
+    updateAllReferences: true,
+  });
+
+  assert.equal(report.ok, true);
+  assert.equal(report.applied, true);
+  await assert.rejects(access(source));
+  await access(destination);
+  assert.match(
+    await readFile(join(archived, "Progress.md"), "utf8"),
+    /\.\.\/\.\.\/ongoing\/fixture-identity\/move-task\/Task\.md#goal/,
+  );
 });
 
 test("blocks apply when the shared branch changes during planning", async () => {
@@ -500,9 +565,14 @@ test("archives an abandoned current task without implementation publication", as
 
   assert.equal(applied.ok, true);
   assert.equal(applied.applied, true);
+  assert.ok(
+    applied.diagnostics.some(({ code }) => code === "reference.update-skipped"),
+  );
   await assert.rejects(access(source));
   const archivedProgress = await readFile(join(destination, "Progress.md"), "utf8");
   assert.match(archivedProgress, /Abandoned\. The fixture was intentionally stopped\./);
+  const archivedTask = await readFile(join(destination, "Task.md"), "utf8");
+  assert.match(archivedTask, /\.\.\/\.\.\/\.\.\/\.\.\/docs\/spec\.md#goal/);
 });
 
 test("escapes table delimiters in generated claim progress", async () => {

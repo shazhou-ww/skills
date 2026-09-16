@@ -11,6 +11,10 @@ function error(code, path, message, remediation) {
   return { code, level: "error", path, message, remediation };
 }
 
+function warning(code, path, message, remediation) {
+  return { code, level: "warning", path, message, remediation };
+}
+
 function displayPath(root, path) {
   return relative(root, path).replaceAll("\\", "/");
 }
@@ -116,7 +120,7 @@ export async function planReferenceUpdates({
   git = runGit,
   root,
   sourcePath,
-  tasksDirectory,
+  updateAllReferences = false,
 }) {
   const diagnostics = [];
   const edits = [];
@@ -141,7 +145,6 @@ export async function planReferenceUpdates({
   }
 
   const realRoot = await realpath(repositoryRoot);
-  const archivedRoot = resolve(repositoryRoot, tasksDirectory, "archived");
   const files = [...new Set(listed.stdout.split(/\r?\n/).filter((path) => path.toLowerCase().endsWith(".md")))]
     .sort();
   for (const relativeFile of files) {
@@ -177,8 +180,6 @@ export async function planReferenceUpdates({
 
     const text = await readFile(filePath, "utf8");
     const fileAfter = movedPath(filePath, source, destination);
-    const archivedSource = inside(archivedRoot, filePath);
-    let blocked = false;
     const tree = fromMarkdown(text);
     const rewritten = await replacementsForTree(tree, text, async (rawTarget) => {
       if (!localTarget(rawTarget)) return null;
@@ -255,25 +256,24 @@ export async function planReferenceUpdates({
         file: displayPath(repositoryRoot, filePath),
         from: rawTarget,
         to: nextTarget,
+        updated: updateAllReferences,
       };
-      if (archivedSource && targetMoves && !fileMoves) {
-        blocked = true;
-        references.push({ ...reference, blocked: true });
+      references.push(reference);
+      if (!updateAllReferences) {
         diagnostics.push(
-          error(
-            "reference.archived-source",
+          warning(
+            "reference.update-skipped",
             reference.file,
-            `Archived task history references the moving task: ${rawTarget}`,
-            "Preserve archived history and resolve the reference policy before applying the move.",
+            `Affected reference will not be updated: ${rawTarget}`,
+            "Before applying, rerun with --update-all-refs; after applying, update this reference manually.",
           ),
         );
         return null;
       }
-      references.push({ ...reference, blocked: false });
       return nextTarget;
     });
 
-    if (!blocked && rewritten.changed.length > 0 && rewritten.content !== text) {
+    if (rewritten.changed.length > 0 && rewritten.content !== text) {
       edits.push({
         path: displayPath(repositoryRoot, filePath),
         absolutePath: filePath,

@@ -62,7 +62,7 @@ test("renders command-oriented root help with examples", async () => {
   assert.match(help, /check \[options\]\s+validate repository task state/);
   assert.match(help, /doctor \[options\]\s+validate local task-work readiness/);
   assert.match(help, /init \[options\]\s+initialize repository task state/);
-  assert.match(help, /plan\s+plan a task transition/);
+  assert.match(help, /task\s+manage a task transition/);
   assert.match(help, /status \[options\]\s+show repository task status/);
   assert.match(help, /Examples:/);
 });
@@ -144,14 +144,19 @@ test("renders initialization help and rejects conflicting modes", async () => {
 
 test("renders takeover grammar and machine-readable operation semantics", async () => {
   const helpCapture = captureIo();
+  const archiveHelpCapture = captureIo();
   const reportCapture = captureIo();
   const root = await mkdtemp(join(tmpdir(), "repoledger-cli-plan-"));
   temporaryDirectories.push(root);
 
-  const helpExitCode = await runCli(["plan", "claim", "--help"], helpCapture.io);
+  const helpExitCode = await runCli(["task", "claim", "--help"], helpCapture.io);
+  const archiveHelpExitCode = await runCli(
+    ["task", "archive", "--help"],
+    archiveHelpCapture.io,
+  );
   const reportExitCode = await runCli(
     [
-      "plan",
+      "task",
       "claim",
       "move-task",
       "--take-from",
@@ -166,8 +171,14 @@ test("renders takeover grammar and machine-readable operation semantics", async 
 
   assert.equal(helpExitCode, 0);
   assert.match(helpCapture.output.join("\n"), /--take-from <identity>/);
+  assert.match(helpCapture.output.join("\n"), /--update-all-refs/);
+  assert.equal(archiveHelpExitCode, 0);
+  assert.match(
+    archiveHelpCapture.output.join("\n"),
+    /--update-all-refs/,
+  );
   assert.equal(reportExitCode, 1);
-  assert.equal(report.command, "plan");
+  assert.equal(report.command, "task");
   assert.equal(report.operation, "takeover");
   assert.equal(report.sourceIdentity, "source-identity");
 });
@@ -178,7 +189,7 @@ test("renders move and reference details for human transition reports", async ()
   temporaryDirectories.push(root);
 
   const exitCode = await runCli(
-    ["plan", "claim", "move-task", "--root", root],
+    ["task", "claim", "move-task", "--root", root],
     capture.io,
   );
 

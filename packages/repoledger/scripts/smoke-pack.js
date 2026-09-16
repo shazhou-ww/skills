@@ -14,6 +14,7 @@ function run(command, args, cwd) {
   const result = spawnSync(command, args, {
     cwd,
     encoding: "utf8",
+    timeout: 120_000,
     windowsHide: true,
   });
   assert.equal(
@@ -29,6 +30,8 @@ function npm(args, cwd) {
     npmCli && /^npm-cli\.js$/i.test(basename(npmCli)),
     "smoke:pack must run through npm so npm_execpath identifies npm-cli.js",
   );
+  const stage = args[0] === "exec" ? args.slice(2).join(" ") : args[0];
+  process.stdout.write(`SMOKE_NPM ${stage}\n`);
   return run(process.execPath, [npmCli, ...args], cwd);
 }
 
@@ -104,11 +107,12 @@ try {
   assert.equal(initialized.ok, true);
   assert.equal(initialized.mode, "preview");
   assert.deepEqual(initialized.changes, []);
-  const planHelp = npm(
-    ["exec", "--", "repoledger", "plan", "claim", "--help"],
+  const taskHelp = npm(
+    ["exec", "--", "repoledger", "task", "claim", "--help"],
     consumer,
   );
-  assert.match(planHelp, /--take-from <identity>/);
+  assert.match(taskHelp, /--take-from <identity>/);
+  assert.match(taskHelp, /--update-all-refs/);
   const doctored = JSON.parse(
     npm(["exec", "--", "repoledger", "doctor", "--json"], consumer),
   );
