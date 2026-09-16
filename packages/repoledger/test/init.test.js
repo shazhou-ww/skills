@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, test } from "node:test";
 
-import { initRepository } from "../src/init.js";
+import { initRepository, pathKind } from "../src/init.js";
 
 const temporaryDirectories = [];
 
@@ -37,6 +37,17 @@ function repositoryGit(_root, args) {
   }
   return { ok: false, status: 1, stderr: `unexpected command: ${command}`, stdout: "" };
 }
+
+test("classifies a child below a non-directory parent on every platform", async () => {
+  const error = new Error("not a directory");
+  error.code = "ENOTDIR";
+
+  const kind = await pathKind("ignored", async () => {
+    throw error;
+  });
+
+  assert.equal(kind, "invalid-parent");
+});
 
 function identityGit({ extensionExplicit = false, registered = false } = {}) {
   const state = {

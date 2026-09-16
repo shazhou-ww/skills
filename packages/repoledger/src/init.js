@@ -30,14 +30,15 @@ function escapesRoot(root, path) {
   return fromRoot === ".." || fromRoot.startsWith(`..${sep}`) || isAbsolute(fromRoot);
 }
 
-async function pathKind(path) {
+export async function pathKind(path, inspect = lstat) {
   try {
-    const metadata = await lstat(path);
+    const metadata = await inspect(path);
     if (metadata.isDirectory()) return "directory";
     if (metadata.isFile()) return "file";
     return "other";
   } catch (caught) {
     if (caught.code === "ENOENT") return "missing";
+    if (caught.code === "ENOTDIR") return "invalid-parent";
     throw caught;
   }
 }
