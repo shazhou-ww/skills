@@ -34,9 +34,10 @@ approval, publication, and completion decisions in the Agent Skill.
   repository configuration and canonical task layout, plan explicit identity
   setup where applicable, refuse conflicting existing content, and leave Git
   commits and publication to the caller.
-- Add `plan claim`, `plan handoff`, and `plan archive` lifecycle transitions.
-  Planning is non-mutating by default; an explicit `--apply` recomputes and
-  validates the plan before changing local files.
+- Add `plan claim` with an explicit receiver-initiated
+  `--take-from <identity>` mode, plus `plan archive`. Planning is non-mutating
+  by default; an explicit `--apply` recomputes and validates the plan before
+  changing local files.
 - When applying a transition, move the complete task directory, preserve every
   artifact, remove the source task position, preserve identity lanes, and
   verify that the task occupies exactly one canonical position.
@@ -55,7 +56,7 @@ approval, publication, and completion decisions in the Agent Skill.
 
 ## Out of scope
 
-- Deciding task admission, semantic scope overlap, ownership, handoff consent,
+- Deciding task admission, semantic scope overlap, ownership, transfer consent,
   human approval, acceptance, completion, or abandonment.
 - Automatically committing, pushing, force-updating, merging, or publishing
   task transitions or identity registrations.
@@ -92,8 +93,9 @@ approval, publication, and completion decisions in the Agent Skill.
 - [ ] Existing `check`, `doctor`, configuration, human-readable output, JSON
       contracts, and exit-code behavior remain backward compatible except for
       documented additive fields or options.
-- [ ] Automated tests cover preview versus apply, all three transitions,
-      duplicate and missing tasks, conflicting initialization, relative and
+- [ ] Automated tests cover preview versus apply, claim,
+      `claim --take-from <identity>`, and archive, duplicate and missing tasks,
+      source-identity races, conflicting initialization, relative and
       repository-root links, archived-reference blockers, Windows paths, and
       rollback or no-partial-write behavior.
 - [ ] Package and skill documentation explain the command boundaries, mutation

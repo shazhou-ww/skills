@@ -21,8 +21,8 @@ The implementation adds four related capabilities:
    repository-wide configuration and layout safety checks.
 3. `init` plans repository scaffolding and applies only explicitly requested,
    conflict-free local changes.
-4. `plan` previews claim, handoff, and archive moves and applies a freshly
-   recomputed plan only with `--apply`.
+4. `plan` previews claim, explicit receiver-initiated takeover, and archive
+  moves and applies a freshly recomputed plan only with `--apply`.
 
 An applied move preserves both sides of the Markdown reference graph:
 
@@ -56,8 +56,8 @@ repoledger init [--identity <identity>]
   [--tasks-directory <path>] [--remote <name>] [--branch <name>]
   [--dry-run | --apply] [common options]
 
-repoledger plan claim <task-name> [--apply] [common options]
-repoledger plan handoff <task-name> --to <identity> [--apply] [common options]
+repoledger plan claim <task-name> [--take-from <identity>] [--apply]
+  [common options]
 repoledger plan archive <task-name> [--apply] [common options]
 ```
 
@@ -66,10 +66,21 @@ explicit preview alias for scripts and documentation. Combining `--dry-run`
 with `--apply` is a usage error. Commands are non-interactive; missing or
 ambiguous input is reported rather than prompted for.
 
-`plan claim` always uses the authoritative current worktree identity and has no
-identity override. `plan handoff --to` names the already registered destination
-identity. `plan archive` reads the outcome already recorded in `Progress.md`;
-it has no option that decides completion or abandonment.
+`plan claim` always uses the authoritative current worktree identity as its
+destination and has no identity override. Without `--take-from`, its uniquely
+resolved source must be in backlog; finding it under another identity is a
+blocker whose remediation names that owner and the exact `--take-from` command.
+With `--take-from`, its uniquely resolved source must be ongoing under exactly
+the named identity, which must differ from the current identity. An owner
+mismatch is a stale-plan blocker rather than permission to follow the task to a
+new owner. The option does not bypass any other precondition and never
+auto-selects a transition from current state. `plan archive` reads the outcome
+already recorded in `Progress.md`; it has no option that decides completion or
+abandonment.
+
+Structured reports use `operation: "claim"` without the option and
+`operation: "takeover"` with it. Takeover reports include `sourceIdentity` and
+`destinationIdentity`, so scripts can enforce the same expected-source guard.
 
 ## Output and exit codes
 
@@ -253,13 +264,21 @@ The common structured report is:
   the caller to review the generated progress, commit and publish the claim,
   then record its immutable hash.
 
-### Handoff
+### Claim with `--take-from`
 
-- The task must exist exactly once under the current worktree identity.
-- `--to` must differ from the current identity and identify a lane registered
-  on the refreshed shared branch.
-- `Progress.md` must already record the handoff context and pass active-task
-  content checks. The CLI cannot infer consent or write that narrative.
+- The task must exist exactly once under the identity named by `--take-from`.
+  Backlog tasks use ordinary `plan claim`; tasks already owned by the current
+  identity need no transfer. A different actual source identity fails without
+  modifying files.
+- The current worktree identity is the destination and must be valid, correctly
+  scoped, and registered on the refreshed shared branch at apply time. There is
+  no destination option and no fallback to the device default. The named source
+  identity is rechecked after the apply-time refresh to prevent stale ownership
+  information from causing an unintended transfer.
+- The receiving actor obtains explicit transfer authorization or coordination
+  through the Agent Skill before apply and records the context in `Progress.md`.
+  The CLI cannot infer, grant, or fabricate that consent; it only performs an
+  explicitly requested, mechanically safe move.
 - Apply moves the complete directory and references without changing progress
   content. Publication remains the caller's next action.
 
@@ -343,7 +362,7 @@ working-tree changes.
   checks currently embedded in `doctor.js`.
 - `status.js`: compose configuration, layout, and local identity inventory.
 - `init.js`: build and apply idempotent initialization plans.
-- `transitions.js`: build claim, handoff, and archive plans and verify their
+- `transitions.js`: build claim, takeover, and archive plans and verify their
   state-specific preconditions.
 - `references.js`: discover and rewrite structured Markdown references.
 - `transaction.js`: stage, journal, apply, verify, and roll back local changes.
@@ -363,7 +382,10 @@ Focused unit and CLI tests will cover:
   diagnostics, and unchanged unfiltered reports;
 - init preview, explicit dry-run, apply, idempotency, inference ambiguity,
   invalid existing content, identity registration phases, and no staging;
-- preview and apply for claim, handoff, and completed or abandoned archive;
+- preview and apply for claim, receiver-initiated
+  `claim --take-from <identity>`, and completed or abandoned archive;
+- source identity mismatch between preview and apply with no filesystem
+  mutation;
 - generated claim progress without fabricated approvals;
 - inline links, images, reference definitions, root-relative and relative
   paths, inbound and outbound links, fragments, queries, encoded paths,
