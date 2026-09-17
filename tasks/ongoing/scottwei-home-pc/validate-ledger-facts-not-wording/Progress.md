@@ -5,7 +5,7 @@ Updated: 2026-09-17
 ## Checklist
 
 - [x] Publish the claim to the shared primary branch.
-- [ ] Obtain scope approval before substantive implementation.
+- [x] Obtain scope approval before substantive implementation.
 - [ ] Complete each applicable interface, business and data model, and
   architecture approval before the affected implementation.
 - [ ] Commit and publish substantive work at meaningful checkpoints.
@@ -16,18 +16,20 @@ Updated: 2026-09-17
 
 ## Current state
 
-The task is claimed by `scottwei-home-pc`. Publish and verify this claim, then
-obtain scope approval before substantive implementation.
+The task is claimed by `scottwei-home-pc`, and scope is approved. Prepare and
+publish the interface, task data model, and validation architecture design for
+review before substantive implementation.
 
 ## Decisions
 
-- None recorded during the mechanical claim move.
+- The user approved the task goal, scope, boundaries, constraints, and
+  acceptance criteria on 2026-09-17.
 
 ## Human approvals
 
 | Checkpoint | Status | Review artifact and decision evidence |
 | --- | --- | --- |
-| Scope | Pending | Review Goal, scope, boundaries, constraints, and acceptance criteria in this task. with User. |
+| Scope | Approved | The user approved the published task scope and acceptance criteria on 2026-09-17. |
 | Interface | Pending | Review Proposed accepted Markdown forms, canonical parsing rules, diagnostics, and compatibility behavior. with User. |
 | Business and data model | Pending | Review Revised `Task.md`, `Progress.md`, and `UserAcceptance.md` facts and source-of-truth model. with User. |
 | Architecture | Pending | Review Parsing boundaries and the division of responsibility between Git history, task position, and Markdown content. with User. |
@@ -48,7 +50,8 @@ obtain scope approval before substantive implementation.
 
 ## Blockers
 
-- Scope approval remains pending before substantive implementation.
+- Interface, business and data model, and architecture approvals remain pending
+  before their affected implementation.
 
 ## Outcome
 
