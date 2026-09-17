@@ -12,7 +12,7 @@ Updated: 2026-09-17
 - [x] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented manual user acceptance, if required.
 - [x] Obtain and publish delivery approval.
-- [ ] Archive and publish the task as its final action.
+- [x] Archive and publish the task as its final action.
 
 ## Current state
 
@@ -28,10 +28,12 @@ contract tests are complete, validated, and published on `origin/main` in
 implementation commit `d6d1123efe96cf82a2052b42d69bd37b08cf7554`. The
 requesting user accepted delivery on 2026-09-17 after confirmation that the
 implementation contains no `repoledger` package or version change and that
-publication to `origin/main` completes delivery of these skills.
+publication to `origin/main` completes delivery of these skills. Delivery
+approval is published in commit
+`70a899b3b3fc76e5a68ffa07539a8017faea55f2`. This final record accompanies the
+task's archive commit on `origin/main`.
 
-Next: publish this delivery decision, then archive the task in a separate final
-commit.
+No further lifecycle action remains after this archive commit is published.
 
 ## Decisions
 
@@ -73,7 +75,7 @@ commit.
 | --- | --- | --- |
 | Claim | `origin/main` commit `cf421657b96ba9bf34ffdb4e991b4d26acd96baf`. | Published |
 | Implementation complete | `origin/main` commit `d6d1123efe96cf82a2052b42d69bd37b08cf7554`. | Published |
-| Archive | Pending. | Pending |
+| Archive | This final archive commit on `origin/main`; remote Git history supplies its immutable ID. | Published |
 
 ## Validation
 
@@ -96,6 +98,11 @@ commit.
 - `git show --name-status d6d1123efe96cf82a2052b42d69bd37b08cf7554`
   confirmed no file under `packages/repoledger`, no lockfile, and no package
   version changed; no npm release is required.
+- Delivery approval commit `70a899b3b3fc76e5a68ffa07539a8017faea55f2`
+  was pushed and verified reachable from refreshed `origin/main` before the
+  archive move.
+- Repoledger applied the validated move from the current identity lane to the
+  archive with no reference rewrites.
 
 ## Blockers
 
@@ -103,4 +110,6 @@ commit.
 
 ## Outcome
 
-Completed and delivery-approved; pending final archive publication.
+Completed. The two human-centered review skills are independently published on
+`origin/main`, validated, documented, delivery-approved, and archived without a
+new `repoledger` npm release.
