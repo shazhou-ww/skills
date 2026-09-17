@@ -100,9 +100,9 @@ root or use ordinary file-relative paths. URI references such as HTTPS links
 are external and are not resolved as repository files.
 
 CI can run `repoledger check --all-identities --archived` when repository-wide
-coverage is desired. Archived records that predate the current publication
-milestone format remain legacy history and receive informational diagnostics
-rather than migration edits.
+coverage is desired. Archived records that predate the current human review
+plan remain legacy history and receive informational diagnostics rather than
+migration edits.
 
 ## Validation Coverage
 
@@ -111,11 +111,13 @@ rather than migration edits.
 - canonical status and identity directories, `.gitkeep` registration markers,
   portable names, and task-directory types within the selected scope;
 - required `Task.md`, state-dependent `Progress.md`, task acceptance
-  checklists, final outcomes, and publication milestone tables;
+  checklists, and final outcomes;
 - five-part human review plans for active tasks, consistent approval states,
-  and dated decision evidence; unresolved human approval is a warning;
+  and dated decision evidence; canonical states may carry separated
+  human-readable annotations, and unresolved approval is a warning;
 - optional `UserAcceptance.md` structure, numbered steps and results,
-  reporting instructions, and accepted status for completed archives;
+  reporting instructions, and an explicit accepted status for completed
+  archives;
 - move-stable task-local links and repository-local Markdown links under the
   declared renderer convention.
 

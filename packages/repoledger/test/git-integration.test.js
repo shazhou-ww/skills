@@ -131,7 +131,6 @@ Integration fixture.
 
 function progressDocument({
   archive = false,
-  claim,
   deliveryApproved = archive,
   implementation,
 }) {
@@ -167,14 +166,6 @@ ${archive ? "Archived." : "In progress."}
 | Business and data model | Not applicable | The fixture has no business data. |
 | Architecture | Not applicable | The fixture has no architecture change. |
 | Delivery acceptance | ${deliveryApproved ? "Approved" : "Pending"} | ${deliveryApproved ? "Fixture owner approved delivery on 2026-09-15." : "Review the integrated fixture after implementation."} |
-
-## Publication milestones
-
-| Milestone | Evidence | Status |
-| --- | --- | --- |
-| Claim | ${claim ? "Task ownership published to origin/main." : "Pending."} | ${claim ? "Published" : "Pending"} |
-| Implementation complete | ${implementation ? "Validated implementation published to origin/main." : "Pending."} | ${implementation ? "Published" : "Pending"} |
-| Archive | ${archive ? "Task archived on origin/main." : "Pending."} | ${archive ? "Published" : "Pending"} |
 
 ## Validation
 
@@ -231,6 +222,8 @@ test("uses real worktree identity precedence over a global fallback", async () =
 test("accepts a real shallow clone without an identity", async () => {
   const { base, remote } = await createGitRepository();
   const shallow = join(base, "shallow");
+  const globalConfig = join(base, "empty-global-config");
+  await writeFile(globalConfig, "");
   const clone = spawnSync(
     "git",
     ["clone", "--depth=1", pathToFileURL(remote).href, shallow],
@@ -238,7 +231,10 @@ test("accepts a real shallow clone without an identity", async () => {
   );
   assert.equal(clone.status, 0, clone.stderr);
 
-  const report = await checkRepository({ root: shallow });
+  const report = await checkRepository({
+    git: isolatedGlobalGit(globalConfig),
+    root: shallow,
+  });
 
   assert.equal(report.ok, true);
   assert.equal(report.scope.identity, null);
@@ -260,19 +256,19 @@ test("validates a real archive move with phased publications and approval", asyn
     "real-history-task",
   );
   await rename(backlog, ongoing);
-  await writeFile(join(ongoing, "Progress.md"), progressDocument({ claim: true }));
+  await writeFile(join(ongoing, "Progress.md"), progressDocument({}));
   commitAndPush(root, "Claim real history task");
 
   await writeFile(join(root, "implementation.txt"), "implemented\n");
   await writeFile(
     join(ongoing, "Progress.md"),
-    progressDocument({ claim: true, implementation: true }),
+    progressDocument({ implementation: true }),
   );
   commitAndPush(root, "Implement real history task");
 
   await writeFile(
     join(ongoing, "Progress.md"),
-    progressDocument({ claim: true, deliveryApproved: true, implementation: true }),
+    progressDocument({ deliveryApproved: true, implementation: true }),
   );
   commitAndPush(root, "Record delivery approval");
 
@@ -281,7 +277,7 @@ test("validates a real archive move with phased publications and approval", asyn
   await writeFile(join(archived, "Task.md"), taskDocument(true));
   await writeFile(
     join(archived, "Progress.md"),
-    progressDocument({ archive: true, claim: true, implementation: true }),
+    progressDocument({ archive: true, implementation: true }),
   );
   commitAndPush(root, "Archive real history task");
 

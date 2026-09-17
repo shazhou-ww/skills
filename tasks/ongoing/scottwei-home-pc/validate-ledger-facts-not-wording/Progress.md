@@ -2,23 +2,10 @@
 
 Updated: 2026-09-17
 
-## Checklist
-
-- [x] Publish the claim to the shared primary branch.
-- [x] Obtain scope approval before substantive implementation.
-- [x] Complete each applicable interface, business and data model, and
-  architecture approval before the affected implementation.
-- [ ] Commit and publish substantive work at meaningful checkpoints.
-- [ ] Publish implementation completion while the task is still ongoing.
-- [ ] Complete documented manual user acceptance, if required.
-- [ ] Obtain and publish delivery approval.
-- [ ] Archive and publish the task as its final action.
-
 ## Current state
 
-The task is claimed by `scottwei-home-pc`, and all implementation review gates
-are approved. Implement the published design in focused parser and milestone
-removal slices, validating each before proceeding.
+Implementation and repository-wide validation are complete. Inspect the final
+diff, then publish implementation completion while the task remains ongoing.
 
 ## Decisions
 
@@ -27,6 +14,9 @@ removal slices, validating each before proceeding.
 - The user approved the interface forms and compatibility behavior, task
   artifact source-of-truth model, and fact-parsing architecture documented in
   [Design.md](./Design.md) on 2026-09-17.
+- Git history and task position are authoritative for lifecycle publication.
+- Canonical facts are parsed before invariant checks; separated annotations do
+  not weaken unknown, ambiguous, conflicting, or negated-state rejection.
 
 ## Human approvals
 
@@ -36,15 +26,7 @@ removal slices, validating each before proceeding.
 | Interface | Approved | The user approved the published accepted forms, parsing rules, diagnostics, and compatibility behavior on 2026-09-17. |
 | Business and data model | Approved | The user approved the published task artifact facts and source-of-truth model on 2026-09-17. |
 | Architecture | Approved | The user approved the published parsing boundary and Git, task-position, and Markdown responsibilities on 2026-09-17. |
-| Delivery acceptance | Pending | Review Published implementation, migration behavior, documentation, and complete validation evidence. with User. |
-
-## Publication milestones
-
-| Milestone | Evidence | Status |
-| --- | --- | --- |
-| Claim | Task ownership moved to `scottwei-home-pc` on `origin/main`. | Published |
-| Implementation complete | Pending. | Pending |
-| Archive | Pending. | Pending |
+| Delivery acceptance | Pending | Review the published implementation, migration behavior, documentation, and complete validation evidence. |
 
 ## Validation
 
@@ -52,6 +34,16 @@ removal slices, validating each before proceeding.
   unique post-move task position.
 - The design artifact covers positive, ambiguous, unknown, and negated parser
   cases and the migration away from publication milestone rows.
+- `node --test packages/repoledger/test/content.test.js`: 15 passed.
+- `node --test packages/repoledger/test/transitions.test.js`: 11 passed.
+- `pnpm --filter repoledger test`: 85 passed.
+- `pnpm test:review-skills`: 4 passed.
+- VS Code reported no diagnostics in the changed JavaScript files.
+- `npm --prefix packages/repoledger run smoke:pack`: passed after one transient
+  install timeout in the first full-check attempt.
+- `pnpm check`: passed, including package checks, 12 release tests, 4 review
+  skill tests, and all 14 ledger tasks; delivery approval remains the only
+  expected warning.
 
 ## Blockers
 

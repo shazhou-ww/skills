@@ -13,7 +13,6 @@ const TASK_HEADINGS = [
   "References",
 ];
 const PROGRESS_HEADINGS = [
-  "Checklist",
   "Current state",
   "Decisions",
   "Validation",
@@ -45,6 +44,16 @@ const HUMAN_APPROVAL_STATUSES = new Set([
   "Approved",
   "Not applicable",
   "Reopened",
+]);
+const REVIEW_APPLICABILITIES = new Set([
+  "Required",
+  "Not applicable",
+  "Assess during execution",
+]);
+const PLACEHOLDER_VALUES = new Set([
+  "<Required, Not applicable: reason, or Assess during execution: trigger>",
+  "<Reviewer or role>",
+  "<Pending or Not applicable>",
 ]);
 
 function diagnostic(code, level, path, message, remediation) {
@@ -135,7 +144,46 @@ function namedTableRows(document, sectionName) {
 }
 
 function hasPlaceholder(value) {
-  return !value || /<[^>]+>/.test(value);
+  const normalized = value?.replace(/^`([^`]*)`$/, "$1");
+  return !normalized || PLACEHOLDER_VALUES.has(normalized);
+}
+
+function containsFact(value, facts) {
+  return [...facts].some((fact) => {
+    const start = value.indexOf(fact);
+    if (start === -1) return false;
+    const before = value[start - 1];
+    const after = value[start + fact.length];
+    return (!before || /[^A-Za-z]/.test(before)) && (!after || /[^A-Za-z]/.test(after));
+  });
+}
+
+function parseAnnotatedFact(value, facts, separators = ":-–—") {
+  const separatorPattern = separators.replace(/[\\\]^\-]/g, "\\$&");
+  const ordered = [...facts].sort((left, right) => right.length - left.length);
+  for (const fact of ordered) {
+    if (value === fact) return { annotation: "", fact };
+    if (!value.startsWith(fact)) continue;
+    const remainder = value.slice(fact.length);
+    const match = new RegExp(`^\\s*[${separatorPattern}]\\s*(\\S[\\s\\S]*)$`).exec(remainder);
+    if (!match || containsFact(match[1], facts)) return null;
+    return { annotation: match[1], fact };
+  }
+  return null;
+}
+
+function parseOutcome(value) {
+  const facts = new Set(["Completed", "Abandoned"]);
+  const match = /^(Completed|Abandoned)(?=$|[\s.,:;!?–—-])/.exec(value);
+  if (!match || containsFact(value.slice(match[0].length), facts)) return null;
+  return match[1];
+}
+
+function parseAcceptanceStatus(value) {
+  const result = parseAnnotatedFact(value, new Set(["Pending", "Accepted"]), ".:-–—");
+  if (result) return result.fact;
+  if (/^Failed at step [1-9]\d*:\s+\S/.test(value)) return "Failed";
+  return null;
 }
 
 function validateHumanReviewPlan({ diagnostics, document, filePath, root, state }) {
@@ -182,12 +230,15 @@ function validateHumanReviewPlan({ diagnostics, document, filePath, root, state 
     }
 
     const applicability = row[1] ?? "";
-    const required = applicability === "Required";
-    const notApplicable = /^Not applicable:\s+\S/.test(applicability);
-    const assessLater = /^Assess during execution:\s+\S/.test(applicability);
+    const parsedApplicability = parseAnnotatedFact(applicability, REVIEW_APPLICABILITIES);
+    const required = parsedApplicability?.fact === "Required";
+    const notApplicable = parsedApplicability?.fact === "Not applicable";
+    const assessLater = parsedApplicability?.fact === "Assess during execution";
     if (
       hasPlaceholder(applicability) ||
+      !parsedApplicability ||
       (!required && !notApplicable && !assessLater) ||
+      ((notApplicable || assessLater) && !parsedApplicability.annotation) ||
       (REQUIRED_HUMAN_REVIEW_CHECKPOINTS.has(checkpoint) && !required)
     ) {
       diagnostics.push(
@@ -218,118 +269,6 @@ function validateHumanReviewPlan({ diagnostics, document, filePath, root, state 
   }
 
   return rows;
-}
-
-function milestoneRows(document) {
-  return namedTableRows(document, "Publication milestones");
-}
-
-function validateMilestones({
-  allowPendingArchive,
-  diagnostics,
-  document,
-  filePath,
-  outcome,
-  root,
-  state,
-}) {
-  const path = displayPath(root, filePath);
-  const rows = milestoneRows(document);
-  if (!rows) {
-    diagnostics.push(
-      error(
-        "progress.milestones.missing",
-        path,
-        "Versioned progress is missing its publication milestone table.",
-        "Add Claim, Implementation complete, and Archive milestone rows from the current template.",
-      ),
-    );
-    return;
-  }
-
-  for (const milestone of ["Claim", "Implementation complete", "Archive"]) {
-    if (!rows.has(milestone)) {
-      diagnostics.push(
-        error(
-          "progress.milestones.missing-row",
-          path,
-          `Publication milestones are missing the ${milestone} row.`,
-          `Add a ${milestone} row with evidence and status.`,
-        ),
-      );
-    }
-  }
-
-  const claimStatus = rows.get("Claim")?.[2];
-  if (state !== "backlog" && claimStatus !== "Published") {
-    diagnostics.push(
-      error(
-        "progress.milestones.claim-unpublished",
-        path,
-        `Claim milestone status must be Published, found ${claimStatus ?? "missing"}.`,
-        "Record Published with descriptive evidence in the claim commit, then publish it before implementation.",
-      ),
-    );
-  }
-
-  if (
-    state === "archived" &&
-    outcome === "Completed" &&
-    rows.get("Implementation complete")?.[2] !== "Published"
-  ) {
-    diagnostics.push(
-      error(
-        "progress.milestones.incomplete",
-        path,
-        "Implementation complete milestone status must be Published for a completed archive.",
-        "Publish and record implementation completion before archiving.",
-      ),
-    );
-  }
-  const archiveStatus = rows.get("Archive")?.[2];
-  if (
-    state === "archived" &&
-    archiveStatus !== "Published" &&
-    !(allowPendingArchive && archiveStatus === "Pending")
-  ) {
-    diagnostics.push(
-      error(
-        "progress.milestones.archive-unpublished",
-        path,
-        "Archive milestone status must be Published for every archived task.",
-        "Publish the archive move and record its shared primary branch evidence.",
-      ),
-    );
-  }
-}
-
-function validateProgressChecklist({
-  allowPendingArchive,
-  diagnostics,
-  document,
-  filePath,
-  outcome,
-  root,
-  state,
-}) {
-  if (state !== "archived" || outcome !== "Completed") return;
-  const list = firstList(document.section("Checklist"));
-  let unchecked = list?.items.filter(({ task, checked }) => task && checked !== true) ?? [];
-  if (allowPendingArchive) {
-    unchecked = unchecked.filter(
-      ({ text }) => !/(?:\barchive\b.*\bpublish\b|\bpublish\b.*\barchive\b)/i.test(text),
-    );
-  }
-  if (unchecked.length > 0) {
-    diagnostics.push(
-      error(
-        "progress.checklist.incomplete",
-        displayPath(root, filePath),
-        "Completed archived progress contains unchecked checklist items.",
-        "Complete and record every required lifecycle action before archiving.",
-      ),
-    );
-  }
 }
 
 function validateHumanApprovals({
@@ -369,24 +308,28 @@ function validateHumanApprovals({
       continue;
     }
 
-    const status = row[1] ?? "";
+    const statusText = row[1] ?? "";
+    const status = parseAnnotatedFact(statusText, HUMAN_APPROVAL_STATUSES)?.fact;
     const evidence = row[2] ?? "";
-    if (!HUMAN_APPROVAL_STATUSES.has(status)) {
+    if (!status) {
       diagnostics.push(
         error(
           "progress.human-approvals.status-invalid",
           path,
-          `Human approval checkpoint ${checkpoint} has invalid status: ${status || "missing"}.`,
-          "Use Pending, Approved, Not applicable, or Reopened.",
+          `Human approval checkpoint ${checkpoint} has invalid status: ${statusText || "missing"}.`,
+          "Start with Pending, Approved, Not applicable, or Reopened; separate any annotation with a colon or dash.",
         ),
       );
       continue;
     }
 
-    const applicability = reviewPlan.get(checkpoint)?.[1] ?? "";
+    const applicability = parseAnnotatedFact(
+      reviewPlan.get(checkpoint)?.[1] ?? "",
+      REVIEW_APPLICABILITIES,
+    )?.fact;
     if (
       (applicability === "Required" && status === "Not applicable") ||
-      (applicability.startsWith("Not applicable:") && status !== "Not applicable")
+      (applicability === "Not applicable" && status !== "Not applicable")
     ) {
       diagnostics.push(
         error(
@@ -442,7 +385,6 @@ function validateHumanApprovals({
 }
 
 async function validateProgress({
-  allowPendingArchive,
   diagnostics,
   reviewPlan,
   root,
@@ -480,16 +422,8 @@ async function validateProgress({
   }
 
   const document = parseMarkdown(await readFile(filePath, "utf8"));
-  const rows = milestoneRows(document);
-  const legacyArchive =
-    state === "archived" &&
-    (rows === null || [...rows.values()].some((row) => row[2] === "Complete"));
-  const usesCurrentSchema =
-    strict ?? !legacyArchive;
-  const required = [
-    ...PROGRESS_HEADINGS,
-    ...(usesCurrentSchema ? ["Publication milestones"] : []),
-  ];
+  const usesCurrentSchema = strict ?? reviewPlan !== null;
+  const required = [...PROGRESS_HEADINGS];
   if (reviewPlan) required.push("Human approvals");
   for (const heading of missingHeadings(document, required)) {
     diagnostics.push(
@@ -503,13 +437,13 @@ async function validateProgress({
   }
 
   const outcomeText = sectionText(document.section("Outcome"));
-  const outcome = /^(Completed|Abandoned)\./.exec(outcomeText)?.[1] ?? null;
+  const outcome = parseOutcome(outcomeText);
   if (state === "archived" && outcome === null) {
     diagnostics.push(
       error(
         "progress.outcome.invalid",
         path,
-        "Archived progress must start its outcome with Completed. or Abandoned.",
+        "Archived progress must start with an unambiguous Completed or Abandoned outcome.",
         "Record the actual final outcome and concise reason.",
       ),
     );
@@ -521,26 +455,6 @@ async function validateProgress({
       filePath,
       outcome,
       reviewPlan,
-      root,
-      state,
-    });
-  }
-  validateProgressChecklist({
-    allowPendingArchive,
-    diagnostics,
-    document,
-    filePath,
-    outcome,
-    root,
-    state,
-  });
-  if (usesCurrentSchema) {
-    validateMilestones({
-      allowPendingArchive,
-      diagnostics,
-      document,
-      filePath,
-      outcome,
       root,
       state,
     });
@@ -591,17 +505,6 @@ async function validateUserAcceptance({ diagnostics, outcome, root, state, task 
       ),
     );
   }
-  const reporting = sectionText(document.section("Report outcome"));
-  if (!reporting.includes("Accepted") || !reporting.includes("Failed at step")) {
-    diagnostics.push(
-      error(
-        "acceptance.reporting.invalid",
-        path,
-        "User acceptance reporting instructions are incomplete.",
-        "Provide explicit Accepted and Failed at step <number> outcomes.",
-      ),
-    );
-  }
   const status = sectionText(document.section("Status"));
   if (!status) {
     diagnostics.push(
@@ -612,7 +515,20 @@ async function validateUserAcceptance({ diagnostics, outcome, root, state, task 
         "Record Pending or the actual user-reported result.",
       ),
     );
-  } else if (state === "archived" && outcome === "Completed" && !status.includes("Accepted")) {
+  } else if (!parseAcceptanceStatus(status)) {
+    diagnostics.push(
+      error(
+        "acceptance.status.invalid",
+        path,
+        "User acceptance status does not contain a recognized result.",
+        "Record Pending, Accepted, or Failed at step <number>: <observed result>.",
+      ),
+    );
+  } else if (
+    state === "archived" &&
+    outcome === "Completed" &&
+    parseAcceptanceStatus(status) !== "Accepted"
+  ) {
     diagnostics.push(
       error(
         "acceptance.status.not-accepted",
@@ -729,7 +645,7 @@ async function validateLinks({ diagnostics, root, task }) {
   }
 }
 
-export async function inspectTaskContents({ allowPendingArchive = false, root, tasks }) {
+export async function inspectTaskContents({ root, tasks }) {
   const diagnostics = [];
 
   for (const task of tasks) {
@@ -775,7 +691,6 @@ export async function inspectTaskContents({ allowPendingArchive = false, root, t
     });
 
     const progress = await validateProgress({
-      allowPendingArchive,
       diagnostics,
       reviewPlan,
       root,
@@ -787,7 +702,7 @@ export async function inspectTaskContents({ allowPendingArchive = false, root, t
         info(
           "task.archive.legacy",
           taskPath,
-          "Archived task predates the schema's publication milestone format.",
+          "Archived task predates the current human review plan format.",
           "Keep archived history unchanged; current checks still validate universal invariants.",
         ),
       );

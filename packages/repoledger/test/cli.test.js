@@ -111,13 +111,22 @@ test("renders focused check help", async () => {
 test("emits machine-readable status without requiring a Git identity", async () => {
   const root = await mkdtemp(join(tmpdir(), "repoledger-cli-status-"));
   temporaryDirectories.push(root);
+  const globalConfig = join(root, "empty-global-config");
+  await writeFile(globalConfig, "");
   await writeFile(join(root, "repoledger.json"), JSON.stringify(projectConfig()));
   for (const state of ["backlog", "ongoing", "archived"]) {
     await mkdir(join(root, "tasks", state), { recursive: true });
   }
   const capture = captureIo();
-
-  const exitCode = await runCli(["status", "--root", root, "--json"], capture.io);
+  const previousGlobalConfig = process.env.GIT_CONFIG_GLOBAL;
+  process.env.GIT_CONFIG_GLOBAL = globalConfig;
+  let exitCode;
+  try {
+    exitCode = await runCli(["status", "--root", root, "--json"], capture.io);
+  } finally {
+    if (previousGlobalConfig === undefined) delete process.env.GIT_CONFIG_GLOBAL;
+    else process.env.GIT_CONFIG_GLOBAL = previousGlobalConfig;
+  }
   const report = JSON.parse(capture.output.join("\n"));
 
   assert.equal(exitCode, 0);

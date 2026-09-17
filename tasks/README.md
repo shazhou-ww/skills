@@ -84,8 +84,8 @@ for the action that cannot be completed autonomously.
 
 Accepted task work authorizes routine commits and publication through this
 path; agents do not pause merely to ask whether they should commit or push.
-A milestone is published only when its commit is reachable from the refreshed
-`origin/main`.
+A lifecycle integration is published only when its commit is reachable from
+the refreshed `origin/main`. Git history is authoritative.
 
 Every completed task has at least three distinct integrations on `origin/main`:
 the claim before substantive implementation, implementation completion while

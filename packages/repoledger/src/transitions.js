@@ -54,8 +54,9 @@ function approvalRows(taskText) {
     const applicability = row[1]?.text.trim() ?? "";
     const reviewer = row[2]?.text.trim() ?? "";
     const artifact = row[3]?.text.trim() ?? "";
-    if (applicability.startsWith("Not applicable:")) {
-      return [checkpoint, "Not applicable", applicability.slice("Not applicable:".length).trim()]
+    const notApplicable = /^Not applicable\s*[:\-–—]\s*(\S[\s\S]*)$/.exec(applicability);
+    if (notApplicable) {
+      return [checkpoint, "Not applicable", notApplicable[1]]
         .map(escapeTableCell);
     }
     return [checkpoint, "Pending", `Review ${artifact} with ${reviewer}.`]
@@ -72,23 +73,10 @@ export async function createClaimProgress(taskPath, date = new Date().toISOStrin
 
 Updated: ${date}
 
-## Checklist
-
-- [ ] Publish the claim to the shared primary branch.
-- [ ] Obtain scope approval before substantive implementation.
-- [ ] Complete each applicable interface, business and data model, and
-  architecture approval before the affected implementation.
-- [ ] Commit and publish substantive work at meaningful checkpoints.
-- [ ] Publish implementation completion while the task is still ongoing.
-- [ ] Complete documented manual user acceptance, if required.
-- [ ] Obtain and publish delivery approval.
-- [ ] Archive and publish the task as its final action.
-
 ## Current state
 
 The task has been moved into the current worktree identity. Review this record,
-mark the claim milestone Published with descriptive evidence, then commit,
-publish, and verify the claim before substantive implementation.
+then commit, publish, and verify the claim before substantive implementation.
 
 ## Decisions
 
@@ -99,14 +87,6 @@ publish, and verify the claim before substantive implementation.
 | Checkpoint | Status | Review artifact and decision evidence |
 | --- | --- | --- |
 ${rows}
-
-## Publication milestones
-
-| Milestone | Evidence | Status |
-| --- | --- | --- |
-| Claim | Pending publication of the task move. | Pending |
-| Implementation complete | Pending. | Pending |
-| Archive | Pending. | Pending |
 
 ## Validation
 
@@ -352,7 +332,6 @@ export async function transitionRepository({
     diagnostics.push(...contents.diagnostics);
     if (operation === "archive" && destinationRelativePath) {
       const prospective = await inspectTaskContents({
-        allowPendingArchive: true,
         root: repositoryRoot,
         tasks: [{ ...task, state: "archived", relativePath: destinationRelativePath }],
       });

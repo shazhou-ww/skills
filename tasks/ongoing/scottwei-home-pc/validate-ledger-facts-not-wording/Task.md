@@ -46,20 +46,20 @@ stale or circular self-reported evidence.
 
 ## Acceptance criteria
 
-- [ ] Human approval values such as `Pending — artifact ready` resolve to the
+- [x] Human approval values such as `Pending — artifact ready` resolve to the
   canonical `Pending` state while unknown or ambiguous states remain errors.
-- [ ] Review applicability, outcome, checklist, placeholder, and user
+- [x] Review applicability, outcome, checklist, placeholder, and user
   acceptance checks enforce their underlying facts without requiring template
   punctuation or exact explanatory phrases.
-- [ ] Negated acceptance such as `Not Accepted` cannot satisfy a completed
+- [x] Negated acceptance such as `Not Accepted` cannot satisfy a completed
   task's acceptance requirement.
-- [ ] Current `Progress.md` files no longer require or generate a `Publication
+- [x] Current `Progress.md` files no longer require or generate a `Publication
   milestones` section, and milestone diagnostics are removed.
-- [ ] Existing archived records remain readable without using milestone wording
+- [x] Existing archived records remain readable without using milestone wording
   to infer their schema or lifecycle state.
-- [ ] Templates, repository-task-ledger guidance, repoledger documentation, and
+- [x] Templates, repository-task-ledger guidance, repoledger documentation, and
   tests consistently identify Git history and task position as lifecycle truth.
-- [ ] Focused repoledger tests and the repository-wide `pnpm check` pass.
+- [x] Focused repoledger tests and the repository-wide `pnpm check` pass.
 
 ## Constraints
 
@@ -89,4 +89,4 @@ acceptance are always required for completed work.
 
 - [Repoledger content validation](/packages/repoledger/src/content.js)
 - [Progress template](/skills/repository-task-ledger/assets/Progress.md)
-- [Repository task profile](/tasks/README.md)
+- [Task repository profile](/tasks/README.md)

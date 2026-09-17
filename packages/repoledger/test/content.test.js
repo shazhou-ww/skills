@@ -83,14 +83,6 @@ In progress.
 
 ${HUMAN_APPROVALS}
 
-## Publication milestones
-
-| Milestone | Evidence | Status |
-| --- | --- | --- |
-| Claim | Claim published to origin/main. | Published |
-| Implementation complete | Pending. | Pending |
-| Archive | Pending. | Pending |
-
 ## Validation
 
 - Fixture validation.
@@ -156,15 +148,13 @@ test("preserves an unversioned archived task as legacy", async () => {
   await mkdir(task);
   await writeFile(
     join(task, "Task.md"),
-    TASK.replace("- [ ] Observable result.", "- [x] Observable result.").replace(
-      "[Profile](/tasks/README.md)",
-      "Profile.",
-    ),
+    TASK.replace("- [ ] Observable result.", "- [x] Observable result.")
+      .replace("[Profile](/tasks/README.md)", "Profile.")
+      .replace(`${HUMAN_REVIEW_PLAN}\n\n`, ""),
   );
   await writeFile(
     join(task, "Progress.md"),
-    PROGRESS.replace("## Publication milestones\n\n| Milestone | Evidence | Status |\n| --- | --- | --- |\n| Claim | Claim published to origin/main. | Published |\n| Implementation complete | Pending. | Pending |\n| Archive | Pending. | Pending |\n\n", "")
-      .replaceAll("- [ ]", "- [x]")
+    PROGRESS.replaceAll("- [ ]", "- [x]")
       .replace(
         "| Delivery acceptance | Pending | Review the integrated fixture after implementation. |",
         "| Delivery acceptance | Approved | Fixture owner approved delivery on 2026-09-15. |",
@@ -194,8 +184,7 @@ test("warns for completed archives with pending delivery approval", async () => 
   );
   await writeFile(
     join(task, "Progress.md"),
-    PROGRESS.replace("## Publication milestones\n\n| Milestone | Evidence | Status |\n| --- | --- | --- |\n| Claim | Claim published to origin/main. | Published |\n| Implementation complete | Pending. | Pending |\n| Archive | Pending. | Pending |\n\n", "")
-      .replaceAll("- [ ]", "- [x]")
+    PROGRESS.replaceAll("- [ ]", "- [x]")
       .replace("In progress.\n", "Completed.\n")
       .replace("In progress.\n", "Completed.\n"),
   );
@@ -219,12 +208,14 @@ test("allows an abandoned legacy archive to retain unchecked acceptance", async 
   await mkdir(task);
   await writeFile(
     join(task, "Task.md"),
-    TASK.replace("[Profile](/tasks/README.md)", "Profile."),
+    TASK.replace("[Profile](/tasks/README.md)", "Profile.").replace(
+      `${HUMAN_REVIEW_PLAN}\n\n`,
+      "",
+    ),
   );
   await writeFile(
     join(task, "Progress.md"),
-    PROGRESS.replace("## Publication milestones\n\n| Milestone | Evidence | Status |\n| --- | --- | --- |\n| Claim | Claim published to origin/main. | Published |\n| Implementation complete | Pending. | Pending |\n| Archive | Pending. | Pending |\n\n", "")
-      .replace("In progress.\n", "Abandoned. No implementation was started.\n")
+    PROGRESS.replace("In progress.\n", "Abandoned. No implementation was started.\n")
       .replace("In progress.\n", "Abandoned. No implementation was started.\n"),
   );
 
@@ -303,7 +294,7 @@ test("rejects approval states that conflict with the task review plan", async ()
   );
 });
 
-test("reports task artifacts, milestones, acceptance, and local link failures", async () => {
+test("reports task artifacts, acceptance, and local link failures", async () => {
   const root = await createRepository();
   const lane = join(root, "tasks", "ongoing", "fixture-identity");
   const task = join(lane, "broken-task");
@@ -316,10 +307,7 @@ test("reports task artifacts, milestones, acceptance, and local link failures", 
       "[Missing](missing.md)",
     ),
   );
-  await writeFile(
-    join(task, "Progress.md"),
-    PROGRESS.replace("| Claim | Claim published to origin/main. | Published |", ""),
-  );
+  await writeFile(join(task, "Progress.md"), PROGRESS);
   await writeFile(
     join(task, "UserAcceptance.md"),
     "# User acceptance\n\n## Steps\n\n1. Do one thing.\n\n## Expected results\n\nNo list.\n",
@@ -330,13 +318,85 @@ test("reports task artifacts, milestones, acceptance, and local link failures", 
 
   assert.equal(report.ok, false);
   assert.ok(codes.includes("task.heading.missing"));
-  assert.ok(codes.includes("progress.milestones.missing-row"));
-  assert.ok(codes.includes("progress.milestones.claim-unpublished"));
   assert.ok(codes.includes("acceptance.heading.missing"));
   assert.ok(codes.includes("acceptance.steps.invalid"));
-  assert.ok(codes.includes("acceptance.reporting.invalid"));
   assert.ok(codes.includes("acceptance.status.missing"));
   assert.ok(codes.includes("link.target.missing"));
+});
+
+test("parses outcome and acceptance facts without phrase matching", async () => {
+  const root = await createRepository();
+  const task = join(root, "tasks", "archived", "accepted-task");
+  await mkdir(task);
+  await writeFile(
+    join(task, "Task.md"),
+    TASK.replace("- [ ] Observable result.", "- [x] Observable result."),
+  );
+  await writeFile(
+    join(task, "Progress.md"),
+    PROGRESS.replaceAll("- [ ]", "- [x]")
+      .replace(
+        "| Delivery acceptance | Pending | Review the integrated fixture after implementation. |",
+        "| Delivery acceptance | Approved | Fixture owner approved delivery on 2026-09-17. |",
+      )
+      .replace(
+        "| Implementation complete | Pending. | Pending |",
+        "| Implementation complete | Published implementation. | Published |",
+      )
+      .replace("| Archive | Pending. | Pending |", "| Archive | Published archive. | Published |")
+      .replace("## Outcome\n\nIn progress.", "## Outcome\n\nCompleted all checks passed"),
+  );
+  const acceptance = `# User acceptance
+
+## Purpose
+
+Validate the fixture.
+
+## Test target
+
+- Published fixture.
+
+## Preconditions
+
+- Fixture is available.
+
+## Steps
+
+1. Open the fixture.
+
+## Expected results
+
+1. The fixture opens.
+
+## Report outcome
+
+Report success or identify the first failing step and observed result.
+
+## Status
+
+Accepted — verified by the user.
+`;
+  await writeFile(join(task, "UserAcceptance.md"), acceptance);
+
+  const accepted = await checkRepository({
+    git: fullHistoryGit,
+    includeArchived: true,
+    root,
+  });
+  assert.equal(accepted.ok, true);
+
+  await writeFile(
+    join(task, "UserAcceptance.md"),
+    acceptance.replace("Accepted — verified by the user.", "Not Accepted"),
+  );
+  const rejected = await checkRepository({
+    git: fullHistoryGit,
+    includeArchived: true,
+    root,
+  });
+  assert.ok(
+    rejected.diagnostics.some(({ code }) => code === "acceptance.status.invalid"),
+  );
 });
 
 test("accepts repository-root, task-local, encoded, and external URI references", async () => {
@@ -429,4 +489,61 @@ test("rejects a local link that escapes through a symbolic directory", async () 
   assert.ok(
     report.diagnostics.some(({ code }) => code === "link.target.symlink-escape"),
   );
+});
+
+test("parses canonical review facts separately from annotations", async () => {
+  const root = await createRepository();
+  const lane = join(root, "tasks", "ongoing", "fixture-identity");
+  const task = join(lane, "annotated-task");
+  await mkdir(task, { recursive: true });
+  await writeFile(join(lane, ".gitkeep"), "");
+  await writeFile(
+    join(task, "Task.md"),
+    TASK.replaceAll("Fixture owner", "Fixture owner <owner@example.com>")
+      .replaceAll("Not applicable: the fixture", "Not applicable — the fixture"),
+  );
+  await writeFile(
+    join(task, "Progress.md"),
+    PROGRESS.replace("| Scope | Approved |", "| Scope | Approved — scope signed |")
+      .replace(
+        "| Delivery acceptance | Pending |",
+        "| Delivery acceptance | Pending — artifact ready |",
+      ),
+  );
+
+  const report = await checkRepository({ git: fullHistoryGit, root });
+
+  assert.equal(report.ok, true);
+  assert.deepEqual(
+    report.diagnostics.filter(({ level }) => level === "error"),
+    [],
+  );
+});
+
+test("rejects unknown and ambiguous annotated approval facts", async () => {
+  const root = await createRepository();
+  const lane = join(root, "tasks", "ongoing", "fixture-identity");
+  await mkdir(lane, { recursive: true });
+  await writeFile(join(lane, ".gitkeep"), "");
+
+  for (const [name, status] of [
+    ["unknown", "Done"],
+    ["ambiguous", "Pending — now Approved"],
+    ["invalid-separator", "Pending / artifact ready"],
+  ]) {
+    const task = join(lane, `${name}-task`);
+    await mkdir(task);
+    await writeFile(join(task, "Task.md"), TASK);
+    await writeFile(
+      join(task, "Progress.md"),
+      PROGRESS.replace("| Delivery acceptance | Pending |", `| Delivery acceptance | ${status} |`),
+    );
+  }
+
+  const report = await checkRepository({ git: fullHistoryGit, root });
+  const invalid = report.diagnostics.filter(
+    ({ code }) => code === "progress.human-approvals.status-invalid",
+  );
+
+  assert.equal(invalid.length, 3);
 });

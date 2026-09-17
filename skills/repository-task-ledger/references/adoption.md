@@ -138,7 +138,7 @@ duration, or expected files.
    `task-ledger.identity`; do not use `.env`.
 - Treat accepted task work as authorization for routine non-force commits and
    publication; do not ask for confirmation solely to commit, push, or
-   integrate a lifecycle milestone.
+   publish a lifecycle integration.
 - Publish the claim before substantive implementation, commit and publish
    meaningful validated checkpoints, and publish implementation completion
    while the task remains ongoing.
@@ -164,7 +164,7 @@ is direct push, merge, or pull request. It must also identify any required
 review or approval that prevents autonomous completion. Do not leave agents to
 guess whether a local commit, side-branch push, or unmerged request counts as
 published; only history reachable from the refreshed remote primary branch
-satisfies a publication milestone.
+satisfies a lifecycle integration.
 
 ## Link Task References
 
@@ -276,8 +276,6 @@ least:
 - archived progress records an outcome;
 - unresolved human approval is reported as a warning rather than invalidating
    the local task structure;
-- progress records claim, implementation-complete, and archive publication
-   milestones;
 - any `UserAcceptance.md` contains a test target, prerequisites, numbered
    steps, matching expected results, reporting instructions, and actual status;
 - targets inside the current task directory use file-relative links;

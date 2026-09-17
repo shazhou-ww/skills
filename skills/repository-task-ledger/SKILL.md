@@ -62,7 +62,7 @@ consent, acceptance, or lifecycle state. Explicit `init --apply` and
 never fetch, inspect history, stage, commit, push, merge, or publish it. Without
 the CLI, apply the fallback checks and moves below.
 
-## Publish Milestones
+## Publish Lifecycle Integrations
 
 The repository profile names the shared remote, primary branch, and normal
 direct-push, merge, or pull-request path. Accepted task work authorizes routine
@@ -72,12 +72,8 @@ solely for those steps.
 Before each publication, refresh the remote, reconcile concurrent work without
 discarding it, run focused checks, publish, and verify the commit is reachable
 from the refreshed remote primary branch. Local commits, side branches, and
-unmerged pull requests are not published milestones.
-
-Record `Published` and concise human-readable evidence in the milestone commit
-itself, then verify publication from Git history. Never copy commit hashes into
-task artifacts; repository history is the source of truth for exact commit
-identity and reachability.
+unmerged pull requests are not published integrations. Git history is the
+source of truth for exact commit identity, chronology, and reachability.
 
 Authentication, branch protection, required review, failed validation, push
 rejection, and conflicts remain real blockers. Never force-push around them.
@@ -112,19 +108,19 @@ After `task-new` intake and admission:
    exact source, destination, reference edits, and blockers, then rerun it with
    `--apply`. A successful apply moves the complete directory, rewrites the
    affected links, verifies the mechanical postconditions, and generates the
-   initial `Progress.md` without inventing approvals or publication evidence.
+   initial `Progress.md` without inventing approvals.
 5. Review and complete the generated current state and next action. If the CLI
    is unavailable, use `git mv`, the [progress template](./assets/Progress.md),
    and the manual checks in [Verify Every Move](#verify-every-move).
-6. Mark the claim milestone `Published` with concise evidence in the claim
-   commit, publish it, and verify the claim before substantive implementation.
+6. Commit the claim artifacts, publish them, and verify the claim from refreshed
+   Git history before substantive implementation.
 
 ## Work And Coordinate
 
 - Keep `Task.md` durable; put chronology, current state, decisions, validation,
-   human approval evidence, blockers, checklist state, and the next concrete
-   action in `Progress.md`.
-- Publish meaningful validated checkpoints with current progress evidence. Do
+   human approval evidence, blockers, and the next concrete action in
+   `Progress.md`.
+- Publish meaningful validated checkpoints after focused validation. Do
    not publish known-broken work merely to create a checkpoint.
 - Keep task-specific research with the task. Put only stable project consensus
    in `docs/`.
@@ -165,8 +161,7 @@ The checkpoints cover:
    it.
 
 Keep human review artifacts decision-first and concise: show material changes,
-governing reasons, risks, and the requested decision without repeating task
-history or embedding exhaustive implementation evidence. When installed,
+governing reasons, risks, and the requested decision. When installed,
 `ui-change-review` and `business-data-model-review` are optional communication
 aids for the corresponding artifacts. Their absence never blocks a checkpoint,
 and neither skill owns task state, publication, or approval.
@@ -255,18 +250,16 @@ To complete:
 
 1. Finish all agent-verifiable criteria, run focused validation, and update
    `Task.md` and `Progress.md` with actual results.
-2. Mark implementation completion `Published` with concise evidence in the
-   implementation-completion commit while the task remains ongoing, publish
-   it, and verify it on the refreshed remote branch.
+2. Commit implementation completion while the task remains ongoing, publish
+   it, and verify it from refreshed remote history.
 3. Complete any required manual user acceptance.
 4. Present the delivery checkpoint, obtain explicit human approval, record and
    publish it, and mark `Completed` only after every required criterion and
    review checkpoint passes.
 5. After recording the outcome and delivery approval, preview
    `repoledger task archive <task-name> --update-all-refs`, review its exact
-   move and reference edits, then rerun it with `--apply`. In the archived
-   `Progress.md`, mark the archive action and milestone `Published` in the
-   resulting final integration; commit, publish, and verify it separately.
+   move and reference edits, then rerun it with `--apply`. Commit, publish, and
+   verify the resulting final integration separately from Git history.
    Without the CLI, move the whole task manually and apply the fallback checks
    above.
 

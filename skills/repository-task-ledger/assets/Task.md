@@ -31,7 +31,8 @@ Why the task exists and the current behavior.
 Task creation records this plan, not approval. Scope alignment and delivery
 acceptance are always required for completed work. For each other checkpoint,
 replace the placeholder with `Required`, `Not applicable: <reason>`, or
-`Assess during execution: <decision trigger>`. For required or assessment
+`Assess during execution: <decision trigger>`. A colon or dash may separate
+the canonical value from its reason or trigger. For required or assessment
 rows, name the reviewer, the concrete artifact they will review, and the work
 that approval unlocks. For a not-applicable row, replace the remaining cells
 with `Not applicable`. Reorder the middle checkpoints when task dependencies
@@ -52,4 +53,4 @@ repository-local targets, use `/path/from/repository/root` when the project
 profile declares root-link support; otherwise use a portable file-relative
 link.
 
-- External Issue or canonical repository document.
+- External issue or canonical repository document.

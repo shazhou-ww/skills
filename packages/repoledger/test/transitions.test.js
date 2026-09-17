@@ -131,10 +131,6 @@ async function prepareOngoingTask(root, identity) {
   const pending = await createClaimProgress(destination, "2026-09-16");
   const published = pending
     .replace("- [ ] Publish the claim", "- [x] Publish the claim")
-    .replace(
-      "| Claim | Pending publication of the task move. | Pending |",
-      "| Claim | Task ownership published to origin/main. | Published |",
-    )
     .replace("Claim publication remains pending.", "None.");
   await writeFile(join(destination, "Progress.md"), published);
   commitChanges(root, `Claim task under ${identity}`);
@@ -316,10 +312,6 @@ test("archives a completed current task after prospective content validation", a
     .replace(
       "| Scope | Pending | Review Fixture scope. with Fixture owner. |",
       "| Scope | Approved | Fixture owner approved scope on 2026-09-16. |",
-    )
-    .replace(
-      "| Implementation complete | Pending. | Pending |",
-      "| Implementation complete | Validated implementation published to origin/main. | Published |",
     );
   await writeFile(progressPath, implemented);
   commitChanges(root, "Implement move task");
@@ -580,4 +572,19 @@ test("escapes table delimiters in generated claim progress", async () => {
 
   assert.match(progress, /Fixture \\\| owner/);
   assert.match(progress, /Fixture \\\| scope\./);
+  assert.doesNotMatch(progress, /## (?:Checklist|Publication milestones)/);
+});
+
+test("generates not-applicable approvals from annotated applicability", async () => {
+  const root = await createRepository();
+  const taskPath = join(root, "tasks", "backlog", "move-task");
+  const taskText = (await readFile(join(taskPath, "Task.md"), "utf8")).replace(
+    "Not applicable: no interface change.",
+    "Not applicable — no interface change.",
+  );
+  await writeFile(join(taskPath, "Task.md"), taskText);
+
+  const progress = await createClaimProgress(taskPath, "2026-09-16");
+
+  assert.match(progress, /\| Interface \| Not applicable \| no interface change\. \|/);
 });

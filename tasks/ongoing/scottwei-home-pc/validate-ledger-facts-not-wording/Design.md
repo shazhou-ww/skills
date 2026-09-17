@@ -111,4 +111,4 @@ ambiguous, and negated cases. Content integration tests verify plan conflicts,
 dated approval evidence, archive completion, legacy archives without milestone
 inference, generated Progress without milestone rows, and acceptance rejection
 for `Not Accepted`. Transition tests continue to prove the three directory
-moves without relying on duplicated publication cells.
+moves independently of duplicated publication cells.
