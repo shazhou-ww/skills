@@ -9,7 +9,7 @@ Updated: 2026-09-17
 - [x] Complete each applicable interface, business and data model, and
   architecture approval before the affected implementation.
 - [x] Commit and publish substantive work at meaningful checkpoints.
-- [ ] Publish implementation completion while the task is still ongoing.
+- [x] Publish implementation completion while the task is still ongoing.
 - [x] Complete documented manual user acceptance, if required.
 - [ ] Obtain and publish delivery approval.
 - [ ] Archive and publish the task as its final action.
@@ -24,10 +24,11 @@ continue without intermediate approval, with review of the finished result at
 delivery acceptance. Interface, business/data-model, and architecture
 checkpoints are not applicable to this documentation-only, self-contained
 skill change. Both skills, documentation, optional ledger guidance, and focused
-contract tests are complete and validated locally.
+contract tests are complete, validated, and published on `origin/main` in
+implementation commit `d6d1123efe96cf82a2052b42d69bd37b08cf7554`.
 
-Next: publish implementation completion, then present the finished skills and
-validation evidence for delivery acceptance.
+Next: obtain and publish delivery acceptance, then archive the task in a
+separate final commit.
 
 ## Decisions
 
@@ -65,7 +66,7 @@ validation evidence for delivery acceptance.
 | Milestone | Evidence | Status |
 | --- | --- | --- |
 | Claim | `origin/main` commit `cf421657b96ba9bf34ffdb4e991b4d26acd96baf`. | Published |
-| Implementation complete | Pending. | Pending |
+| Implementation complete | `origin/main` commit `d6d1123efe96cf82a2052b42d69bd37b08cf7554`. | Published |
 | Archive | Pending. | Pending |
 
 ## Validation
@@ -84,11 +85,14 @@ validation evidence for delivery acceptance.
   all 12 release tests, the 4 review-skill tests, and the full ledger/link check.
 - `git diff --check` passed, and editor diagnostics reported no errors in the
   two skills, README, package scripts, ledger guidance, or contract tests.
+- Implementation commit `d6d1123efe96cf82a2052b42d69bd37b08cf7554`
+  was pushed and verified reachable from refreshed `origin/main`.
 
 ## Blockers
 
-- None.
+- Delivery acceptance is pending review of the published skills and validation
+  evidence.
 
 ## Outcome
 
-Pending.
+Implementation complete; pending delivery acceptance.
