@@ -40,17 +40,27 @@ test("accepts all canonical status directories", async () => {
     report.diagnostics.filter(({ level }) => level === "error"),
     [],
   );
-  assert.equal(report.capabilities.history, "full");
+  assert.deepEqual(report.scope, {
+    includeAllIdentities: false,
+    includeArchived: false,
+    worktreeIdentity: "fixture-identity",
+  });
   assert.equal(report.summary.tasks, 0);
 });
 
-test("reports a missing canonical status directory", async () => {
+test("checks the archived directory only when requested", async () => {
   const root = await createRepository(["backlog", "ongoing"]);
 
-  const report = await checkRepository({ git: fullHistoryGit, root });
+  const local = await checkRepository({ git: fullHistoryGit, root });
+  const withArchived = await checkRepository({
+    git: fullHistoryGit,
+    includeArchived: true,
+    root,
+  });
 
-  assert.equal(report.ok, false);
-  assert.deepEqual(report.diagnostics.filter(({ level }) => level === "error"), [
+  assert.equal(local.ok, true);
+  assert.equal(withArchived.ok, false);
+  assert.deepEqual(withArchived.diagnostics.filter(({ level }) => level === "error"), [
     {
       code: "layout.status.missing",
       level: "error",
@@ -71,24 +81,66 @@ test("requires a versioned project configuration", async () => {
   assert.equal(report.diagnostics[0].code, "config.missing");
 });
 
-test("reports invalid identities and duplicate task positions", async () => {
+test("checks other identities only when requested and ignores claim duplication", async () => {
   const root = await createRepository(["backlog", "ongoing", "archived"]);
   await mkdir(join(root, "tasks", "backlog", "same-task"));
   await mkdir(join(root, "tasks", "ongoing", "Invalid Identity", "same-task"), {
     recursive: true,
   });
 
-  const report = await checkRepository({ root });
-  const codes = report.diagnostics.map(({ code }) => code);
+  const local = await checkRepository({ git: fullHistoryGit, root });
+  const allIdentities = await checkRepository({
+    git: fullHistoryGit,
+    includeAllIdentities: true,
+    root,
+  });
+  const localCodes = local.diagnostics.map(({ code }) => code);
+  const allCodes = allIdentities.diagnostics.map(({ code }) => code);
 
-  assert.equal(report.ok, false);
-  for (const code of [
-    "identity.invalid-name",
-    "identity.marker.missing",
-    "task.duplicate-position",
-  ]) {
-    assert.ok(codes.includes(code));
-  }
+  assert.equal(local.summary.tasks, 1);
+  assert.ok(!localCodes.includes("identity.invalid-name"));
+  assert.ok(!localCodes.includes("identity.marker.missing"));
+  assert.equal(allIdentities.summary.tasks, 2);
+  assert.ok(allCodes.includes("identity.invalid-name"));
+  assert.ok(allCodes.includes("identity.marker.missing"));
+  assert.ok(!allCodes.includes("task.duplicate-position"));
+});
+
+test("skips ongoing tasks when the worktree has no identity", async () => {
+  const root = await createRepository(["backlog"]);
+  const git = () => ({ ok: false, status: 1, stderr: "", stdout: "" });
+
+  const report = await checkRepository({ git, root });
+
+  assert.equal(report.ok, true);
+  assert.equal(report.scope.worktreeIdentity, null);
+  assert.equal(report.summary.tasks, 0);
+  assert.deepEqual(report.diagnostics, []);
+});
+
+test("uses Git only to resolve the worktree identity", async () => {
+  const root = await createRepository(["backlog", "ongoing", "archived"]);
+  const calls = [];
+  const git = (_repositoryRoot, args) => {
+    calls.push(args);
+    const command = args.join(" ");
+    if (command === "config --worktree --get task-ledger.identity") {
+      return { ok: true, stdout: "fixture-identity" };
+    }
+    if (command === "config --show-origin --show-scope --get task-ledger.identity") {
+      return {
+        ok: true,
+        stdout: "worktree\tfile:.git/config.worktree\tfixture-identity",
+      };
+    }
+    return { ok: false, status: 1, stderr: "", stdout: "" };
+  };
+
+  const report = await checkRepository({ git, root });
+
+  assert.equal(report.ok, true);
+  assert.ok(calls.length > 0);
+  assert.ok(calls.every(([command]) => command === "config"));
 });
 
 test("rejects a symbolic-link task root", async () => {

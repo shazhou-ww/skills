@@ -156,24 +156,6 @@ export async function loadConfig({ root, configPath = DEFAULT_CONFIG_NAME }) {
     );
   }
 
-  for (const key of ["remote", "branch"]) {
-    if (
-      typeof value[key] !== "string" ||
-      value[key].trim().length === 0 ||
-      value[key].startsWith("-") ||
-      /\s/.test(value[key])
-    ) {
-      diagnostics.push(
-        configDiagnostic(
-          `config.invalid-${key}`,
-          `${displayPath}#${key}`,
-          `${key} must be a non-empty Git name without whitespace or a leading hyphen.`,
-          `Set ${key} to the repository's shared ${key} name.`,
-        ),
-      );
-    }
-  }
-
   return {
     config:
       diagnostics.length === 0

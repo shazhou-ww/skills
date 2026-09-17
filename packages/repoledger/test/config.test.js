@@ -24,7 +24,7 @@ async function writeConfig(value) {
 }
 
 test("uses the GitHub schema URL as the sole contract version", async () => {
-  const root = await writeConfig({ $schema: SCHEMA_URL, remote: "origin", branch: "main" });
+  const root = await writeConfig({ $schema: SCHEMA_URL });
 
   const loaded = await loadConfig({ root });
 
@@ -85,7 +85,7 @@ test("rejects config and local schema paths outside the repository", async () =>
   assert.equal(configEscape.diagnostics[0].code, "config.path.outside-root");
 });
 
-test("rejects paths outside the repository and unsafe Git names", async () => {
+test("rejects paths outside the repository without validating legacy transport fields", async () => {
   const root = await writeConfig({
     $schema: SCHEMA_URL,
     remote: "-origin",
@@ -97,8 +97,8 @@ test("rejects paths outside the repository and unsafe Git names", async () => {
   const codes = loaded.diagnostics.map(({ code }) => code);
 
   assert.ok(codes.includes("config.invalid-tasks-directory"));
-  assert.ok(codes.includes("config.invalid-remote"));
-  assert.ok(codes.includes("config.invalid-branch"));
+  assert.ok(!codes.includes("config.invalid-remote"));
+  assert.ok(!codes.includes("config.invalid-branch"));
 });
 
 test("published schema matches the loader contract", async () => {
@@ -110,5 +110,7 @@ test("published schema matches the loader contract", async () => {
   assert.equal(schema.properties.$schema.type, "string");
   assert.equal(schema.properties.$schema.minLength, 1);
   assert.equal(schema.additionalProperties, false);
-  assert.deepEqual(schema.required, ["$schema", "remote", "branch"]);
+  assert.deepEqual(schema.required, ["$schema"]);
+  assert.equal(schema.properties.remote.deprecated, true);
+  assert.equal(schema.properties.branch.deprecated, true);
 });

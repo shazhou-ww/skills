@@ -7,7 +7,7 @@ Skill.
 ## Requirements
 
 - Node.js 22 or newer on Windows, macOS, or Linux.
-- Git for publication-history checks and `doctor`.
+- Git only when reading or writing the worktree-scoped identity.
 - A repository that follows the canonical `tasks/backlog`, identity-scoped
   `tasks/ongoing`, and `tasks/archived` layout.
 
@@ -16,47 +16,47 @@ Skill.
 Run without installation:
 
 ```sh
-npx repoledger@0.4.1 check
-npx repoledger@0.4.1 doctor
+npx repoledger@0.5.0 check
+npx repoledger@0.5.0 doctor
 ```
 
 For CI, install and lock a development dependency instead of resolving
 `latest` on every run:
 
 ```sh
-pnpm add --save-dev repoledger@0.4.1
-pnpm exec repoledger check
+pnpm add --save-dev repoledger@0.5.0
+pnpm exec repoledger check --all-identities --archived
 ```
 
-`check` reads repository content and existing local Git refs without network
-access or a developer identity. `doctor` additionally validates the real
-worktree-scoped identity, refreshes the configured shared branch, and verifies
-the remote identity lane. `doctor --offline` skips the fetch and emits a
-degraded-freshness warning; it is not sufficient before claiming or resuming
-task work.
+`check` validates local files without network access, commit history, or remote
+refs. It reads `task-ledger.identity` from worktree-scoped Git config only to
+select the current ongoing lane. Without that binding, it checks backlog and
+skips ongoing tasks. `doctor` additionally requires a valid local worktree
+identity and identity lane.
 
 The complete command surface is:
 
 ```sh
 repoledger status [--archived]
-repoledger check [--task <task-name>]
-repoledger doctor [--offline]
+repoledger check [--task <task-name>] [--all-identities] [--archived]
+repoledger doctor
 repoledger init [--identity <identity>] [--dry-run | --apply]
 repoledger task claim <task-name> [--take-from <identity>] [--update-all-refs] [--apply]
 repoledger task archive <task-name> [--update-all-refs] [--apply]
 ```
 
-`status` lists deterministic task positions and the local identity without
-fetching. `check --task` focuses task content and publication checks while
-retaining repository-wide configuration, layout, identity-lane, and duplicate
-position validation.
+`status` lists deterministic task positions and the local identity. By default,
+`check` inspects backlog plus the current identity's ongoing lane. Use
+`--all-identities` to include every ongoing lane and `--archived` to include
+archived tasks. `check --task` focuses content checks within that selected
+scope. It does not detect competing remote claims; normal Git integration
+reports those conflicts.
 
 `init` previews by default. It can scaffold a missing configuration and
 canonical task directories without overwriting conflicts. An explicit
-`--identity` may safely enable worktree configuration and create an identity
-lane; the worktree is bound only after that lane is visible on the refreshed
-shared branch. `--dry-run` is an explicit preview alias, while `--apply`
-recomputes and applies the local plan.
+`--identity` safely enables worktree configuration, creates the local identity
+lane, and binds the worktree in one apply. `--dry-run` is an explicit preview
+alias, while `--apply` recomputes and applies the local plan.
 
 Every `task` command previews by default and reports its source, destination,
 preconditions, blockers, and Markdown reference decisions. `task claim` moves
@@ -81,9 +81,7 @@ Create `repoledger.json` at the repository root:
 ```json
 {
   "$schema": "./node_modules/repoledger/schema/v1.json",
-  "tasksDirectory": "tasks",
-  "remote": "origin",
-  "branch": "main"
+  "tasksDirectory": "tasks"
 }
 ```
 
@@ -100,47 +98,40 @@ repository-local references may begin with `/` to resolve from the repository
 root or use ordinary file-relative paths. URI references such as HTTPS links
 are external and are not resolved as repository files.
 
-`check` requires complete Git history and the configured remote ref so it can
-verify publication evidence without silently weakening the protocol. It never
-fetches. CI therefore checks out full history, while `doctor` refreshes the
-remote before running the same validation. Archived records that predate the
-current publication milestone format remain legacy history and receive
-informational diagnostics rather than migration edits.
+CI can run `repoledger check --all-identities --archived` when repository-wide
+coverage is desired. Archived records that predate the current publication
+milestone format remain legacy history and receive informational diagnostics
+rather than migration edits.
 
 ## Validation Coverage
 
 `check` validates:
 
 - canonical status and identity directories, `.gitkeep` registration markers,
-  portable names, task-directory types, and unique task positions;
+  portable names, and task-directory types within the selected scope;
 - required `Task.md`, state-dependent `Progress.md`, task acceptance
   checklists, final outcomes, and publication milestone tables;
 - five-part human review plans for active tasks, consistent approval states,
-  dated decision evidence, and completed delivery approval for new-format
-  archives;
+  and dated decision evidence; unresolved human approval is a warning;
 - optional `UserAcceptance.md` structure, numbered steps and results,
   reporting instructions, and accepted status for completed archives;
 - move-stable task-local links and repository-local Markdown links under the
-  declared renderer convention;
-- publication milestone history on the shared branch, archive move history,
-  and distinct lifecycle integrations without storing commit hashes in task
-  documents.
+  declared renderer convention.
 
 `doctor` adds:
 
 - `extensions.worktreeConfig=true`;
 - a lowercase kebab-case `task-ledger.identity` from worktree scope;
 - separation from the optional device-global default identity;
-- configured branch validity, fetch success, and the identity's `.gitkeep` on
-  the refreshed remote branch.
+- the identity's local ongoing lane.
 
-`status`, `check`, initialization previews, and transition previews are
-read-only. `doctor` and apply operations may refresh remote refs. Only explicit
-`init --apply` and `task ... --apply` operations modify local task files or Git
-worktree configuration. The CLI never stages, commits, pushes, merges, or
-force-updates. It rewrites task references only with the explicit
-`--update-all-refs` option. Admission, ownership consent, completion, acceptance,
-and archive decisions remain in the Agent Skill.
+`status`, `check`, `doctor`, initialization previews, and transition previews
+are read-only. Only explicit `init --apply` and `task ... --apply` operations
+modify local task files or Git worktree configuration. The CLI never fetches,
+stages, commits, pushes, merges, or inspects commit history. It rewrites task
+references only with the explicit `--update-all-refs` option. Admission,
+ownership consent, completion, acceptance, and archive decisions remain in the
+Agent Skill.
 
 ## Development
 

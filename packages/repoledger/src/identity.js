@@ -42,8 +42,3 @@ export function readDefaultIdentity(root, git) {
   ]);
   return result.ok && result.stdout ? result.stdout : null;
 }
-
-export function identityRegistered({ config, git, identity, root }) {
-  const lane = `${config.remote}/${config.branch}:${config.tasksDirectory}/ongoing/${identity}/.gitkeep`;
-  return git(root, ["cat-file", "-e", lane]).ok;
-}

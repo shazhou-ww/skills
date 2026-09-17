@@ -142,6 +142,12 @@ test("validates a versioned ongoing task", async () => {
     report.diagnostics.filter(({ level }) => level === "error"),
     [],
   );
+  assert.ok(
+    report.diagnostics.some(
+      ({ code, level }) =>
+        code === "progress.human-approvals.pending" && level === "warning",
+    ),
+  );
 });
 
 test("preserves an unversioned archived task as legacy", async () => {
@@ -167,15 +173,18 @@ test("preserves an unversioned archived task as legacy", async () => {
       .replace("In progress.\n", "Completed.\n"),
   );
 
-  const report = await checkRepository({ git: fullHistoryGit, root });
+  const report = await checkRepository({
+    git: fullHistoryGit,
+    includeArchived: true,
+    root,
+  });
 
   assert.equal(report.ok, true);
   const legacy = report.diagnostics.find(({ code }) => code === "task.archive.legacy");
   assert.equal(legacy?.level, "info");
-  assert.equal(report.capabilities.history, "full");
 });
 
-test("rejects completed archives with pending delivery approval", async () => {
+test("warns for completed archives with pending delivery approval", async () => {
   const root = await createRepository();
   const task = join(root, "tasks", "archived", "pending-delivery-task");
   await mkdir(task);
@@ -191,14 +200,17 @@ test("rejects completed archives with pending delivery approval", async () => {
       .replace("In progress.\n", "Completed.\n"),
   );
 
-  const report = await checkRepository({ git: fullHistoryGit, root });
+  const report = await checkRepository({
+    git: fullHistoryGit,
+    includeArchived: true,
+    root,
+  });
 
-  assert.equal(report.ok, false);
-  assert.ok(
-    report.diagnostics.some(
-      ({ code }) => code === "progress.human-approvals.incomplete",
-    ),
+  assert.equal(report.ok, true);
+  const approval = report.diagnostics.find(
+    ({ code }) => code === "progress.human-approvals.incomplete",
   );
+  assert.equal(approval?.level, "warning");
 });
 
 test("allows an abandoned legacy archive to retain unchecked acceptance", async () => {
@@ -216,7 +228,11 @@ test("allows an abandoned legacy archive to retain unchecked acceptance", async 
       .replace("In progress.\n", "Abandoned. No implementation was started.\n"),
   );
 
-  const report = await checkRepository({ git: fullHistoryGit, root });
+  const report = await checkRepository({
+    git: fullHistoryGit,
+    includeArchived: true,
+    root,
+  });
 
   assert.equal(report.ok, true);
   assert.ok(report.diagnostics.some(({ code }) => code === "task.archive.legacy"));

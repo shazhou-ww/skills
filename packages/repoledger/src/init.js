@@ -5,7 +5,6 @@ import { DEFAULT_CONFIG_NAME, SCHEMA_URL, loadConfig } from "./config.js";
 import { runGit } from "./git.js";
 import {
   PORTABLE_IDENTITY,
-  identityRegistered,
   readDefaultIdentity,
   readIdentityState,
 } from "./identity.js";
@@ -41,39 +40,6 @@ export async function pathKind(path, inspect = lstat) {
     if (caught.code === "ENOTDIR") return "invalid-parent";
     throw caught;
   }
-}
-
-function inferRemote(root, git, requested) {
-  const result = git(root, ["remote"]);
-  const remotes = result.ok
-    ? result.stdout.split(/\r?\n/).filter(Boolean).sort()
-    : [];
-  if (requested) return { remotes, value: requested };
-  if (remotes.includes("origin")) return { remotes, value: "origin" };
-  return { remotes, value: remotes.length === 1 ? remotes[0] : null };
-}
-
-function inferBranch(root, git, remote, requested) {
-  if (requested) return requested;
-  const symbolic = git(root, [
-    "symbolic-ref",
-    "--quiet",
-    "--short",
-    `refs/remotes/${remote}/HEAD`,
-  ]);
-  if (symbolic.ok && symbolic.stdout.startsWith(`${remote}/`)) {
-    return symbolic.stdout.slice(remote.length + 1);
-  }
-  const upstream = git(root, [
-    "rev-parse",
-    "--abbrev-ref",
-    "--symbolic-full-name",
-    "@{upstream}",
-  ]);
-  if (upstream.ok && upstream.stdout.startsWith(`${remote}/`)) {
-    return upstream.stdout.slice(remote.length + 1);
-  }
-  return null;
 }
 
 async function planDirectory({ actions, diagnostics, planned, root, path }) {
@@ -162,29 +128,16 @@ async function applyActions({ actions, fs, git, root, verify }) {
 
 export async function initRepository({
   apply = false,
-  branch,
   configPath = DEFAULT_CONFIG_NAME,
   fs = nodeFs,
   git = runGit,
   identity,
-  remote,
   root = process.cwd(),
   tasksDirectory,
 } = {}) {
   const repositoryRoot = resolve(root);
   const diagnostics = [];
   const suggestedIdentity = readDefaultIdentity(repositoryRoot, git);
-  const inside = git(repositoryRoot, ["rev-parse", "--is-inside-work-tree"]);
-  if (!inside.ok || inside.stdout !== "true") {
-    diagnostics.push(
-      error(
-        "init.git.unavailable",
-        ".git",
-        "Initialization requires an existing non-bare Git worktree.",
-        "Run repoledger init from an existing Git worktree.",
-      ),
-    );
-  }
 
   const loaded = await loadConfig({ root: repositoryRoot, configPath });
   const missingConfig =
@@ -195,59 +148,20 @@ export async function initRepository({
 
   let config = loaded.config;
   if (config) {
-    for (const [key, requested] of [
-      ["remote", remote],
-      ["branch", branch],
-      ["tasksDirectory", tasksDirectory],
-    ]) {
-      if (requested !== undefined && requested !== config[key]) {
-        diagnostics.push(
-          error(
-            "init.config.conflict",
-            `${displayPath(repositoryRoot, loaded.configPath)}#${key}`,
-            `Requested ${key} ${requested} conflicts with existing value ${config[key]}.`,
-            "Omit the conflicting option or update the existing configuration deliberately.",
-          ),
-        );
-      }
+    if (
+      tasksDirectory !== undefined &&
+      tasksDirectory !== config.tasksDirectory
+    ) {
+      diagnostics.push(
+        error(
+          "init.config.conflict",
+          `${displayPath(repositoryRoot, loaded.configPath)}#tasksDirectory`,
+          `Requested tasksDirectory ${tasksDirectory} conflicts with existing value ${config.tasksDirectory}.`,
+          "Omit the conflicting option or update the existing configuration deliberately.",
+        ),
+      );
     }
   } else if (missingConfig && diagnostics.length === 0) {
-    const inferredRemote = inferRemote(repositoryRoot, git, remote);
-    if (!inferredRemote.value || !inferredRemote.remotes.includes(inferredRemote.value)) {
-      diagnostics.push(
-        error(
-          "init.remote.ambiguous",
-          ".git/config",
-          "A configured Git remote could not be selected unambiguously.",
-          "Pass --remote with the shared repository remote.",
-        ),
-      );
-    }
-    const selectedBranch = inferredRemote.value
-      ? inferBranch(repositoryRoot, git, inferredRemote.value, branch)
-      : null;
-    if (!selectedBranch) {
-      diagnostics.push(
-        error(
-          "init.branch.ambiguous",
-          ".git/config",
-          "The shared primary branch could not be selected unambiguously.",
-          "Pass --branch with the shared primary branch.",
-        ),
-      );
-    } else {
-      const validBranch = git(repositoryRoot, ["check-ref-format", "--branch", selectedBranch]);
-      if (!validBranch.ok) {
-        diagnostics.push(
-          error(
-            "init.branch.invalid",
-            "--branch",
-            `Invalid Git branch name: ${selectedBranch}`,
-            "Choose a valid shared primary branch name.",
-          ),
-        );
-      }
-    }
     const selectedTasksDirectory = tasksDirectory ?? "tasks";
     const tasksPath = resolve(repositoryRoot, selectedTasksDirectory);
     if (
@@ -267,8 +181,6 @@ export async function initRepository({
     if (diagnostics.length === 0) {
       config = {
         $schema: SCHEMA_URL,
-        remote: inferredRemote.value,
-        branch: selectedBranch,
         tasksDirectory: selectedTasksDirectory,
         schemaId: SCHEMA_URL,
       };
@@ -277,7 +189,6 @@ export async function initRepository({
 
   const actions = [];
   const plannedDirectories = new Set();
-  let identityRegisteredOnRemote = null;
   let bindsIdentity = false;
   if (config && diagnostics.length === 0) {
     if (missingConfig) {
@@ -292,8 +203,6 @@ export async function initRepository({
       const persisted = {
         $schema: SCHEMA_URL,
         tasksDirectory: config.tasksDirectory,
-        remote: config.remote,
-        branch: config.branch,
       };
       await planFile({
         actions,
@@ -394,26 +303,6 @@ export async function initRepository({
           }
         }
 
-        if (apply && diagnostics.every(({ level }) => level !== "error")) {
-          const fetched = git(repositoryRoot, ["fetch", config.remote, config.branch]);
-          if (!fetched.ok) {
-            diagnostics.push(
-              error(
-                "init.remote.fetch-failed",
-                `${config.remote}/${config.branch}`,
-                `Could not refresh ${config.remote}/${config.branch}.`,
-                "Restore network and repository access, then rerun initialization.",
-              ),
-            );
-          }
-        }
-
-        identityRegisteredOnRemote = identityRegistered({
-          config,
-          git,
-          identity,
-          root: repositoryRoot,
-        });
         const lane = resolve(repositoryRoot, config.tasksDirectory, "ongoing", identity);
         await planDirectory({
           actions,
@@ -430,7 +319,6 @@ export async function initRepository({
         });
 
         if (
-          identityRegisteredOnRemote &&
           !identityState.identity &&
           diagnostics.every(({ level }) => level !== "error")
         ) {
@@ -503,7 +391,6 @@ export async function initRepository({
     diagnostics,
     identity: {
       requested: identity ?? null,
-      registered: identityRegisteredOnRemote,
       suggested: suggestedIdentity,
       willBind: bindsIdentity,
     },
@@ -511,10 +398,6 @@ export async function initRepository({
     applied,
     nextActions: applied && actions.length === 0
       ? []
-      : applied && identity && !identityRegisteredOnRemote
-      ? [
-        `Commit and publish ${config.tasksDirectory}/ongoing/${identity}/.gitkeep, then rerun init --identity ${identity} --apply.`,
-      ]
       : applied
         ? ["Review and commit the initialized repository files."]
       : ok && actions.length > 0

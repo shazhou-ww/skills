@@ -36,7 +36,7 @@ test("prints the package version without requiring a command", async () => {
   const exitCode = await runCli(["--version"], capture.io);
 
   assert.equal(exitCode, 0);
-  assert.deepEqual(capture.output, ["0.4.1"]);
+  assert.deepEqual(capture.output, ["0.5.0"]);
   assert.deepEqual(capture.errors, []);
 });
 
@@ -75,7 +75,7 @@ test("renders focused doctor help", async () => {
 
   assert.equal(exitCode, 0);
   assert.match(help, /Usage: repoledger doctor \[options\]/);
-  assert.match(help, /--offline/);
+  assert.doesNotMatch(help, /--offline/);
   assert.match(help, /--json/);
   assert.match(help, /--config <path>/);
 });
@@ -103,6 +103,8 @@ test("renders focused check help", async () => {
   const help = capture.output.join("\n");
 
   assert.equal(exitCode, 0);
+  assert.match(help, /--all-identities/);
+  assert.match(help, /--archived/);
   assert.match(help, /--task <name>/);
 });
 
@@ -138,6 +140,8 @@ test("renders initialization help and rejects conflicting modes", async () => {
   assert.equal(helpExitCode, 0);
   assert.match(helpCapture.output.join("\n"), /--identity <identity>/);
   assert.match(helpCapture.output.join("\n"), /--tasks-directory <path>/);
+  assert.doesNotMatch(helpCapture.output.join("\n"), /--branch/);
+  assert.doesNotMatch(helpCapture.output.join("\n"), /--remote/);
   assert.equal(conflictExitCode, 2);
   assert.match(conflictCapture.errors.join("\n"), /cannot be used together/);
 });

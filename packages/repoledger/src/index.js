@@ -3,19 +3,36 @@ import { resolve } from "node:path";
 import { loadConfig } from "./config.js";
 import { inspectTaskContents } from "./content.js";
 import { selectTask } from "./discovery.js";
-import { inspectHistory } from "./history.js";
+import { runGit } from "./git.js";
+import { readIdentityState } from "./identity.js";
 import { inspectLayout } from "./layout.js";
 
 export async function checkRepository({
   configPath,
-  git,
+  git = runGit,
+  includeAllIdentities = false,
+  includeArchived = false,
   root = process.cwd(),
   taskName,
 } = {}) {
   const repositoryRoot = resolve(root);
   const loaded = await loadConfig({ root: repositoryRoot, configPath });
+  const identityState = readIdentityState(repositoryRoot, git);
+  const worktreeIdentity =
+    identityState.scope === "worktree" &&
+    identityState.identity === identityState.resolvedIdentity
+      ? identityState.identity
+      : null;
   const layout = loaded.config
-    ? await inspectLayout({ config: loaded.config, root: repositoryRoot })
+    ? await inspectLayout({
+        checkDuplicatePositions: false,
+        config: loaded.config,
+        includeArchived,
+        ongoingIdentities: includeAllIdentities
+          ? null
+          : new Set(worktreeIdentity ? [worktreeIdentity] : []),
+        root: repositoryRoot,
+      })
     : { diagnostics: [], tasks: [] };
   const selected =
     loaded.config && taskName
@@ -27,32 +44,24 @@ export async function checkRepository({
       tasks: selected.selected,
     })
     : { diagnostics: [] };
-  const history = loaded.config
-    ? await inspectHistory({
-      config: loaded.config,
-      git,
-      root: repositoryRoot,
-      tasks: selected.selected,
-    })
-    : { capability: "unavailable", diagnostics: [], remoteRef: null };
   const diagnostics = [
     ...loaded.diagnostics,
     ...layout.diagnostics,
     ...selected.diagnostics,
     ...contents.diagnostics,
-    ...history.diagnostics,
   ];
 
   const report = {
     command: "check",
-    capabilities: {
-      history: history.capability,
-      remoteRef: history.remoteRef ?? null,
-    },
     configPath: loaded.configPath,
     schema: loaded.config?.schemaId ?? null,
     ok: diagnostics.every(({ level }) => level !== "error"),
     root: repositoryRoot,
+    scope: {
+      includeAllIdentities,
+      includeArchived,
+      worktreeIdentity,
+    },
     diagnostics,
     summary: {
       errors: diagnostics.filter(({ level }) => level === "error").length,

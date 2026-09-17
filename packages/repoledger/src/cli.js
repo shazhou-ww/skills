@@ -40,7 +40,7 @@ function renderReport(report, json, io) {
   }
   if (report.ok) {
     io.log(
-      `OK: ${report.command} passed at ${report.root} (${report.summary.tasks} task(s), history ${report.capabilities.history}, ${report.summary.infos} info)`,
+      `OK: ${report.command} passed at ${report.root} (${report.summary.tasks} task(s), ${report.summary.warnings} warning(s), ${report.summary.infos} info)`,
     );
   } else {
     io.error(`FAILED: ${report.summary.errors} error(s)`);
@@ -159,19 +159,22 @@ Examples:
   $ repoledger task claim <task-name>
   $ repoledger task claim <task-name> --take-from <identity>
   $ repoledger task archive <task-name>
-  $ repoledger doctor
-  $ repoledger doctor --offline`,
+  $ repoledger doctor`,
     );
 
   addCommonOptions(
     program
       .command("check")
-      .description("validate task files, links, layout, and available publication history")
+      .description("validate local task files, links, and layout")
       .summary("validate repository task state")
+      .option("--all-identities", "include ongoing tasks from every identity")
+      .option("--archived", "include archived tasks")
       .option("--task <name>", "validate one unambiguously named task"),
   ).action(async (options) => {
     const report = await checkRepository({
       configPath: options.config,
+      includeAllIdentities: options.allIdentities,
+      includeArchived: options.archived,
       root: options.root,
       taskName: options.task,
     });
@@ -185,10 +188,8 @@ Examples:
       .description("plan or apply safe repository task-ledger initialization")
       .summary("initialize repository task state")
       .option("--apply", "apply the recomputed initialization plan")
-      .option("--branch <name>", "shared primary branch")
       .option("--dry-run", "explicitly preview without changing local state")
       .option("--identity <identity>", "explicit worktree identity to initialize")
-      .option("--remote <name>", "shared Git remote")
       .option("--tasks-directory <path>", "repository-relative task directory"),
   ).action(async (options) => {
     if (options.apply && options.dryRun) {
@@ -199,10 +200,8 @@ Examples:
     }
     const report = await initRepository({
       apply: options.apply,
-      branch: options.branch,
       configPath: options.config,
       identity: options.identity,
-      remote: options.remote,
       root: options.root,
       tasksDirectory: options.tasksDirectory,
     });
@@ -285,13 +284,11 @@ Examples:
   addCommonOptions(
     program
       .command("doctor")
-      .description("refresh and validate local Git, worktree identity, and repository task state")
-      .summary("validate local task-work readiness")
-      .option("--offline", "skip fetch and mark remote freshness as degraded"),
+      .description("validate local worktree identity and repository task state")
+      .summary("validate local task-work readiness"),
   ).action(async (options) => {
     const report = await doctorRepository({
       configPath: options.config,
-      offline: options.offline,
       root: options.root,
     });
     renderReport(report, options.json, io);

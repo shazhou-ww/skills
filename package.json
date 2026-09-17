@@ -12,7 +12,7 @@
   },
   "scripts": {
     "check": "pnpm --filter repoledger check && pnpm check:release && pnpm test:review-skills && pnpm check:ledger",
-    "check:ledger": "node packages/repoledger/bin/repoledger.js check",
+    "check:ledger": "node packages/repoledger/bin/repoledger.js check --all-identities --archived",
     "check:release": "node --check scripts/prepare-npm-release.mjs && node --test test/prepare-npm-release.test.mjs",
     "check:skills": "npx skills add . --list",
     "prepare:npm-release": "node scripts/prepare-npm-release.mjs",

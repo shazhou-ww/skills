@@ -19,10 +19,11 @@ task-free regardless of which files they change, their size, or their duration.
 - Once a task exists, keep managing it until completion, abandonment, or an
   explicit handoff. The opt-in rule does not release existing task ownership.
 - Resolve identity only from the worktree-scoped Git key
-  `task-ledger.identity`; verify its `.gitkeep` lane on `origin/main`.
+  `task-ledger.identity`; verify its local `.gitkeep` lane.
 - When workspace dependencies are available, run
   `pnpm exec repoledger doctor` for deterministic identity and ledger checks
-  before task work; do not treat offline mode as a fresh remote check.
+  before task work. Refresh and reconcile `origin/main` separately before
+  publication.
 - Inspect all active claims and backlog tasks before creating or claiming work.
 - Create accepted work in `tasks/backlog/<task-name>/Task.md`, then move the
   whole folder under `tasks/ongoing/<identity>/` and add `Progress.md` before

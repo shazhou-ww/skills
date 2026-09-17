@@ -55,6 +55,10 @@ function error(code, path, message, remediation) {
   return diagnostic(code, "error", path, message, remediation);
 }
 
+function warning(code, path, message, remediation) {
+  return diagnostic(code, "warning", path, message, remediation);
+}
+
 function info(code, path, message, remediation) {
   return diagnostic(code, "info", path, message, remediation);
 }
@@ -417,17 +421,20 @@ function validateHumanApprovals({
         ),
       );
     }
-    if (
-      state === "archived" &&
-      outcome === "Completed" &&
-      !["Approved", "Not applicable"].includes(status)
-    ) {
+    if (["Pending", "Reopened"].includes(status)) {
+      const completedArchive = state === "archived" && outcome === "Completed";
       diagnostics.push(
-        error(
-          "progress.human-approvals.incomplete",
+        warning(
+          completedArchive
+            ? "progress.human-approvals.incomplete"
+            : "progress.human-approvals.pending",
           path,
-          `Completed archived task has unresolved ${checkpoint} approval status: ${status}.`,
-          "Obtain and record approval, or mark a conditional checkpoint not applicable with its rationale.",
+          completedArchive
+            ? `Completed archived task has unresolved ${checkpoint} approval status: ${status}.`
+            : `Human approval checkpoint ${checkpoint} remains ${status}.`,
+          completedArchive
+            ? "Obtain and record approval, or mark a conditional checkpoint not applicable with its rationale."
+            : "Complete and record the review when its approval gate is reached.",
         ),
       );
     }

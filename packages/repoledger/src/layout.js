@@ -68,12 +68,18 @@ async function collectTaskEntries({ diagnostics, root, state, statePath }) {
   return tasks;
 }
 
-async function collectOngoingTasks({ diagnostics, root, statePath }) {
+async function collectOngoingTasks({
+  diagnostics,
+  ongoingIdentities,
+  root,
+  statePath,
+}) {
   const result = await directoryEntries(statePath);
   if (result.kind !== "directory") return [];
   const tasks = [];
 
   for (const identity of result.entries) {
+    if (ongoingIdentities && !ongoingIdentities.has(identity.name)) continue;
     const identityPath = resolve(statePath, identity.name);
     const displayIdentityPath = toPath(root, identityPath);
     if (!identity.isDirectory()) {
@@ -104,7 +110,7 @@ async function collectOngoingTasks({ diagnostics, root, statePath }) {
           "identity.marker.missing",
           `${displayIdentityPath}/.gitkeep`,
           `Identity lane ${identity.name} is missing its .gitkeep marker.`,
-          `Add ${displayIdentityPath}/.gitkeep and publish the registration.`,
+          `Add the local marker at ${displayIdentityPath}/.gitkeep.`,
         ),
       );
     }
@@ -123,7 +129,13 @@ async function collectOngoingTasks({ diagnostics, root, statePath }) {
   return tasks;
 }
 
-export async function inspectLayout({ config, root }) {
+export async function inspectLayout({
+  checkDuplicatePositions = true,
+  config,
+  includeArchived = true,
+  ongoingIdentities = null,
+  root,
+}) {
   const diagnostics = [];
   const tasksRoot = resolve(root, config.tasksDirectory);
   const rootResult = await directoryEntries(tasksRoot);
@@ -156,7 +168,14 @@ export async function inspectLayout({ config, root }) {
   const statePaths = Object.fromEntries(
     STATUS_DIRECTORIES.map((state) => [state, resolve(tasksRoot, state)]),
   );
-  for (const state of STATUS_DIRECTORIES) {
+  const includeOngoing =
+    ongoingIdentities === null || ongoingIdentities.size > 0;
+  const includedStates = STATUS_DIRECTORIES.filter(
+    (state) =>
+      (state !== "ongoing" || includeOngoing) &&
+      (state !== "archived" || includeArchived),
+  );
+  for (const state of includedStates) {
     const result = await directoryEntries(statePaths[state]);
     if (result.kind !== "directory") {
       const path = `${config.tasksDirectory}/${state}`;
@@ -178,31 +197,42 @@ export async function inspectLayout({ config, root }) {
       state: "backlog",
       statePath: statePaths.backlog,
     })),
-    ...(await collectOngoingTasks({ diagnostics, root, statePath: statePaths.ongoing })),
-    ...(await collectTaskEntries({
-      diagnostics,
-      root,
-      state: "archived",
-      statePath: statePaths.archived,
-    })),
+    ...(includeOngoing
+      ? await collectOngoingTasks({
+          diagnostics,
+          ongoingIdentities,
+          root,
+          statePath: statePaths.ongoing,
+        })
+      : []),
+    ...(includeArchived
+      ? await collectTaskEntries({
+          diagnostics,
+          root,
+          state: "archived",
+          statePath: statePaths.archived,
+        })
+      : []),
   ];
 
-  const positions = new Map();
-  for (const task of tasks) {
-    const paths = positions.get(task.name) ?? [];
-    paths.push(task.relativePath);
-    positions.set(task.name, paths);
-  }
-  for (const [name, paths] of positions) {
-    if (paths.length > 1) {
-      diagnostics.push(
-        error(
-          "task.duplicate-position",
-          paths.join(", "),
-          `Task ${name} appears in ${paths.length} ledger positions.`,
-          "Preserve one canonical task directory and reconcile the duplicates without discarding work.",
-        ),
-      );
+  if (checkDuplicatePositions) {
+    const positions = new Map();
+    for (const task of tasks) {
+      const paths = positions.get(task.name) ?? [];
+      paths.push(task.relativePath);
+      positions.set(task.name, paths);
+    }
+    for (const [name, paths] of positions) {
+      if (paths.length > 1) {
+        diagnostics.push(
+          error(
+            "task.duplicate-position",
+            paths.join(", "),
+            `Task ${name} appears in ${paths.length} ledger positions.`,
+            "Preserve one canonical task directory and reconcile the duplicates without discarding work.",
+          ),
+        );
+      }
     }
   }
 

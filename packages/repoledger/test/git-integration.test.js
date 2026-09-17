@@ -173,20 +173,19 @@ ${archive ? "Completed. The real lifecycle passed." : "In progress."}
 `;
 }
 
-test("validates a real worktree identity and refreshed local remote", async () => {
+test("validates a real worktree identity without inspecting remote history", async () => {
   const { root } = await createGitRepository();
 
   const checked = await checkRepository({ root });
   const doctored = await doctorRepository({ root });
 
   assert.equal(checked.ok, true);
-  assert.equal(checked.capabilities.history, "full");
   assert.equal(doctored.ok, true);
   assert.equal(doctored.identity, "fixture-identity");
-  assert.equal(doctored.remoteFreshness, "refreshed");
+  assert.equal(Object.hasOwn(doctored, "remoteFreshness"), false);
 });
 
-test("rejects a real shallow clone", async () => {
+test("accepts a real shallow clone without an identity", async () => {
   const { base, remote } = await createGitRepository();
   const shallow = join(base, "shallow");
   const clone = spawnSync(
@@ -198,9 +197,9 @@ test("rejects a real shallow clone", async () => {
 
   const report = await checkRepository({ root: shallow });
 
-  assert.equal(report.ok, false);
-  assert.equal(report.capabilities.history, "shallow");
-  assert.ok(report.diagnostics.some(({ code }) => code === "history.shallow"));
+  assert.equal(report.ok, true);
+  assert.equal(report.scope.worktreeIdentity, null);
+  assert.deepEqual(report.diagnostics, []);
 });
 
 test("validates a real archive move with phased publications and approval", async () => {
@@ -243,7 +242,7 @@ test("validates a real archive move with phased publications and approval", asyn
   );
   commitAndPush(root, "Archive real history task");
 
-  const report = await checkRepository({ root });
+  const report = await checkRepository({ includeArchived: true, root });
 
   assert.equal(report.ok, true);
   assert.deepEqual(report.diagnostics, []);

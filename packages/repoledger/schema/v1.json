@@ -5,9 +5,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "$schema",
-    "remote",
-    "branch"
+    "$schema"
   ],
   "properties": {
     "$schema": {
@@ -21,11 +19,13 @@
     },
     "remote": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "deprecated": true
     },
     "branch": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "deprecated": true
     }
   }
 }

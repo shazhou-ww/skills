@@ -29,12 +29,9 @@ function git(root, ...args) {
   return result.stdout.trim();
 }
 
-function commitAndPush(root, message) {
+function commitChanges(root, message) {
   git(root, "add", "--all");
   git(root, "commit", "-m", message);
-  const commit = git(root, "rev-parse", "HEAD");
-  git(root, "push", "origin", "HEAD:main");
-  return commit;
 }
 
 const TASK = `# Move task
@@ -84,11 +81,10 @@ async function createRepository() {
   const base = await mkdtemp(join(tmpdir(), "repoledger-transition-"));
   temporaryDirectories.push(base);
   const root = join(base, "work");
-  const remote = join(base, "remote.git");
   await mkdir(root);
   await writeFile(
     join(root, "repoledger.json"),
-    `${JSON.stringify({ $schema: SCHEMA_URL, tasksDirectory: "tasks", remote: "origin", branch: "main" }, null, 2)}\n`,
+    `${JSON.stringify({ $schema: SCHEMA_URL, tasksDirectory: "tasks" }, null, 2)}\n`,
   );
   for (const state of ["backlog", "ongoing", "archived"]) {
     const path = join(root, "tasks", state);
@@ -115,9 +111,6 @@ async function createRepository() {
   git(root, "config", "user.email", "repoledger@example.invalid");
   git(root, "add", ".");
   git(root, "commit", "-m", "Initialize transition fixture");
-  git(root, "init", "--bare", "--initial-branch=main", remote);
-  git(root, "remote", "add", "origin", remote);
-  git(root, "push", "--set-upstream", "origin", "main");
   git(root, "config", "extensions.worktreeConfig", "true");
   git(root, "config", "--worktree", "task-ledger.identity", "fixture-identity");
   return root;
@@ -144,7 +137,7 @@ async function prepareOngoingTask(root, identity) {
     )
     .replace("Claim publication remains pending.", "None.");
   await writeFile(join(destination, "Progress.md"), published);
-  commitAndPush(root, `Claim task under ${identity}`);
+  commitChanges(root, `Claim task under ${identity}`);
   return { path: destination };
 }
 
@@ -329,7 +322,7 @@ test("archives a completed current task after prospective content validation", a
       "| Implementation complete | Validated implementation published to origin/main. | Published |",
     );
   await writeFile(progressPath, implemented);
-  commitAndPush(root, "Implement move task");
+  commitChanges(root, "Implement move task");
 
   const accepted = implemented
     .replaceAll("- [ ]", "- [x]")
@@ -343,7 +336,7 @@ test("archives a completed current task after prospective content validation", a
     )
     .replace("## Outcome\n\nPending.", "## Outcome\n\nCompleted. Fixture work is accepted.");
   await writeFile(progressPath, accepted);
-  commitAndPush(root, "Prepare task archive");
+  commitChanges(root, "Prepare task archive");
 
   const preview = await transitionRepository({
     operation: "archive",
@@ -386,7 +379,7 @@ test("moves a claim while leaving affected references unchanged by default", asy
   await mkdir(archived);
   const archivedProgress = "[Old task](../../backlog/move-task/Task.md#goal)\n";
   await writeFile(join(archived, "Progress.md"), archivedProgress);
-  commitAndPush(root, "Add archived inbound reference");
+  commitChanges(root, "Add archived inbound reference");
 
   const report = await transitionRepository({
     apply: true,
@@ -421,7 +414,7 @@ test("applies a claim and archived inbound rewrite when explicitly allowed", asy
     join(archived, "Progress.md"),
     "[Old task](../../backlog/move-task/Task.md#goal)\n",
   );
-  commitAndPush(root, "Add archived inbound reference");
+  commitChanges(root, "Add archived inbound reference");
 
   const preview = await transitionRepository({
     operation: "claim",
@@ -452,7 +445,7 @@ test("applies a claim and archived inbound rewrite when explicitly allowed", asy
   );
 });
 
-test("blocks apply when the shared branch changes during planning", async () => {
+test("applies a claim using Git only for worktree identity config", async () => {
   const root = await createRepository();
   const source = join(root, "tasks", "backlog", "move-task");
   const destination = join(
@@ -462,44 +455,33 @@ test("blocks apply when the shared branch changes during planning", async () => 
     "fixture-identity",
     "move-task",
   );
-  let fetches = 0;
-  const changingGit = (repositoryRoot, args) => {
-    const command = args.join(" ");
-    const result = runGit(repositoryRoot, args);
-    if (command === "fetch origin main") fetches += 1;
-    if (
-      fetches >= 2 &&
-      command === "rev-parse --verify refs/remotes/origin/main^{commit}"
-    ) {
-      return { ...result, ok: true, stdout: "0".repeat(40) };
-    }
-    return result;
+  const calls = [];
+  const configOnlyGit = (repositoryRoot, args) => {
+    calls.push(args);
+    assert.equal(args[0], "config");
+    return runGit(repositoryRoot, args);
   };
 
   const report = await transitionRepository({
     apply: true,
-    git: changingGit,
+    git: configOnlyGit,
     operation: "claim",
     root,
     taskName: "move-task",
   });
 
-  assert.equal(report.ok, false);
-  assert.equal(report.applied, false);
-  assert.ok(
-    report.diagnostics.some(({ code }) => code === "transition.branch.changed"),
-  );
-  await access(source);
-  await assert.rejects(access(destination));
+  assert.equal(report.ok, true);
+  assert.equal(report.applied, true);
+  assert.ok(calls.length > 0);
+  assert.ok(calls.every(([command]) => command === "config"));
+  await assert.rejects(access(source));
+  await access(destination);
 });
 
 test("recovers an earlier committed journal before routing a new apply", async () => {
   const root = await createRepository();
   const source = join(root, "tasks", "backlog", "move-task");
-  const journal = resolve(
-    root,
-    git(root, "rev-parse", "--git-path", "repoledger-transaction.json"),
-  );
+  const journal = resolve(root, "tasks", ".repoledger-transaction.json");
   await writeFile(
     journal,
     `${JSON.stringify({
@@ -552,7 +534,7 @@ test("archives an abandoned current task without implementation publication", as
       "None. The abandonment reason is recorded.",
     );
   await writeFile(progressPath, progress);
-  commitAndPush(root, "Record task abandonment");
+  commitChanges(root, "Record task abandonment");
 
   const applied = await transitionRepository({
     apply: true,

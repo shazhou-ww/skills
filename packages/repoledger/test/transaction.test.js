@@ -202,6 +202,7 @@ test("keeps committed state and journal when backup cleanup fails", async () => 
 
   assert.equal(result.moved, true);
   assert.equal(result.cleanupErrors.length, 1);
+  assert.equal(result.journal, join(root, "tasks", ".repoledger-transaction.json"));
   assert.equal(await readFile(external, "utf8"), "rewritten links\n");
   await nodeFs.access(destination);
   await nodeFs.access(result.journal);
@@ -327,7 +328,7 @@ test("recovers a preparing transaction after a simulated process interruption", 
   const id = "interrupted";
   const backup = `${external}.repoledger-${id}.bak`;
   const temporary = `${external}.repoledger-${id}.tmp`;
-  const journal = join(root, ".git", "repoledger-transaction.json");
+  const journal = join(root, "tasks", ".repoledger-transaction.json");
   const rewritten = "rewritten before interruption\n";
   await rename(source, destination);
   await rename(external, backup);
@@ -369,4 +370,39 @@ test("recovers a preparing transaction after a simulated process interruption", 
   assert.equal(await readFile(join(source, "Task.md"), "utf8"), "original task\n");
   await assert.rejects(nodeFs.access(destination));
   await assert.rejects(nodeFs.access(journal));
+});
+
+test("rejects a journal whose cleanup path is not transaction-derived", async () => {
+  const { external, root, source } = await fixture();
+  const journal = join(root, "tasks", ".repoledger-transaction.json");
+  await writeFile(
+    journal,
+    `${JSON.stringify({
+      version: 1,
+      id: "tampered",
+      root,
+      taskRoot: join(root, "tasks"),
+      source,
+      destination: join(root, "tasks", "ongoing", "fixture", "move-task"),
+      state: "committed",
+      moved: true,
+      items: [
+        {
+          temporary: null,
+          temporaryAfter: null,
+          targetAfter: external,
+          backup: external,
+          contentHash: "unused",
+          create: false,
+          replaced: true,
+        },
+      ],
+    }, null, 2)}\n`,
+  );
+
+  await assert.rejects(
+    recoverMoveTransaction({ root, taskRoot: join(root, "tasks") }),
+    /backup path does not match/,
+  );
+  assert.equal(await readFile(external, "utf8"), "original links\n");
 });

@@ -32,7 +32,6 @@ if (packed.status !== 0) {
     "src/discovery.js",
     "src/doctor.js",
     "src/git.js",
-    "src/history.js",
     "src/identity.js",
     "src/init.js",
     "src/index.js",

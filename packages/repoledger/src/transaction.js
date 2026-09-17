@@ -14,8 +14,6 @@ import {
 } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 
-import { runGit } from "./git.js";
-
 const nodeFs = {
   chmod,
   lstat,
@@ -97,12 +95,8 @@ async function exists(fs, path) {
   }
 }
 
-async function journalPath(root, git) {
-  const result = git(root, ["rev-parse", "--git-path", "repoledger-transaction.json"]);
-  if (!result.ok || !result.stdout) {
-    throw new Error("Git could not resolve the private transaction journal path");
-  }
-  return isAbsolute(result.stdout) ? result.stdout : resolve(root, result.stdout);
+function journalPath(root, taskRoot) {
+  return resolve(taskRoot ?? root, ".repoledger-transaction.json");
 }
 
 async function contentHash(fs, path) {
@@ -112,7 +106,12 @@ async function contentHash(fs, path) {
 function validateJournal(record, root, taskRoot) {
   const repositoryRoot = resolve(root);
   const tasks = resolve(taskRoot ?? root);
-  if (record.version !== 1 || record.root !== repositoryRoot) {
+  if (
+    record.version !== 1 ||
+    record.root !== repositoryRoot ||
+    typeof record.id !== "string" ||
+    !/^[a-z0-9-]+$/i.test(record.id)
+  ) {
     throw new Error("The repoledger transaction journal has an unsupported identity or version");
   }
   assertInside(tasks, record.source, "Journal source");
@@ -126,16 +125,33 @@ function validateJournal(record, root, taskRoot) {
     ]) {
       if (path) assertInside(repositoryRoot, path, label);
     }
+    const temporarySuffix = `.repoledger-${record.id}.tmp`;
+    if (item.temporary && !item.temporary.endsWith(temporarySuffix)) {
+      throw new Error("Journal temporary path does not match its transaction");
+    }
+    if (
+      item.temporaryAfter &&
+      (!item.temporary ||
+        item.temporaryAfter !==
+          movedPath(item.temporary, record.source, record.destination))
+    ) {
+      throw new Error("Journal moved temporary path does not match its task move");
+    }
+    if (
+      item.backup &&
+      item.backup !== `${item.targetAfter}.repoledger-${record.id}.bak`
+    ) {
+      throw new Error("Journal backup path does not match its transaction");
+    }
   }
 }
 
 export async function recoverMoveTransaction({
   fs = nodeFs,
-  git = runGit,
   root,
   taskRoot,
 } = {}) {
-  const journal = await journalPath(root, git);
+  const journal = journalPath(root, taskRoot);
   if (!(await exists(fs, journal))) return { recovered: false, journal };
 
   let record;
@@ -333,7 +349,6 @@ export async function applyMoveTransaction({
   destinationPath,
   edits = [],
   fs = nodeFs,
-  git = runGit,
   root,
   sourcePath,
   sourceSnapshot,
@@ -343,9 +358,9 @@ export async function applyMoveTransaction({
   const source = resolve(sourcePath);
   const destination = resolve(destinationPath);
   const id = randomUUID();
-  const journal = await journalPath(root, git);
+  const journal = journalPath(root, taskRoot);
   if (await exists(fs, journal)) {
-    const recovery = await recoverMoveTransaction({ fs, git, root, taskRoot });
+    const recovery = await recoverMoveTransaction({ fs, root, taskRoot });
     const recovered = new Error(
       `Recovered a previous ${recovery.state} repoledger transaction; recompute and rerun the requested move`,
     );

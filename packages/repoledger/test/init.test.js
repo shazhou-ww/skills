@@ -49,14 +49,15 @@ test("classifies a child below a non-directory parent on every platform", async 
   assert.equal(kind, "invalid-parent");
 });
 
-function identityGit({ extensionExplicit = false, registered = false } = {}) {
+function identityGit({ binding = null, extensionExplicit = false } = {}) {
+  const calls = [];
   const state = {
-    binding: null,
+    binding,
     extension: false,
     extensionExplicit,
-    fetched: false,
   };
   const git = (_root, args) => {
+    calls.push(args);
     const command = args.join(" ");
     if (command === "config --global --get task-ledger.defaultIdentity") {
       return { ok: true, stdout: "suggested-identity" };
@@ -95,18 +96,6 @@ function identityGit({ extensionExplicit = false, registered = false } = {}) {
     if (command === "config --local --type=bool --get core.bare") {
       return { ok: true, stdout: "false" };
     }
-    if (command === "fetch origin main") {
-      state.fetched = true;
-      return { ok: true, stdout: "" };
-    }
-    if (
-      command ===
-      "cat-file -e origin/main:tasks/ongoing/fixture-identity/.gitkeep"
-    ) {
-      return registered
-        ? { ok: true, stdout: "" }
-        : { ok: false, status: 128, stderr: "missing", stdout: "" };
-    }
     if (command === "config --local extensions.worktreeConfig true") {
       state.extension = true;
       state.extensionExplicit = true;
@@ -131,7 +120,7 @@ function identityGit({ extensionExplicit = false, registered = false } = {}) {
     }
     return { ok: false, status: 1, stderr: `unexpected command: ${command}`, stdout: "" };
   };
-  return { git, state };
+  return { calls, git, state };
 }
 
 test("previews initialization without changing the repository", async () => {
@@ -160,8 +149,9 @@ test("applies initialization idempotently without staging or publishing", async 
   assert.deepEqual(second.changes, []);
   assert.deepEqual(second.nextActions, []);
   const config = JSON.parse(await readFile(join(root, "repoledger.json"), "utf8"));
-  assert.equal(config.remote, "origin");
-  assert.equal(config.branch, "main");
+  assert.equal(config.tasksDirectory, "tasks");
+  assert.equal(Object.hasOwn(config, "remote"), false);
+  assert.equal(Object.hasOwn(config, "branch"), false);
   for (const state of ["backlog", "ongoing", "archived"]) {
     await access(join(root, "tasks", state, ".gitkeep"));
   }
@@ -192,9 +182,9 @@ test("refuses a non-directory canonical path before writing files", async () => 
   await assert.rejects(access(join(root, "repoledger.json")));
 });
 
-test("creates an unregistered identity lane without binding the worktree", async () => {
+test("creates an identity lane and binds the worktree locally", async () => {
   const root = await createRoot();
-  const { git, state } = identityGit();
+  const { calls, git, state } = identityGit();
 
   const report = await initRepository({
     apply: true,
@@ -205,32 +195,31 @@ test("creates an unregistered identity lane without binding the worktree", async
 
   assert.equal(report.ok, true);
   assert.equal(report.applied, true);
-  assert.equal(report.identity.registered, false);
-  assert.equal(report.identity.willBind, false);
-  assert.equal(state.extension, true);
-  assert.equal(state.binding, null);
-  assert.equal(state.fetched, true);
-  await access(join(root, "tasks", "ongoing", "fixture-identity", ".gitkeep"));
-  assert.match(report.nextActions[0], /Commit and publish/);
-});
-
-test("binds an explicitly selected identity only after remote registration", async () => {
-  const root = await createRoot();
-  const { git, state } = identityGit({ registered: true });
-
-  const report = await initRepository({
-    apply: true,
-    git,
-    identity: "fixture-identity",
-    root,
-  });
-
-  assert.equal(report.ok, true);
-  assert.equal(report.applied, true);
-  assert.equal(report.identity.registered, true);
   assert.equal(report.identity.willBind, true);
   assert.equal(state.extension, true);
   assert.equal(state.binding, "fixture-identity");
+  assert.ok(calls.every(([command]) => command === "config"));
+  await access(join(root, "tasks", "ongoing", "fixture-identity", ".gitkeep"));
+  assert.match(report.nextActions[0], /Review and commit/);
+});
+
+test("preserves an existing matching worktree identity binding", async () => {
+  const root = await createRoot();
+  const { calls, git, state } = identityGit({ binding: "fixture-identity" });
+
+  const report = await initRepository({
+    apply: true,
+    git,
+    identity: "fixture-identity",
+    root,
+  });
+
+  assert.equal(report.ok, true);
+  assert.equal(report.applied, true);
+  assert.equal(report.identity.willBind, false);
+  assert.equal(state.extension, true);
+  assert.equal(state.binding, "fixture-identity");
+  assert.ok(calls.every(([command]) => command === "config"));
 });
 
 test("rolls back every created file and directory after an apply failure", async () => {

@@ -1,11 +1,9 @@
 import { createHash } from "node:crypto";
-import { readFile, realpath } from "node:fs/promises";
+import { readFile, readdir, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { toMarkdown } from "mdast-util-to-markdown";
-
-import { runGit } from "./git.js";
 
 function error(code, path, message, remediation) {
   return { code, level: "error", path, message, remediation };
@@ -115,9 +113,30 @@ async function replacementsForTree(tree, text, rewrite) {
   return { changed, content };
 }
 
+async function markdownFiles(root) {
+  const files = [];
+
+  async function visit(directory) {
+    const entries = await readdir(directory, { withFileTypes: true });
+    entries.sort((left, right) => left.name.localeCompare(right.name));
+    for (const entry of entries) {
+      if (entry.isSymbolicLink()) continue;
+      const path = resolve(directory, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === ".git" || entry.name === "node_modules") continue;
+        await visit(path);
+      } else if (entry.isFile() && entry.name.toLowerCase().endsWith(".md")) {
+        files.push(relative(root, path).replaceAll("\\", "/"));
+      }
+    }
+  }
+
+  await visit(root);
+  return files;
+}
+
 export async function planReferenceUpdates({
   destinationPath,
-  git = runGit,
   root,
   sourcePath,
   updateAllReferences = false,
@@ -128,25 +147,9 @@ export async function planReferenceUpdates({
   const repositoryRoot = resolve(root);
   const source = resolve(sourcePath);
   const destination = resolve(destinationPath);
-  const listed = git(repositoryRoot, ["ls-files", "--cached", "--others", "--exclude-standard"]);
-  if (!listed.ok) {
-    return {
-      diagnostics: [
-        error(
-          "reference.inventory.unavailable",
-          ".git",
-          "Git could not enumerate repository Markdown files.",
-          "Restore Git worktree access before planning a task move.",
-        ),
-      ],
-      edits,
-      references,
-    };
-  }
 
   const realRoot = await realpath(repositoryRoot);
-  const files = [...new Set(listed.stdout.split(/\r?\n/).filter((path) => path.toLowerCase().endsWith(".md")))]
-    .sort();
+  const files = await markdownFiles(repositoryRoot);
   for (const relativeFile of files) {
     const filePath = resolve(repositoryRoot, relativeFile);
     if (escapesRoot(repositoryRoot, filePath)) {

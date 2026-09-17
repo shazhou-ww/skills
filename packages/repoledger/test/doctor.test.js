@@ -66,7 +66,7 @@ function successfulGit(calls) {
   };
 }
 
-test("validates and refreshes an authoritative worktree identity", async () => {
+test("validates an authoritative worktree identity using only Git config", async () => {
   const root = await createRepository();
   const calls = [];
 
@@ -75,24 +75,20 @@ test("validates and refreshes an authoritative worktree identity", async () => {
   assert.equal(report.ok, true);
   assert.equal(report.identity, "fixture-identity");
   assert.equal(report.defaultIdentity, "fixture-default");
-  assert.equal(report.remoteFreshness, "refreshed");
-  assert.ok(calls.some((args) => args.join(" ") === "fetch origin main"));
+  assert.equal(Object.hasOwn(report, "remoteFreshness"), false);
+  assert.ok(calls.every(([command]) => command === "config"));
 });
 
-test("offline mode is explicit and does not fetch", async () => {
+test("does not access remotes", async () => {
   const root = await createRepository();
   const calls = [];
 
-  const report = await doctorRepository({
-    git: successfulGit(calls),
-    offline: true,
-    root,
-  });
+  const report = await doctorRepository({ git: successfulGit(calls), root });
 
   assert.equal(report.ok, true);
-  assert.equal(report.remoteFreshness, "offline");
-  assert.ok(report.diagnostics.some(({ code }) => code === "doctor.remote.offline"));
-  assert.ok(!calls.some((args) => args[0] === "fetch"));
+  assert.ok(!calls.some(([command]) => command === "fetch"));
+  assert.ok(!calls.some(([command]) => command === "cat-file"));
+  assert.ok(!calls.some(([command]) => command === "rev-parse"));
 });
 
 test("does not substitute a device default for a missing binding", async () => {
@@ -112,23 +108,19 @@ test("does not substitute a device default for a missing binding", async () => {
   assert.equal(report.identity, null);
   assert.equal(report.defaultIdentity, "fixture-default");
   assert.ok(codes.includes("doctor.identity.missing"));
-  assert.ok(codes.includes("doctor.identity.invalid-scope"));
+  assert.ok(!codes.includes("doctor.identity.invalid-scope"));
 });
 
-test("reports an identity missing from the shared branch", async () => {
+test("reports a missing local identity lane", async () => {
   const root = await createRepository();
-  const base = successfulGit([]);
-  const git = (repositoryRoot, args) => {
-    if (args[0] === "cat-file") {
-      return { ok: false, status: 128, stderr: "missing", stdout: "" };
-    }
-    return base(repositoryRoot, args);
-  };
+  await rm(join(root, "tasks", "ongoing", "fixture-identity"), {
+    recursive: true,
+  });
 
-  const report = await doctorRepository({ git, root });
+  const report = await doctorRepository({ git: successfulGit([]), root });
 
   assert.equal(report.ok, false);
   assert.ok(
-    report.diagnostics.some(({ code }) => code === "doctor.identity.unregistered"),
+    report.diagnostics.some(({ code }) => code === "doctor.identity.lane-missing"),
   );
 });

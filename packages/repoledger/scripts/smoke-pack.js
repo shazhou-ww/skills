@@ -46,12 +46,11 @@ try {
   )[0];
   const tarball = join(temporaryRoot, packed.filename);
   const consumer = join(temporaryRoot, "consumer");
-  const remote = join(temporaryRoot, "remote.git");
   await mkdir(consumer);
   await writeFile(
     join(consumer, "repoledger.json"),
     JSON.stringify(
-      { $schema: SCHEMA_URL, tasksDirectory: "tasks", remote: "origin", branch: "main" },
+      { $schema: SCHEMA_URL, tasksDirectory: "tasks" },
       null,
       2,
     ),
@@ -70,9 +69,6 @@ try {
   git(["config", "user.email", "repoledger@example.invalid"], consumer);
   git(["add", "."], consumer);
   git(["commit", "-m", "Initialize smoke ledger"], consumer);
-  git(["init", "--bare", "--initial-branch=main", remote], consumer);
-  git(["remote", "add", "origin", remote], consumer);
-  git(["push", "--set-upstream", "origin", "main"], consumer);
   git(["config", "extensions.worktreeConfig", "true"], consumer);
   git(["config", "--worktree", "task-ledger.identity", "smoke-identity"], consumer);
 
@@ -95,7 +91,8 @@ try {
     npm(["exec", "--", "repoledger", "check", "--json"], consumer),
   );
   assert.equal(checked.ok, true);
-  assert.equal(checked.capabilities.history, "full");
+  assert.equal(checked.scope.worktreeIdentity, "smoke-identity");
+  assert.equal(checked.scope.includeArchived, false);
   const status = JSON.parse(
     npm(["exec", "--", "repoledger", "status", "--json"], consumer),
   );
@@ -118,7 +115,7 @@ try {
   );
   assert.equal(doctored.ok, true);
   assert.equal(doctored.identity, "smoke-identity");
-  assert.equal(doctored.remoteFreshness, "refreshed");
+  assert.equal(Object.hasOwn(doctored, "remoteFreshness"), false);
   process.stdout.write(
     `PACK_SMOKE_OK name=${packed.name} version=${packed.version} identity=${doctored.identity}\n`,
   );

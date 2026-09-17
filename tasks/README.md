@@ -69,10 +69,10 @@ history solely to change its link style.
 - Read the current identity with
   `git config --worktree --get task-ledger.identity`.
 - Verify the value comes from worktree scope and that
-  `tasks/ongoing/<identity>/.gitkeep` exists on current `origin/main`.
+  `tasks/ongoing/<identity>/.gitkeep` exists locally.
 - With workspace dependencies installed, `pnpm exec repoledger doctor` performs
-  these checks and refreshes the remote before task work; offline mode is not a
-  substitute for current remote state.
+  these local checks. Refresh and reconcile the remote separately before
+  publication.
 - Never infer identity from a path, branch, user, agent name, or visible lane.
 
 ## Publication path

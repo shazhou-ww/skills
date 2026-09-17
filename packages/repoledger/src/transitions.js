@@ -5,10 +5,8 @@ import { loadConfig } from "./config.js";
 import { inspectTaskContents } from "./content.js";
 import { selectTask } from "./discovery.js";
 import { runGit } from "./git.js";
-import { inspectHistory } from "./history.js";
 import {
   PORTABLE_IDENTITY,
-  identityRegistered,
   readIdentityState,
 } from "./identity.js";
 import { inspectLayout } from "./layout.js";
@@ -124,7 +122,7 @@ Pending.
 `;
 }
 
-function identityDiagnostics({ config, git, root }) {
+async function identityDiagnostics({ config, git, root }) {
   const diagnostics = [];
   const state = readIdentityState(root, git);
   if (!state.extensionEnabled) {
@@ -155,13 +153,23 @@ function identityDiagnostics({ config, git, root }) {
         "Bind the identity with git config --worktree after registration.",
       ),
     );
-  } else if (!identityRegistered({ config, git, identity: state.identity, root })) {
+  } else if (
+    !(await exists(
+      resolve(
+        root,
+        config.tasksDirectory,
+        "ongoing",
+        state.identity,
+        ".gitkeep",
+      ),
+    ))
+  ) {
     diagnostics.push(
       error(
         "transition.identity.unregistered",
         `${config.tasksDirectory}/ongoing/${state.identity}/.gitkeep`,
-        `Identity ${state.identity} is not registered on ${config.remote}/${config.branch}.`,
-        "Publish the identity lane before applying a task move.",
+        `Identity ${state.identity} has no local lane marker.`,
+        "Create the local identity lane before applying a task move.",
       ),
     );
   }
@@ -224,8 +232,6 @@ export async function transitionRepository({
   const loaded = await loadConfig({ root: repositoryRoot, configPath });
   const diagnostics = [...loaded.diagnostics];
   const config = loaded.config;
-  let refreshedHead = null;
-  let refreshedRemote = null;
 
   if (!["claim", "archive"].includes(operation)) {
     diagnostics.push(
@@ -261,7 +267,6 @@ export async function transitionRepository({
   if (config && apply) {
     try {
       const recovery = await recoverMoveTransaction({
-        git,
         root: repositoryRoot,
         taskRoot: resolve(repositoryRoot, config.tasksDirectory),
       });
@@ -287,56 +292,6 @@ export async function transitionRepository({
     }
   }
 
-  if (config && apply) {
-    const fetched = git(repositoryRoot, ["fetch", config.remote, config.branch]);
-    if (!fetched.ok) {
-      diagnostics.push(
-        error(
-          "transition.remote.fetch-failed",
-          `${config.remote}/${config.branch}`,
-          `Could not refresh ${config.remote}/${config.branch}.`,
-          "Restore network and repository access, then rerun the apply command.",
-        ),
-      );
-    } else {
-      const head = git(repositoryRoot, ["rev-parse", "--verify", "HEAD^{commit}"]);
-      const remoteHead = git(repositoryRoot, [
-        "rev-parse",
-        "--verify",
-        `refs/remotes/${config.remote}/${config.branch}^{commit}`,
-      ]);
-      if (head.ok && remoteHead.ok) {
-        refreshedHead = head.stdout;
-        refreshedRemote = remoteHead.stdout;
-      } else {
-        diagnostics.push(
-          error(
-            "transition.branch.unavailable",
-            `${config.remote}/${config.branch}`,
-            "The refreshed local or shared branch commit could not be resolved.",
-            "Restore complete Git refs and recompute the transition plan.",
-          ),
-        );
-      }
-      const synchronized = git(repositoryRoot, [
-        "rev-list",
-        "--left-right",
-        "--count",
-        `HEAD...refs/remotes/${config.remote}/${config.branch}`,
-      ]);
-      if (!synchronized.ok || !/^0\s+0$/.test(synchronized.stdout)) {
-        diagnostics.push(
-          error(
-            "transition.branch.unsynchronized",
-            `${config.remote}/${config.branch}`,
-            "The worktree HEAD is not synchronized with the refreshed shared branch.",
-            "Reconcile the shared branch without discarding work, then recompute the plan.",
-          ),
-        );
-      }
-    }
-  }
-
   const layout = config
     ? await inspectLayout({ config, root: repositoryRoot })
     : { diagnostics: [], tasks: [] };
@@ -347,7 +302,7 @@ export async function transitionRepository({
   diagnostics.push(...selected.diagnostics);
   const task = selected.selected[0] ?? null;
   const identityResult = config
-    ? identityDiagnostics({ config, git, root: repositoryRoot })
+    ? await identityDiagnostics({ config, git, root: repositoryRoot })
     : { diagnostics: [], state: readIdentityState(repositoryRoot, git) };
   diagnostics.push(...identityResult.diagnostics);
   const currentIdentity = identityResult.state.identity;
@@ -393,13 +348,7 @@ export async function transitionRepository({
 
   if (task && config) {
     const contents = await inspectTaskContents({ root: repositoryRoot, tasks: [task] });
-    const history = await inspectHistory({
-      config,
-      git,
-      root: repositoryRoot,
-      tasks: [task],
-    });
-    diagnostics.push(...contents.diagnostics, ...history.diagnostics);
+    diagnostics.push(...contents.diagnostics);
     if (operation === "archive" && destinationRelativePath) {
       const prospective = await inspectTaskContents({
         allowPendingArchive: true,
@@ -414,7 +363,6 @@ export async function transitionRepository({
   if (task && destinationPath && config) {
     referencePlan = await planReferenceUpdates({
       destinationPath,
-      git,
       root: repositoryRoot,
       sourcePath: task.path,
       updateAllReferences,
@@ -475,36 +423,6 @@ export async function transitionRepository({
   let applied = false;
   if (
     apply &&
-    refreshedHead &&
-    refreshedRemote &&
-    diagnostics.every(({ level }) => level !== "error")
-  ) {
-    const refreshedAgain = git(repositoryRoot, ["fetch", config.remote, config.branch]);
-    const currentHead = git(repositoryRoot, ["rev-parse", "--verify", "HEAD^{commit}"]);
-    const currentRemote = git(repositoryRoot, [
-      "rev-parse",
-      "--verify",
-      `refs/remotes/${config.remote}/${config.branch}^{commit}`,
-    ]);
-    if (
-      !refreshedAgain.ok ||
-      !currentHead.ok ||
-      !currentRemote.ok ||
-      currentHead.stdout !== refreshedHead ||
-      currentRemote.stdout !== refreshedRemote
-    ) {
-      diagnostics.push(
-        error(
-          "transition.branch.changed",
-          `${config.remote}/${config.branch}`,
-          "The local or shared branch changed while the transition was being planned.",
-          "Review the new state and recompute the transition plan.",
-        ),
-      );
-    }
-  }
-  if (
-    apply &&
     task &&
     destinationPath &&
     diagnostics.every(({ level }) => level !== "error")
@@ -521,7 +439,6 @@ export async function transitionRepository({
         creates,
         destinationPath,
         edits: referencePlan.edits,
-        git,
         root: repositoryRoot,
         sourcePath: task.path,
         sourceSnapshot,
@@ -611,8 +528,8 @@ export async function transitionRepository({
     preconditions: [
       "Unique task position",
       "Expected source state and identity",
-      "Registered worktree identity",
-      "Valid task content and publication history",
+      "Local worktree identity lane",
+      "Valid task content",
       "Conflict-free destination and references",
     ],
     blockers: diagnostics.filter(({ level }) => level === "error"),
