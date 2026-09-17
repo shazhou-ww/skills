@@ -4,7 +4,7 @@ import { loadConfig } from "./config.js";
 import { inspectTaskContents } from "./content.js";
 import { selectTask } from "./discovery.js";
 import { runGit } from "./git.js";
-import { readIdentityState } from "./identity.js";
+import { effectiveIdentity, readIdentityState } from "./identity.js";
 import { inspectLayout } from "./layout.js";
 
 export async function checkRepository({
@@ -18,11 +18,7 @@ export async function checkRepository({
   const repositoryRoot = resolve(root);
   const loaded = await loadConfig({ root: repositoryRoot, configPath });
   const identityState = readIdentityState(repositoryRoot, git);
-  const worktreeIdentity =
-    identityState.scope === "worktree" &&
-    identityState.identity === identityState.resolvedIdentity
-      ? identityState.identity
-      : null;
+  const identity = effectiveIdentity(identityState);
   const layout = loaded.config
     ? await inspectLayout({
         checkDuplicatePositions: false,
@@ -30,7 +26,7 @@ export async function checkRepository({
         includeArchived,
         ongoingIdentities: includeAllIdentities
           ? null
-          : new Set(worktreeIdentity ? [worktreeIdentity] : []),
+          : new Set(identity ? [identity] : []),
         root: repositoryRoot,
       })
     : { diagnostics: [], tasks: [] };
@@ -60,7 +56,8 @@ export async function checkRepository({
     scope: {
       includeAllIdentities,
       includeArchived,
-      worktreeIdentity,
+      identity,
+      identityScope: identityState.scope,
     },
     diagnostics,
     summary: {

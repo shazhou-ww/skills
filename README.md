@@ -121,7 +121,7 @@ implementation requests into tasks.
 [`repoledger`](packages/repoledger/README.md) is the npm-distributed companion
 CLI for task inventory, focused or repository-wide validation, safe
 initialization, previewable local moves, Markdown reference preservation,
-and worktree identity configuration. It does not replace the skill's judgment,
+and global or worktree identity configuration. It does not replace the skill's judgment,
 Git integration, or lifecycle rules.
 
 ```sh
@@ -131,7 +131,7 @@ npx repoledger@0.5.0 doctor
 
 Repositories should pin the package for CI. By default, `check` validates
 backlog plus the current identity's ongoing lane; CI can add
-`--all-identities --archived`. `doctor` validates the local identity without
+`--all-identities --archived`. `doctor` validates the effective Git identity without
 fetching or inspecting history. The versioned configuration contract is the
 GitHub-hosted
 [`schema/v1.json`](packages/repoledger/schema/v1.json).
@@ -141,8 +141,8 @@ Newer source versions also expose `status`, `check --task`, preview-first
 worktree can use `task claim <task> --take-from <identity>` to guard against a
 stale source owner. Task moves report affected references without changing
 them unless `--update-all-refs` is present. Only explicit `--apply` changes
-local files or worktree configuration; no command stages, commits, or publishes
-those changes.
+local files; no command modifies Git configuration, stages, commits, or
+publishes those changes.
 
 ## Project release skill
 

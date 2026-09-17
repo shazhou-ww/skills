@@ -5,8 +5,8 @@ import { checkRepository } from "./index.js";
 import { loadConfig } from "./config.js";
 import { runGit } from "./git.js";
 import {
+  effectiveIdentity,
   PORTABLE_IDENTITY,
-  readDefaultIdentity,
   readIdentityState,
 } from "./identity.js";
 
@@ -35,70 +35,42 @@ export async function doctorRepository({
   const repositoryRoot = resolve(root);
   const loaded = await loadConfig({ root: repositoryRoot, configPath });
   const diagnostics = [];
-  let defaultIdentity = null;
   let identity = null;
 
   if (loaded.config) {
     const config = loaded.config;
     const identityState = readIdentityState(repositoryRoot, git);
-    if (!identityState.extensionEnabled) {
-      diagnostics.push(
-        error(
-          "doctor.worktree-config.disabled",
-          ".git/config",
-          "extensions.worktreeConfig is not enabled.",
-          "Enable worktree config before binding a repoledger identity.",
-        ),
-      );
-    }
+    identity = effectiveIdentity(identityState);
 
     if (!identityState.identity) {
       diagnostics.push(
         error(
           "doctor.identity.missing",
-          ".git/config.worktree",
-          "The worktree has no authoritative task-ledger.identity binding.",
-          "Run repoledger init --identity <identity> --apply for this worktree.",
+          "Git config",
+          "No task-ledger.identity is configured.",
+          "Configure task-ledger.identity globally or for this worktree.",
+        ),
+      );
+    } else if (!identity) {
+      diagnostics.push(
+        error(
+          "doctor.identity.invalid-scope",
+          identityState.origin ?? "Git config",
+          `task-ledger.identity resolves from unsupported ${identityState.scope ?? "unknown"} scope.`,
+          "Configure task-ledger.identity in global or worktree Git config.",
         ),
       );
     } else {
-      identity = identityState.identity;
       if (!PORTABLE_IDENTITY.test(identity)) {
         diagnostics.push(
           error(
             "doctor.identity.invalid-name",
-            ".git/config.worktree",
-            `Worktree identity must use lowercase kebab-case: ${identity}`,
-            "Choose and explicitly bind a portable identity.",
+            identityState.origin ?? "Git config",
+            `Identity must use lowercase kebab-case: ${identity}`,
+            "Configure a portable global or worktree identity.",
           ),
         );
       }
-
-      if (
-        identityState.scope !== "worktree" ||
-        identityState.resolvedIdentity !== identity
-      ) {
-        diagnostics.push(
-          error(
-            "doctor.identity.invalid-scope",
-            ".git/config.worktree",
-            "task-ledger.identity does not resolve from worktree-scoped Git configuration.",
-            "Write the binding with git config --worktree.",
-          ),
-        );
-      }
-    }
-
-    defaultIdentity = readDefaultIdentity(repositoryRoot, git);
-    if (defaultIdentity && !PORTABLE_IDENTITY.test(defaultIdentity)) {
-      diagnostics.push(
-        error(
-          "doctor.default-identity.invalid-name",
-          "global Git config",
-          `Device default identity must use lowercase kebab-case: ${defaultIdentity}`,
-          "Correct or remove task-ledger.defaultIdentity; it is only an initialization suggestion.",
-        ),
-      );
     }
 
     if (identity && PORTABLE_IDENTITY.test(identity)) {
@@ -132,7 +104,6 @@ export async function doctorRepository({
   return {
     ...checked,
     command: "doctor",
-    defaultIdentity,
     diagnostics: combined,
     identity,
     ok: combined.every(({ level }) => level !== "error"),

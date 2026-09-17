@@ -35,7 +35,7 @@ test("lists active task positions and the local identity without fetching", asyn
   const calls = [];
   const git = (_repositoryRoot, args) => {
     calls.push(args);
-    if (args.join(" ") === "config --worktree --get task-ledger.identity") {
+    if (args.join(" ") === "config --get task-ledger.identity") {
       return { ok: true, stdout: "fixture-identity" };
     }
     if (args.join(" ") === "config --show-origin --show-scope --get task-ledger.identity") {
@@ -81,9 +81,12 @@ test("optionally includes archived tasks and tolerates an unbound identity", asy
   ]);
 });
 
-test("does not report an inherited identity as authoritative", async () => {
+test("reports a global identity as authoritative", async () => {
   const root = await createRepository();
   const git = (_repositoryRoot, args) => {
+    if (args.join(" ") === "config --get task-ledger.identity") {
+      return { ok: true, stdout: "inherited-identity" };
+    }
     if (args.join(" ") === "config --show-origin --show-scope --get task-ledger.identity") {
       return {
         ok: true,
@@ -96,5 +99,8 @@ test("does not report an inherited identity as authoritative", async () => {
   const report = await statusRepository({ git, root });
 
   assert.equal(report.ok, true);
-  assert.deepEqual(report.identity, { scope: "global", value: null });
+  assert.deepEqual(report.identity, {
+    scope: "global",
+    value: "inherited-identity",
+  });
 });

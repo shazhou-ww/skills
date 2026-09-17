@@ -189,7 +189,7 @@ Examples:
       .summary("initialize repository task state")
       .option("--apply", "apply the recomputed initialization plan")
       .option("--dry-run", "explicitly preview without changing local state")
-      .option("--identity <identity>", "explicit worktree identity to initialize")
+      .option("--identity <identity>", "identity lane to initialize")
       .option("--tasks-directory <path>", "repository-relative task directory"),
   ).action(async (options) => {
     if (options.apply && options.dryRun) {
@@ -212,7 +212,7 @@ Examples:
   addCommonOptions(
     program
       .command("status")
-      .description("list canonical task positions and the local worktree identity")
+      .description("list canonical task positions and the effective identity")
       .summary("show repository task status")
       .option("--archived", "include archived task positions"),
   ).action(async (options) => {
@@ -284,7 +284,7 @@ Examples:
   addCommonOptions(
     program
       .command("doctor")
-      .description("validate local worktree identity and repository task state")
+      .description("validate the effective identity and repository task state")
       .summary("validate local task-work readiness"),
   ).action(async (options) => {
     const report = await doctorRepository({

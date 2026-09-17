@@ -91,7 +91,8 @@ try {
     npm(["exec", "--", "repoledger", "check", "--json"], consumer),
   );
   assert.equal(checked.ok, true);
-  assert.equal(checked.scope.worktreeIdentity, "smoke-identity");
+  assert.equal(checked.scope.identity, "smoke-identity");
+  assert.equal(checked.scope.identityScope, "worktree");
   assert.equal(checked.scope.includeArchived, false);
   const status = JSON.parse(
     npm(["exec", "--", "repoledger", "status", "--json"], consumer),

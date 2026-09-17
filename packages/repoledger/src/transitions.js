@@ -6,6 +6,7 @@ import { inspectTaskContents } from "./content.js";
 import { selectTask } from "./discovery.js";
 import { runGit } from "./git.js";
 import {
+  effectiveIdentity,
   PORTABLE_IDENTITY,
   readIdentityState,
 } from "./identity.js";
@@ -125,32 +126,32 @@ Pending.
 async function identityDiagnostics({ config, git, root }) {
   const diagnostics = [];
   const state = readIdentityState(root, git);
-  if (!state.extensionEnabled) {
-    diagnostics.push(
-      error(
-        "transition.worktree-config.disabled",
-        ".git/config",
-        "extensions.worktreeConfig is not enabled.",
-        "Run repoledger init --identity <identity> --apply before planning a task move.",
-      ),
-    );
-  }
-  if (!state.identity || !PORTABLE_IDENTITY.test(state.identity)) {
+  const identity = effectiveIdentity(state);
+  if (!state.identity) {
     diagnostics.push(
       error(
         "transition.identity.invalid",
-        ".git/config.worktree",
-        "The worktree has no valid task-ledger identity binding.",
-        "Initialize and explicitly bind a lowercase kebab-case worktree identity.",
+        "Git config",
+        "No task-ledger identity is configured.",
+        "Configure a lowercase kebab-case global or worktree identity.",
       ),
     );
-  } else if (state.scope !== "worktree" || state.resolvedIdentity !== state.identity) {
+  } else if (!identity) {
     diagnostics.push(
       error(
         "transition.identity.invalid-scope",
-        ".git/config.worktree",
-        "The task-ledger identity does not resolve from worktree-scoped Git configuration.",
-        "Bind the identity with git config --worktree after registration.",
+        state.origin ?? "Git config",
+        `The task-ledger identity resolves from unsupported ${state.scope ?? "unknown"} scope.`,
+        "Configure task-ledger.identity in global or worktree Git config.",
+      ),
+    );
+  } else if (!PORTABLE_IDENTITY.test(identity)) {
+    diagnostics.push(
+      error(
+        "transition.identity.invalid",
+        state.origin ?? "Git config",
+        `Identity must use lowercase kebab-case: ${identity}.`,
+        "Configure a portable global or worktree identity.",
       ),
     );
   } else if (
@@ -159,7 +160,7 @@ async function identityDiagnostics({ config, git, root }) {
         root,
         config.tasksDirectory,
         "ongoing",
-        state.identity,
+        identity,
         ".gitkeep",
       ),
     ))
@@ -167,13 +168,13 @@ async function identityDiagnostics({ config, git, root }) {
     diagnostics.push(
       error(
         "transition.identity.unregistered",
-        `${config.tasksDirectory}/ongoing/${state.identity}/.gitkeep`,
-        `Identity ${state.identity} has no local lane marker.`,
+        `${config.tasksDirectory}/ongoing/${identity}/.gitkeep`,
+        `Identity ${identity} has no local lane marker.`,
         "Create the local identity lane before applying a task move.",
       ),
     );
   }
-  return { diagnostics, state };
+  return { diagnostics, identity, state };
 }
 
 function addStateDiagnostic({ currentIdentity, diagnostics, operation, takeFrom, task }) {
@@ -303,9 +304,9 @@ export async function transitionRepository({
   const task = selected.selected[0] ?? null;
   const identityResult = config
     ? await identityDiagnostics({ config, git, root: repositoryRoot })
-    : { diagnostics: [], state: readIdentityState(repositoryRoot, git) };
+    : { diagnostics: [], identity: null, state: readIdentityState(repositoryRoot, git) };
   diagnostics.push(...identityResult.diagnostics);
-  const currentIdentity = identityResult.state.identity;
+  const currentIdentity = identityResult.identity;
 
   if (takeFrom && takeFrom === currentIdentity) {
     diagnostics.push(

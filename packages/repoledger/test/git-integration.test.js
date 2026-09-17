@@ -31,6 +31,23 @@ function git(root, ...args) {
   return result.stdout.trim();
 }
 
+function isolatedGlobalGit(globalConfig) {
+  return (root, args) => {
+    const result = spawnSync("git", ["-C", root, ...args], {
+      encoding: "utf8",
+      env: { ...process.env, GIT_CONFIG_GLOBAL: globalConfig },
+      windowsHide: true,
+    });
+    return {
+      error: result.error ?? null,
+      ok: result.status === 0,
+      status: result.status,
+      stderr: result.stderr?.trim() ?? "",
+      stdout: result.stdout?.trim() ?? "",
+    };
+  };
+}
+
 async function createGitRepository() {
   const base = await mkdtemp(join(tmpdir(), "repoledger-real-git-"));
   temporaryDirectories.push(base);
@@ -185,6 +202,32 @@ test("validates a real worktree identity without inspecting remote history", asy
   assert.equal(Object.hasOwn(doctored, "remoteFreshness"), false);
 });
 
+test("uses real worktree identity precedence over a global fallback", async () => {
+  const { base, root } = await createGitRepository();
+  const globalConfig = join(base, "global.gitconfig");
+  await writeFile(
+    globalConfig,
+    "[task-ledger]\n\tidentity = global-identity\n",
+  );
+  const globalLane = join(root, "tasks", "ongoing", "global-identity");
+  await mkdir(globalLane);
+  await writeFile(join(globalLane, ".gitkeep"), "");
+  const isolatedGit = isolatedGlobalGit(globalConfig);
+
+  const overridden = await doctorRepository({ git: isolatedGit, root });
+
+  assert.equal(overridden.ok, true);
+  assert.equal(overridden.identity, "fixture-identity");
+  assert.equal(overridden.scope.identityScope, "worktree");
+
+  git(root, "config", "--worktree", "--unset", "task-ledger.identity");
+  const inherited = await doctorRepository({ git: isolatedGit, root });
+
+  assert.equal(inherited.ok, true);
+  assert.equal(inherited.identity, "global-identity");
+  assert.equal(inherited.scope.identityScope, "global");
+});
+
 test("accepts a real shallow clone without an identity", async () => {
   const { base, remote } = await createGitRepository();
   const shallow = join(base, "shallow");
@@ -198,7 +241,7 @@ test("accepts a real shallow clone without an identity", async () => {
   const report = await checkRepository({ root: shallow });
 
   assert.equal(report.ok, true);
-  assert.equal(report.scope.worktreeIdentity, null);
+  assert.equal(report.scope.identity, null);
   assert.deepEqual(report.diagnostics, []);
 });
 

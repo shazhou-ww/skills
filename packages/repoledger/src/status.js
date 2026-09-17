@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { loadConfig } from "./config.js";
 import { taskSummary } from "./discovery.js";
 import { runGit } from "./git.js";
-import { readIdentityState } from "./identity.js";
+import { effectiveIdentity, readIdentityState } from "./identity.js";
 import { inspectLayout } from "./layout.js";
 
 export async function statusRepository({
@@ -19,11 +19,7 @@ export async function statusRepository({
     : { diagnostics: [], tasks: [] };
   const diagnostics = [...loaded.diagnostics, ...layout.diagnostics];
   const identityState = readIdentityState(repositoryRoot, git);
-  const authoritativeIdentity =
-    identityState.scope === "worktree" &&
-    identityState.identity === identityState.resolvedIdentity
-      ? identityState.identity
-      : null;
+  const identity = effectiveIdentity(identityState);
   const tasks = layout.tasks
     .filter(({ state }) => includeArchived || state !== "archived")
     .map(taskSummary);
@@ -36,7 +32,7 @@ export async function statusRepository({
     root: repositoryRoot,
     diagnostics,
     identity: {
-      value: authoritativeIdentity,
+      value: identity,
       scope: identityState.scope,
     },
     includeArchived,

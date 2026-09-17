@@ -445,7 +445,7 @@ test("applies a claim and archived inbound rewrite when explicitly allowed", asy
   );
 });
 
-test("applies a claim using Git only for worktree identity config", async () => {
+test("applies a claim with a global identity and no worktree config", async () => {
   const root = await createRepository();
   const source = join(root, "tasks", "backlog", "move-task");
   const destination = join(
@@ -459,6 +459,16 @@ test("applies a claim using Git only for worktree identity config", async () => 
   const configOnlyGit = (repositoryRoot, args) => {
     calls.push(args);
     assert.equal(args[0], "config");
+    const command = args.join(" ");
+    if (command === "config --get task-ledger.identity") {
+      return { ok: true, stdout: "fixture-identity" };
+    }
+    if (command === "config --show-origin --show-scope --get task-ledger.identity") {
+      return {
+        ok: true,
+        stdout: "global\tfile:C:/Users/example/.gitconfig\tfixture-identity",
+      };
+    }
     return runGit(repositoryRoot, args);
   };
 
@@ -474,6 +484,9 @@ test("applies a claim using Git only for worktree identity config", async () => 
   assert.equal(report.applied, true);
   assert.ok(calls.length > 0);
   assert.ok(calls.every(([command]) => command === "config"));
+  assert.ok(
+    !report.diagnostics.some(({ code }) => code.includes("worktree-config")),
+  );
   await assert.rejects(access(source));
   await access(destination);
 });

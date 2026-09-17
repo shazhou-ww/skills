@@ -2,12 +2,7 @@ import { lstat, mkdir, readFile, rm, rmdir, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 
 import { DEFAULT_CONFIG_NAME, SCHEMA_URL, loadConfig } from "./config.js";
-import { runGit } from "./git.js";
-import {
-  PORTABLE_IDENTITY,
-  readDefaultIdentity,
-  readIdentityState,
-} from "./identity.js";
+import { PORTABLE_IDENTITY } from "./identity.js";
 import { inspectLayout } from "./layout.js";
 
 const nodeFs = { mkdir, rm, rmdir, writeFile };
@@ -89,7 +84,7 @@ function publicChange(action) {
   };
 }
 
-async function applyActions({ actions, fs, git, root, verify }) {
+async function applyActions({ actions, fs, verify }) {
   const completed = [];
   try {
     for (const action of actions) {
@@ -97,9 +92,6 @@ async function applyActions({ actions, fs, git, root, verify }) {
         await fs.mkdir(action.absolutePath);
       } else if (action.type === "write-file") {
         await fs.writeFile(action.absolutePath, action.content, { flag: "wx" });
-      } else if (action.type === "set-git-config") {
-        const result = git(root, ["config", `--${action.scope}`, action.key, action.value]);
-        if (!result.ok) throw new Error(result.stderr || `Could not set ${action.key}`);
       }
       completed.push(action);
     }
@@ -110,13 +102,6 @@ async function applyActions({ actions, fs, git, root, verify }) {
       try {
         if (action.type === "write-file") await fs.rm(action.absolutePath, { force: true });
         else if (action.type === "create-directory") await fs.rmdir(action.absolutePath);
-        else if (action.type === "set-git-config") {
-          const args = action.previous === null
-            ? ["config", `--${action.scope}`, "--unset", action.key]
-            : ["config", `--${action.scope}`, action.key, action.previous];
-          const result = git(root, args);
-          if (!result.ok) throw new Error(result.stderr || `Could not restore ${action.key}`);
-        }
       } catch (rollbackError) {
         rollbackErrors.push(rollbackError.message);
       }
@@ -130,14 +115,12 @@ export async function initRepository({
   apply = false,
   configPath = DEFAULT_CONFIG_NAME,
   fs = nodeFs,
-  git = runGit,
   identity,
   root = process.cwd(),
   tasksDirectory,
 } = {}) {
   const repositoryRoot = resolve(root);
   const diagnostics = [];
-  const suggestedIdentity = readDefaultIdentity(repositoryRoot, git);
 
   const loaded = await loadConfig({ root: repositoryRoot, configPath });
   const missingConfig =
@@ -189,7 +172,6 @@ export async function initRepository({
 
   const actions = [];
   const plannedDirectories = new Set();
-  let bindsIdentity = false;
   if (config && diagnostics.length === 0) {
     if (missingConfig) {
       const configParent = dirname(loaded.configPath);
@@ -249,60 +231,6 @@ export async function initRepository({
           ),
         );
       } else {
-        const identityState = readIdentityState(repositoryRoot, git);
-        if (
-          identityState.resolvedIdentity &&
-          (identityState.scope !== "worktree" || identityState.resolvedIdentity !== identity)
-        ) {
-          diagnostics.push(
-            error(
-              "init.identity.conflict",
-              ".git/config.worktree",
-              `The worktree already resolves identity ${identityState.resolvedIdentity} from ${identityState.scope ?? "an unknown scope"}.`,
-              "Use the existing worktree identity or resolve the conflicting Git configuration deliberately.",
-            ),
-          );
-        }
-
-        if (!identityState.extensionEnabled) {
-          const coreWorktree = git(repositoryRoot, ["config", "--local", "--get", "core.worktree"]);
-          const coreBare = git(repositoryRoot, [
-            "config",
-            "--local",
-            "--type=bool",
-            "--get",
-            "core.bare",
-          ]);
-          if (coreWorktree.ok && coreWorktree.stdout) {
-            diagnostics.push(
-              error(
-                "init.worktree-config.unsafe",
-                ".git/config",
-                "core.worktree is set, so worktree config cannot be enabled automatically.",
-                "Follow Git's extensions.worktreeConfig migration guidance manually.",
-              ),
-            );
-          } else if (coreBare.ok && coreBare.stdout === "true") {
-            diagnostics.push(
-              error(
-                "init.worktree-config.unsafe",
-                ".git/config",
-                "The repository is bare, so worktree identity cannot be initialized.",
-                "Run initialization from a non-bare worktree.",
-              ),
-            );
-          } else {
-            actions.push({
-              type: "set-git-config",
-              path: ".git/config",
-              scope: "local",
-              key: "extensions.worktreeConfig",
-              value: "true",
-              previous: identityState.extensionValue,
-            });
-          }
-        }
-
         const lane = resolve(repositoryRoot, config.tasksDirectory, "ongoing", identity);
         await planDirectory({
           actions,
@@ -317,21 +245,6 @@ export async function initRepository({
           root: repositoryRoot,
           path: resolve(lane, ".gitkeep"),
         });
-
-        if (
-          !identityState.identity &&
-          diagnostics.every(({ level }) => level !== "error")
-        ) {
-          actions.push({
-            type: "set-git-config",
-            path: ".git/config.worktree",
-            scope: "worktree",
-            key: "task-ledger.identity",
-            value: identity,
-            previous: null,
-          });
-          bindsIdentity = true;
-        }
       }
     }
   }
@@ -342,8 +255,6 @@ export async function initRepository({
       await applyActions({
         actions,
         fs,
-        git,
-        root: repositoryRoot,
         verify: async () => {
           const verifiedConfig = await loadConfig({ root: repositoryRoot, configPath });
           const verifiedLayout = verifiedConfig.config
@@ -352,16 +263,6 @@ export async function initRepository({
           const verification = [...verifiedConfig.diagnostics, ...verifiedLayout.diagnostics];
           if (verification.some(({ level }) => level === "error")) {
             throw new Error(verification.map(({ code }) => code).join(", "));
-          }
-          if (bindsIdentity) {
-            const verifiedIdentity = readIdentityState(repositoryRoot, git);
-            if (
-              verifiedIdentity.identity !== identity ||
-              verifiedIdentity.scope !== "worktree" ||
-              verifiedIdentity.resolvedIdentity !== identity
-            ) {
-              throw new Error("The worktree identity binding could not be verified");
-            }
           }
         },
       });
@@ -391,8 +292,6 @@ export async function initRepository({
     diagnostics,
     identity: {
       requested: identity ?? null,
-      suggested: suggestedIdentity,
-      willBind: bindsIdentity,
     },
     changes: actions.map(publicChange),
     applied,

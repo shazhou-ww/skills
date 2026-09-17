@@ -41,9 +41,10 @@ test("accepts all canonical status directories", async () => {
     [],
   );
   assert.deepEqual(report.scope, {
+    identity: "fixture-identity",
+    identityScope: "worktree",
     includeAllIdentities: false,
     includeArchived: false,
-    worktreeIdentity: "fixture-identity",
   });
   assert.equal(report.summary.tasks, 0);
 });
@@ -113,18 +114,19 @@ test("skips ongoing tasks when the worktree has no identity", async () => {
   const report = await checkRepository({ git, root });
 
   assert.equal(report.ok, true);
-  assert.equal(report.scope.worktreeIdentity, null);
+  assert.equal(report.scope.identity, null);
+  assert.equal(report.scope.identityScope, null);
   assert.equal(report.summary.tasks, 0);
   assert.deepEqual(report.diagnostics, []);
 });
 
-test("uses Git only to resolve the worktree identity", async () => {
+test("uses Git only to resolve the effective identity", async () => {
   const root = await createRepository(["backlog", "ongoing", "archived"]);
   const calls = [];
   const git = (_repositoryRoot, args) => {
     calls.push(args);
     const command = args.join(" ");
-    if (command === "config --worktree --get task-ledger.identity") {
+    if (command === "config --get task-ledger.identity") {
       return { ok: true, stdout: "fixture-identity" };
     }
     if (command === "config --show-origin --show-scope --get task-ledger.identity") {
@@ -141,6 +143,32 @@ test("uses Git only to resolve the worktree identity", async () => {
   assert.equal(report.ok, true);
   assert.ok(calls.length > 0);
   assert.ok(calls.every(([command]) => command === "config"));
+});
+
+test("uses a global identity without requiring worktree config", async () => {
+  const root = await createRepository(["backlog", "ongoing", "archived"]);
+  const lane = join(root, "tasks", "ongoing", "fixture-identity");
+  await mkdir(join(lane, "global-task"), { recursive: true });
+  await writeFile(join(lane, ".gitkeep"), "");
+  const git = (_repositoryRoot, args) => {
+    const command = args.join(" ");
+    if (command === "config --get task-ledger.identity") {
+      return { ok: true, stdout: "fixture-identity" };
+    }
+    if (command === "config --show-origin --show-scope --get task-ledger.identity") {
+      return {
+        ok: true,
+        stdout: "global\tfile:C:/Users/example/.gitconfig\tfixture-identity",
+      };
+    }
+    return { ok: false, status: 1, stderr: "", stdout: "" };
+  };
+
+  const report = await checkRepository({ git, root });
+
+  assert.equal(report.scope.identity, "fixture-identity");
+  assert.equal(report.scope.identityScope, "global");
+  assert.equal(report.summary.tasks, 1);
 });
 
 test("rejects a symbolic-link task root", async () => {

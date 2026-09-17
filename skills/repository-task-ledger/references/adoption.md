@@ -50,15 +50,14 @@ directory when necessary:
 
 The pinned package supplies the schema locally for offline editor validation;
 its canonical `$id` links to the versioned schema on GitHub and is the
-configuration contract. `repoledger check` validates backlog plus the current
-worktree identity's ongoing lane without fetching or inspecting history. If no
-worktree identity is bound, ongoing tasks are skipped. CI or an explicit audit
-uses `repoledger check --all-identities --archived`.
+configuration contract. `repoledger check` validates backlog plus the effective
+global or worktree identity's ongoing lane without fetching or inspecting
+history. If no identity is configured, ongoing tasks are skipped. CI or an
+explicit audit uses `repoledger check --all-identities --archived`.
 
-Run `repoledger doctor` before task work. It validates
-`extensions.worktreeConfig`, the authoritative worktree binding, the optional
-device-default boundary, and the local identity lane, then runs the same local
-repository checks. Refresh the shared branch separately before publication.
+Run `repoledger doctor` before task work. It validates the effective global or
+worktree identity and its local lane, then runs the same local repository
+checks. Refresh the shared branch separately before publication.
 
 Use `repoledger status` to inventory current task positions, and use
 `repoledger check --task <task-name>` when focused task diagnostics are useful.
@@ -135,7 +134,7 @@ duration, or expected files.
    changes files outside this repository's own `tasks/**`.
 - Once a task exists, keep managing it until completion, abandonment, or an
    explicit handoff.
-- Resolve the current identity from the worktree-scoped Git key
+- Resolve the current identity from the effective global or worktree Git key
    `task-ledger.identity`; do not use `.env`.
 - Treat accepted task work as authorization for routine non-force commits and
    publication; do not ask for confirmation solely to commit, push, or
@@ -188,65 +187,41 @@ validator rejects repository-root links back into the current task directory,
 resolves both allowed local forms without a project link-policy setting, and
 does not interpret external URIs as repository paths.
 
-## Worktree identity setup
+## Identity setup
 
-Repository registration, worktree binding, and an optional device suggestion
-answer different questions:
+The identity lane and Git configuration answer different questions:
 
 | Record | Scope | Meaning |
 | --- | --- | --- |
 | `tasks/ongoing/<identity>/.gitkeep` | Repository files | Defines the local identity lane. |
-| `task-ledger.identity` | Current Git worktree | Authoritatively binds this worktree to that lane. |
-| `task-ledger.defaultIdentity` | Device-global Git config | Optionally suggests a candidate during initialization only. |
+| `task-ledger.identity` | Global Git config | Provides the default identity across repositories and worktrees. |
+| `task-ledger.identity` | Worktree Git config | Overrides the global identity for one worktree. |
 
-Prefer the preview-first initializer in each worktree:
+When one identity is normally used on a device, configure it globally:
+
+```sh
+git config --global task-ledger.identity <identity>
+```
+
+Git resolves a worktree value after the global value, so an explicit worktree
+binding wins when both exist. Do not store identity in `.env` or tracked files.
+
+Prefer the preview-first initializer when creating an identity lane or a
+worktree override:
 
 ```sh
 repoledger init --identity <identity>
 repoledger init --identity <identity> --apply
 ```
 
-Review the preview before apply. The initializer checks non-bare/worktree Git
-safety, scaffolds missing canonical directories, and may enable worktree config.
-When the identity lane is new, apply creates its `.gitkeep` and binds the
-worktree in the same local operation. The surrounding workflow decides when to
-commit and publish these changes; the CLI never does so itself.
+Review the preview before apply. The initializer scaffolds missing canonical
+directories and creates the selected identity lane. It does not read or modify
+Git configuration. The surrounding workflow decides when to commit and publish
+repository files; the CLI never does so itself.
 
-When one identity is commonly used across repositories on a device, configure
-the machine-local suggestion with:
-
-```sh
-git config --global task-ledger.defaultIdentity <identity>
-```
-
-Do not track this value in a repository. It does not reserve the name, bind a
-worktree, or provide a fallback when a worktree binding is missing.
-
-Without repoledger, first verify an ordinary non-bare repository has no
-configured `core.worktree`, then enable worktree configuration once:
-
-```sh
-git config --local extensions.worktreeConfig true
-```
-
-Before enabling it in a nonstandard repository, inspect `core.worktree` and
-`core.bare` and follow Git's documented migration requirements. Worktree config
-is unsupported by older Git clients; all tools accessing the repository must
-support the extension.
-
-An explicit identity choice may override the device suggestion. Without the
-initializer, read that suggestion only as a candidate:
-
-```sh
-git config --global --get task-ledger.defaultIdentity
-```
-
-Validate the candidate as lowercase kebab-case and inspect the repository's
-local identity lanes. Deliberately confirm or create a matching clean
-`.gitkeep` lane. A matching global value must not trigger an automatic binding.
-
-After the existing or new local lane is confirmed, bind a worktree manually
-only when the initializer is unavailable:
+To use a worktree-specific identity, configure the override through Git's
+documented worktree configuration mechanism. Repoledger does not manage or
+validate that mechanism; it reads only the effective result:
 
 ```sh
 git config --worktree task-ledger.identity <identity>
@@ -254,33 +229,27 @@ git config --worktree task-ledger.identity <identity>
 
 ### Multiple Worktrees On One Device
 
-Initialize each worktree independently with `repoledger init --identity` when
-available. A primary worktree may explicitly choose the device suggestion. For
-an additional worktree, validate or publish a different registration when the
-team requires distinct ownership; without the CLI, bind it manually:
+Worktrees that use the global identity need no additional binding. Initialize a
+worktree independently with `repoledger init --identity` only when it needs a
+different identity. Without the CLI, configure that override manually:
 
 ```sh
-git config --worktree task-ledger.identity <registered-override>
+git config --worktree task-ledger.identity <identity>
 ```
 
-That explicit value overrides the device suggestion for the current worktree.
-Leave `task-ledger.defaultIdentity` unchanged unless the device's usual identity
-has changed; an override for one worktree is not a reason to rewrite it.
-
-At the start of task work, run `repoledger doctor`. It validates the extension,
-binding scope, identity syntax, and local lane together. Only when the CLI is
-unavailable, inspect the local facts manually:
+At the start of task work, run `repoledger doctor`. It validates identity
+syntax, its global or worktree scope, and the local lane. Only when the CLI is
+unavailable, inspect the effective value manually:
 
 ```sh
-git config --local --get extensions.worktreeConfig
+git config --get task-ledger.identity
 git config --show-origin --show-scope --get task-ledger.identity
 ```
 
-The extension must be enabled, the value must be lowercase kebab-case, the
-origin must be worktree config, and the matching `.gitkeep` must exist on the
-local filesystem. Stop task work until any missing binding is resolved. Do not
-guess from paths, branches, usernames, agent names, or visible lanes, and do
-not substitute the device default.
+The value must be lowercase kebab-case, its scope must be global or worktree,
+and the matching `.gitkeep` must exist on the local filesystem. Stop task work
+until any missing configuration is resolved. Do not guess from paths, branches,
+usernames, agent names, or visible lanes.
 
 ## Fallback validation invariants
 

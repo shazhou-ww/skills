@@ -65,11 +65,10 @@ history solely to change its link style.
 
 ## Identity
 
-- Require `extensions.worktreeConfig=true`.
-- Read the current identity with
-  `git config --worktree --get task-ledger.identity`.
-- Verify the value comes from worktree scope and that
-  `tasks/ongoing/<identity>/.gitkeep` exists locally.
+- Read the current identity with `git config --get task-ledger.identity`.
+- Accept a global identity or a worktree-scoped override; repoledger does not
+  manage the underlying Git configuration.
+- Verify that `tasks/ongoing/<identity>/.gitkeep` exists locally.
 - With workspace dependencies installed, `pnpm exec repoledger doctor` performs
   these local checks. Refresh and reconcile the remote separately before
   publication.

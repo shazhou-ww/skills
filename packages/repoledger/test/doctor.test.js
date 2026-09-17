@@ -41,8 +41,7 @@ function successfulGit(calls) {
     if (command === "rev-parse --verify refs/remotes/origin/main^{commit}") {
       return { ok: true, stdout: "f".repeat(40) };
     }
-    if (command.includes("extensions.worktreeConfig")) return { ok: true, stdout: "true" };
-    if (command === "config --worktree --get task-ledger.identity") {
+    if (command === "config --get task-ledger.identity") {
       return { ok: true, stdout: "fixture-identity" };
     }
     if (command === "config --show-origin --show-scope --get task-ledger.identity") {
@@ -50,9 +49,6 @@ function successfulGit(calls) {
         ok: true,
         stdout: "worktree\tfile:.git/config.worktree\tfixture-identity",
       };
-    }
-    if (command === "config --global --get task-ledger.defaultIdentity") {
-      return { ok: true, stdout: "fixture-default" };
     }
     if (command === "check-ref-format --branch main") return { ok: true, stdout: "main" };
     if (command === "fetch origin main") return { ok: true, stdout: "" };
@@ -74,7 +70,7 @@ test("validates an authoritative worktree identity using only Git config", async
 
   assert.equal(report.ok, true);
   assert.equal(report.identity, "fixture-identity");
-  assert.equal(report.defaultIdentity, "fixture-default");
+  assert.equal(report.scope.identityScope, "worktree");
   assert.equal(Object.hasOwn(report, "remoteFreshness"), false);
   assert.ok(calls.every(([command]) => command === "config"));
 });
@@ -91,11 +87,11 @@ test("does not access remotes", async () => {
   assert.ok(!calls.some(([command]) => command === "rev-parse"));
 });
 
-test("does not substitute a device default for a missing binding", async () => {
+test("reports a missing effective identity", async () => {
   const root = await createRepository();
   const base = successfulGit([]);
   const git = (repositoryRoot, args) => {
-    if (args.join(" ") === "config --worktree --get task-ledger.identity") {
+    if (args.join(" ") === "config --get task-ledger.identity") {
       return { ok: false, status: 1, stderr: "", stdout: "" };
     }
     return base(repositoryRoot, args);
@@ -106,7 +102,6 @@ test("does not substitute a device default for a missing binding", async () => {
 
   assert.equal(report.ok, false);
   assert.equal(report.identity, null);
-  assert.equal(report.defaultIdentity, "fixture-default");
   assert.ok(codes.includes("doctor.identity.missing"));
   assert.ok(!codes.includes("doctor.identity.invalid-scope"));
 });
@@ -123,4 +118,30 @@ test("reports a missing local identity lane", async () => {
   assert.ok(
     report.diagnostics.some(({ code }) => code === "doctor.identity.lane-missing"),
   );
+});
+
+test("accepts a global identity without worktree config", async () => {
+  const root = await createRepository();
+  const calls = [];
+  const git = (_repositoryRoot, args) => {
+    calls.push(args);
+    const command = args.join(" ");
+    if (command === "config --get task-ledger.identity") {
+      return { ok: true, stdout: "fixture-identity" };
+    }
+    if (command === "config --show-origin --show-scope --get task-ledger.identity") {
+      return {
+        ok: true,
+        stdout: "global\tfile:C:/Users/example/.gitconfig\tfixture-identity",
+      };
+    }
+    return { ok: false, status: 1, stderr: "", stdout: "" };
+  };
+
+  const report = await doctorRepository({ git, root });
+
+  assert.equal(report.ok, true);
+  assert.equal(report.identity, "fixture-identity");
+  assert.equal(report.scope.identityScope, "global");
+  assert.ok(!report.diagnostics.some(({ code }) => code.includes("worktree-config")));
 });

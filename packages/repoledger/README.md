@@ -7,7 +7,7 @@ Skill.
 ## Requirements
 
 - Node.js 22 or newer on Windows, macOS, or Linux.
-- Git only when reading or writing the worktree-scoped identity.
+- Git only when reading or writing the configured identity.
 - A repository that follows the canonical `tasks/backlog`, identity-scoped
   `tasks/ongoing`, and `tasks/archived` layout.
 
@@ -29,10 +29,11 @@ pnpm exec repoledger check --all-identities --archived
 ```
 
 `check` validates local files without network access, commit history, or remote
-refs. It reads `task-ledger.identity` from worktree-scoped Git config only to
-select the current ongoing lane. Without that binding, it checks backlog and
-skips ongoing tasks. `doctor` additionally requires a valid local worktree
-identity and identity lane.
+refs. It resolves `task-ledger.identity` through normal Git config precedence to
+select the current ongoing lane. A global value can provide the default, while
+a worktree value can override it. Without either value, `check` checks backlog
+and skips ongoing tasks. `doctor` additionally requires a valid effective
+identity and local identity lane.
 
 The complete command surface is:
 
@@ -54,9 +55,9 @@ reports those conflicts.
 
 `init` previews by default. It can scaffold a missing configuration and
 canonical task directories without overwriting conflicts. An explicit
-`--identity` safely enables worktree configuration, creates the local identity
-lane, and binds the worktree in one apply. `--dry-run` is an explicit preview
-alias, while `--apply` recomputes and applies the local plan.
+`--identity` creates the named local identity lane without reading or modifying
+Git configuration. `--dry-run` is an explicit preview alias, while `--apply`
+recomputes and applies the local plan.
 
 Every `task` command previews by default and reports its source, destination,
 preconditions, blockers, and Markdown reference decisions. `task claim` moves
@@ -120,14 +121,12 @@ rather than migration edits.
 
 `doctor` adds:
 
-- `extensions.worktreeConfig=true`;
-- a lowercase kebab-case `task-ledger.identity` from worktree scope;
-- separation from the optional device-global default identity;
+- a lowercase kebab-case `task-ledger.identity` from global or worktree scope;
 - the identity's local ongoing lane.
 
 `status`, `check`, `doctor`, initialization previews, and transition previews
 are read-only. Only explicit `init --apply` and `task ... --apply` operations
-modify local task files or Git worktree configuration. The CLI never fetches,
+modify local task files. The CLI never modifies Git configuration, fetches,
 stages, commits, pushes, merges, or inspects commit history. It rewrites task
 references only with the explicit `--update-all-refs` option. Admission,
 ownership consent, completion, acceptance, and archive decisions remain in the

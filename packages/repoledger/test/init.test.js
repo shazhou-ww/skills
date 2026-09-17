@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import * as nodeFs from "node:fs/promises";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, test } from "node:test";
@@ -11,9 +18,9 @@ const temporaryDirectories = [];
 
 afterEach(async () => {
   await Promise.all(
-    temporaryDirectories.splice(0).map((directory) =>
-      rm(directory, { recursive: true, force: true }),
-    ),
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
   );
 });
 
@@ -35,7 +42,12 @@ function repositoryGit(_root, args) {
   if (command === "check-ref-format --branch main") {
     return { ok: true, stdout: "main" };
   }
-  return { ok: false, status: 1, stderr: `unexpected command: ${command}`, stdout: "" };
+  return {
+    ok: false,
+    status: 1,
+    stderr: `unexpected command: ${command}`,
+    stdout: "",
+  };
 }
 
 test("classifies a child below a non-directory parent on every platform", async () => {
@@ -48,80 +60,6 @@ test("classifies a child below a non-directory parent on every platform", async 
 
   assert.equal(kind, "invalid-parent");
 });
-
-function identityGit({ binding = null, extensionExplicit = false } = {}) {
-  const calls = [];
-  const state = {
-    binding,
-    extension: false,
-    extensionExplicit,
-  };
-  const git = (_root, args) => {
-    calls.push(args);
-    const command = args.join(" ");
-    if (command === "config --global --get task-ledger.defaultIdentity") {
-      return { ok: true, stdout: "suggested-identity" };
-    }
-    if (command === "rev-parse --is-inside-work-tree") {
-      return { ok: true, stdout: "true" };
-    }
-    if (command === "remote") return { ok: true, stdout: "origin" };
-    if (command === "symbolic-ref --quiet --short refs/remotes/origin/HEAD") {
-      return { ok: true, stdout: "origin/main" };
-    }
-    if (command === "check-ref-format --branch main") {
-      return { ok: true, stdout: "main" };
-    }
-    if (command === "config --local --type=bool --get extensions.worktreeConfig") {
-      return state.extension || state.extensionExplicit
-        ? { ok: true, stdout: String(state.extension) }
-        : { ok: false, status: 1, stderr: "", stdout: "" };
-    }
-    if (command === "config --worktree --get task-ledger.identity") {
-      return state.binding
-        ? { ok: true, stdout: state.binding }
-        : { ok: false, status: 1, stderr: "", stdout: "" };
-    }
-    if (command === "config --show-origin --show-scope --get task-ledger.identity") {
-      return state.binding
-        ? {
-          ok: true,
-          stdout: `worktree\tfile:.git/config.worktree\t${state.binding}`,
-        }
-        : { ok: false, status: 1, stderr: "", stdout: "" };
-    }
-    if (command === "config --local --get core.worktree") {
-      return { ok: false, status: 1, stderr: "", stdout: "" };
-    }
-    if (command === "config --local --type=bool --get core.bare") {
-      return { ok: true, stdout: "false" };
-    }
-    if (command === "config --local extensions.worktreeConfig true") {
-      state.extension = true;
-      state.extensionExplicit = true;
-      return { ok: true, stdout: "" };
-    }
-    if (command === "config --local extensions.worktreeConfig false") {
-      state.extension = false;
-      state.extensionExplicit = true;
-      return { ok: true, stdout: "" };
-    }
-    if (command === "config --local --unset extensions.worktreeConfig") {
-      state.extension = false;
-      return { ok: true, stdout: "" };
-    }
-    if (command === "config --worktree task-ledger.identity fixture-identity") {
-      state.binding = "fixture-identity";
-      return { ok: true, stdout: "" };
-    }
-    if (command === "config --worktree --unset task-ledger.identity") {
-      state.binding = null;
-      return { ok: true, stdout: "" };
-    }
-    return { ok: false, status: 1, stderr: `unexpected command: ${command}`, stdout: "" };
-  };
-  return { calls, git, state };
-}
 
 test("previews initialization without changing the repository", async () => {
   const root = await createRoot();
@@ -140,7 +78,11 @@ test("applies initialization idempotently without staging or publishing", async 
   const root = await createRoot();
 
   const first = await initRepository({ apply: true, git: repositoryGit, root });
-  const second = await initRepository({ apply: true, git: repositoryGit, root });
+  const second = await initRepository({
+    apply: true,
+    git: repositoryGit,
+    root,
+  });
 
   assert.equal(first.ok, true);
   assert.equal(first.applied, true);
@@ -148,7 +90,9 @@ test("applies initialization idempotently without staging or publishing", async 
   assert.equal(second.applied, true);
   assert.deepEqual(second.changes, []);
   assert.deepEqual(second.nextActions, []);
-  const config = JSON.parse(await readFile(join(root, "repoledger.json"), "utf8"));
+  const config = JSON.parse(
+    await readFile(join(root, "repoledger.json"), "utf8"),
+  );
   assert.equal(config.tasksDirectory, "tasks");
   assert.equal(Object.hasOwn(config, "remote"), false);
   assert.equal(Object.hasOwn(config, "branch"), false);
@@ -161,12 +105,21 @@ test("refuses conflicting existing configuration without overwriting it", async 
   const root = await createRoot();
   await writeFile(join(root, "repoledger.json"), "{ invalid");
 
-  const report = await initRepository({ apply: true, git: repositoryGit, root });
+  const report = await initRepository({
+    apply: true,
+    git: repositoryGit,
+    root,
+  });
 
   assert.equal(report.ok, false);
   assert.equal(report.applied, false);
-  assert.ok(report.diagnostics.some(({ code }) => code === "config.invalid-json"));
-  assert.equal(await readFile(join(root, "repoledger.json",), "utf8"), "{ invalid");
+  assert.ok(
+    report.diagnostics.some(({ code }) => code === "config.invalid-json"),
+  );
+  assert.equal(
+    await readFile(join(root, "repoledger.json"), "utf8"),
+    "{ invalid",
+  );
 });
 
 test("refuses a non-directory canonical path before writing files", async () => {
@@ -174,52 +127,41 @@ test("refuses a non-directory canonical path before writing files", async () => 
   await mkdir(join(root, "tasks"));
   await writeFile(join(root, "tasks", "ongoing"), "conflict");
 
-  const report = await initRepository({ apply: true, git: repositoryGit, root });
+  const report = await initRepository({
+    apply: true,
+    git: repositoryGit,
+    root,
+  });
 
   assert.equal(report.ok, false);
   assert.equal(report.applied, false);
-  assert.ok(report.diagnostics.some(({ code }) => code === "init.path.conflict"));
+  assert.ok(
+    report.diagnostics.some(({ code }) => code === "init.path.conflict"),
+  );
   await assert.rejects(access(join(root, "repoledger.json")));
 });
 
-test("creates an identity lane and binds the worktree locally", async () => {
+test("creates an identity lane without modifying Git config", async () => {
   const root = await createRoot();
-  const { calls, git, state } = identityGit();
+  let gitCalls = 0;
 
   const report = await initRepository({
     apply: true,
-    git,
+    git: () => {
+      gitCalls += 1;
+      throw new Error("Git must not be called");
+    },
     identity: "fixture-identity",
     root,
   });
 
   assert.equal(report.ok, true);
   assert.equal(report.applied, true);
-  assert.equal(report.identity.willBind, true);
-  assert.equal(state.extension, true);
-  assert.equal(state.binding, "fixture-identity");
-  assert.ok(calls.every(([command]) => command === "config"));
+  assert.deepEqual(report.identity, { requested: "fixture-identity" });
+  assert.equal(gitCalls, 0);
+  assert.ok(!report.changes.some(({ action }) => action === "set-git-config"));
   await access(join(root, "tasks", "ongoing", "fixture-identity", ".gitkeep"));
   assert.match(report.nextActions[0], /Review and commit/);
-});
-
-test("preserves an existing matching worktree identity binding", async () => {
-  const root = await createRoot();
-  const { calls, git, state } = identityGit({ binding: "fixture-identity" });
-
-  const report = await initRepository({
-    apply: true,
-    git,
-    identity: "fixture-identity",
-    root,
-  });
-
-  assert.equal(report.ok, true);
-  assert.equal(report.applied, true);
-  assert.equal(report.identity.willBind, false);
-  assert.equal(state.extension, true);
-  assert.equal(state.binding, "fixture-identity");
-  assert.ok(calls.every(([command]) => command === "config"));
 });
 
 test("rolls back every created file and directory after an apply failure", async () => {
@@ -245,37 +187,29 @@ test("rolls back every created file and directory after an apply failure", async
 
   assert.equal(report.ok, false);
   assert.equal(report.applied, false);
-  assert.ok(report.diagnostics.some(({ code }) => code === "init.apply.failed"));
+  assert.ok(
+    report.diagnostics.some(({ code }) => code === "init.apply.failed"),
+  );
   await assert.rejects(access(join(root, "repoledger.json")));
   await assert.rejects(access(join(root, "tasks")));
 });
 
-test("restores an explicit false worktree-config value during rollback", async () => {
+test("rejects an invalid identity lane without writing files", async () => {
   const root = await createRoot();
-  const { git, state } = identityGit({ extensionExplicit: true });
-  const fs = {
-    mkdir: nodeFs.mkdir,
-    rm: nodeFs.rm,
-    rmdir: nodeFs.rmdir,
-    async writeFile(path, content, options) {
-      if (path.endsWith(join("fixture-identity", ".gitkeep"))) {
-        throw new Error("injected identity initialization failure");
-      }
-      return nodeFs.writeFile(path, content, options);
-    },
-  };
 
   const report = await initRepository({
     apply: true,
-    fs,
-    git,
-    identity: "fixture-identity",
+    identity: "Invalid Identity",
     root,
   });
 
   assert.equal(report.ok, false);
   assert.equal(report.applied, false);
-  assert.equal(state.extension, false);
-  assert.equal(state.extensionExplicit, true);
+  assert.ok(
+    report.diagnostics.some(
+      ({ code }) => code === "init.identity.invalid-name",
+    ),
+  );
   await assert.rejects(access(join(root, "repoledger.json")));
+  await assert.rejects(access(join(root, "tasks")));
 });

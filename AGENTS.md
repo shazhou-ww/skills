@@ -18,7 +18,7 @@ task-free regardless of which files they change, their size, or their duration.
   ineligible.
 - Once a task exists, keep managing it until completion, abandonment, or an
   explicit handoff. The opt-in rule does not release existing task ownership.
-- Resolve identity only from the worktree-scoped Git key
+- Resolve identity from the effective global or worktree Git key
   `task-ledger.identity`; verify its local `.gitkeep` lane.
 - When workspace dependencies are available, run
   `pnpm exec repoledger doctor` for deterministic identity and ledger checks
