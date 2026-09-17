@@ -4,8 +4,9 @@ Updated: 2026-09-17
 
 ## Current state
 
-Implementation and repository-wide validation are complete. Inspect the final
-diff, then publish implementation completion while the task remains ongoing.
+Implementation completion is published and delivery is approved. Publish this
+decision while the task remains ongoing, then archive it as a separate final
+integration.
 
 ## Decisions
 
@@ -17,6 +18,8 @@ diff, then publish implementation completion while the task remains ongoing.
 - Git history and task position are authoritative for lifecycle publication.
 - Canonical facts are parsed before invariant checks; separated annotations do
   not weaken unknown, ambiguous, conflicting, or negated-state rejection.
+- The user approved the published implementation and validation evidence for
+  delivery on 2026-09-17.
 
 ## Human approvals
 
@@ -26,7 +29,7 @@ diff, then publish implementation completion while the task remains ongoing.
 | Interface | Approved | The user approved the published accepted forms, parsing rules, diagnostics, and compatibility behavior on 2026-09-17. |
 | Business and data model | Approved | The user approved the published task artifact facts and source-of-truth model on 2026-09-17. |
 | Architecture | Approved | The user approved the published parsing boundary and Git, task-position, and Markdown responsibilities on 2026-09-17. |
-| Delivery acceptance | Pending | Review the published implementation, migration behavior, documentation, and complete validation evidence. |
+| Delivery acceptance | Approved | The user approved the published implementation, migration behavior, documentation, and complete validation evidence on 2026-09-17. |
 
 ## Validation
 
@@ -47,8 +50,10 @@ diff, then publish implementation completion while the task remains ongoing.
 
 ## Blockers
 
-- None. Delivery acceptance remains pending after implementation publication.
+- None.
 
 ## Outcome
 
-Pending.
+Completed. Repoledger now validates canonical facts independently from human
+annotations, rejects ambiguous and negated states, and relies on Git history
+and task position for lifecycle publication without Progress tracking fields.
