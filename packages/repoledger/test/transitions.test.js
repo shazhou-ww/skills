@@ -222,6 +222,7 @@ test("applies a claim through the CLI with a complete JSON report", async () => 
   assert.ok(Array.isArray(report.preconditions));
   assert.ok(Array.isArray(report.referenceEdits));
   assert.deepEqual(report.blockers, []);
+  assert.doesNotMatch(report.nextActions.join("\n"), /mark the claim Published/);
   assert.match(
     await readFile(join(root, "docs", "links.md"), "utf8"),
     /tasks\/ongoing\/fixture-identity\/move-task\/Task\.md/,
@@ -351,6 +352,7 @@ test("archives a completed current task after prospective content validation", a
 
   assert.equal(applied.ok, true);
   assert.equal(applied.operation, "archive");
+  assert.doesNotMatch(applied.nextActions.join("\n"), /Progress\.md/);
   await assert.rejects(access(source));
   await access(join(destination, "Progress.md"));
   const archivedTask = await readFile(join(destination, "Task.md"), "utf8");

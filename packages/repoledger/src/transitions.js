@@ -480,11 +480,11 @@ export async function transitionRepository({
   const nextActions = [];
   if (applied) {
     if (actualOperation === "claim") {
-      nextActions.push("Review Progress.md, mark the claim Published with descriptive evidence, then commit, publish, and verify it.");
+      nextActions.push("Review Progress.md, then commit, publish, and verify the claim.");
     } else if (actualOperation === "takeover") {
       nextActions.push("Commit and publish the coordinated ownership transfer before continuing work.");
     } else {
-      nextActions.push("Record the archive action in Progress.md, then commit and publish the move as the task's final lifecycle integration.");
+      nextActions.push("Commit and publish the move as the task's final lifecycle integration.");
     }
   } else if (ok && changes.length > 0) {
     const takeover = takeFrom ? ` --take-from ${takeFrom}` : "";
