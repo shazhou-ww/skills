@@ -30,9 +30,9 @@ review before substantive implementation.
 | Checkpoint | Status | Review artifact and decision evidence |
 | --- | --- | --- |
 | Scope | Approved | The user approved the published task scope and acceptance criteria on 2026-09-17. |
-| Interface | Pending | Review Proposed accepted Markdown forms, canonical parsing rules, diagnostics, and compatibility behavior. with User. |
-| Business and data model | Pending | Review Revised `Task.md`, `Progress.md`, and `UserAcceptance.md` facts and source-of-truth model. with User. |
-| Architecture | Pending | Review Parsing boundaries and the division of responsibility between Git history, task position, and Markdown content. with User. |
+| Interface | Pending | Review the accepted forms, parsing rules, diagnostics, and compatibility behavior in [Design.md](./Design.md). |
+| Business and data model | Pending | Review the task artifact facts and source-of-truth model in [Design.md](./Design.md). |
+| Architecture | Pending | Review the parsing boundary and Git, task-position, and Markdown responsibilities in [Design.md](./Design.md). |
 | Delivery acceptance | Pending | Review Published implementation, migration behavior, documentation, and complete validation evidence. with User. |
 
 ## Publication milestones
@@ -47,6 +47,8 @@ review before substantive implementation.
 
 - Repoledger verified the claim source, destination, identity, references, and
   unique post-move task position.
+- The design artifact covers positive, ambiguous, unknown, and negated parser
+  cases and the migration away from publication milestone rows.
 
 ## Blockers
 
