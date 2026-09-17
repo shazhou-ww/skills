@@ -65,33 +65,33 @@ appendices.
 
 ## Acceptance criteria
 
-- [ ] Skill discovery lists `ui-change-review` and
+- [x] Skill discovery lists `ui-change-review` and
       `business-data-model-review` as valid, independently installable Agent
       Skills with descriptions that reliably match their intended review
       scenarios.
-- [ ] `ui-change-review` directs an agent to create a concise, standalone,
+- [x] `ui-change-review` directs an agent to create a concise, standalone,
       responsive before/after HTML artifact grounded in the current UI, scoped
       to material changes, and explicit about its illustrative status.
-- [ ] The UI workflow requires only decision-relevant interaction and states,
+- [x] The UI workflow requires only decision-relevant interaction and states,
       plus focused desktop/mobile, overflow, keyboard, focus, and accessibility
       checks when applicable; it does not require a complete mock application.
-- [ ] `business-data-model-review` directs an agent to create legible Mermaid
+- [x] `business-data-model-review` directs an agent to create legible Mermaid
       ER views with keys, ownership, cardinalities, and material invariants,
       splitting large models by review question when that improves readability.
-- [ ] The data-model workflow defines and renders `<<AO>>` and `<<EI>>`, states
+- [x] The data-model workflow defines and renders `<<AO>>` and `<<EI>>`, states
       that unmarked entities are mutable, and pairs stereotypes with concise
       lifecycle rules so they are semantic rather than decorative labels.
-- [ ] Both skills enforce a default five-minute human review budget, put the
+- [x] Both skills enforce a default five-minute human review budget, put the
       requested decision and key deltas first, avoid repeating source-task
       context, and move exhaustive derivation, implementation detail, and
       validation evidence out of the primary narrative.
-- [ ] The two skills remain self-contained and independently useful;
+- [x] The two skills remain self-contained and independently useful;
       `repository-task-ledger` may recommend them at relevant checkpoints but
       does not fail when they are absent.
-- [ ] Repository documentation explains purpose, invocation, installation,
+- [x] Repository documentation explains purpose, invocation, installation,
       independence, and optional task-ledger composition without implying
       runtime-enforced dependencies.
-- [ ] `pnpm check`, `pnpm check:skills`, focused skill contract tests, local
+- [x] `pnpm check`, `pnpm check:skills`, focused skill contract tests, local
       Markdown link checks, and `git diff --check` pass.
 
 ## Constraints

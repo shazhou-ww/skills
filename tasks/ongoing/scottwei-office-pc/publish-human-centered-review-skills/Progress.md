@@ -8,9 +8,9 @@ Updated: 2026-09-17
 - [x] Obtain scope approval before substantive implementation.
 - [x] Complete each applicable interface, business and data model, and
   architecture approval before the affected implementation.
-- [ ] Commit and publish substantive work at meaningful checkpoints.
+- [x] Commit and publish substantive work at meaningful checkpoints.
 - [ ] Publish implementation completion while the task is still ongoing.
-- [ ] Complete documented manual user acceptance, if required.
+- [x] Complete documented manual user acceptance, if required.
 - [ ] Obtain and publish delivery approval.
 - [ ] Archive and publish the task as its final action.
 
@@ -23,10 +23,11 @@ requesting user approved the current scope and directed implementation to
 continue without intermediate approval, with review of the finished result at
 delivery acceptance. Interface, business/data-model, and architecture
 checkpoints are not applicable to this documentation-only, self-contained
-skill change.
+skill change. Both skills, documentation, optional ledger guidance, and focused
+contract tests are complete and validated locally.
 
-Next: implement and validate both skills, their optional ledger guidance, and
-repository documentation.
+Next: publish implementation completion, then present the finished skills and
+validation evidence for delivery acceptance.
 
 ## Decisions
 
@@ -39,6 +40,15 @@ repository documentation.
   written output contract remain delivery criteria.
 - Reclassify Architecture as not applicable because each skill will remain a
   self-contained Markdown package with no runtime dependency or shared module.
+- Keep each skill self-contained in its own `SKILL.md`; the workflows are short
+  enough that bundled templates would add navigation cost without improving
+  reliability.
+- Add deterministic contract tests to the normal repository check so discovery
+  metadata, the five-minute review budget, fair UI comparison, lifecycle
+  stereotypes, and optional ledger composition cannot silently drift.
+- Do not require manual user acceptance: all acceptance criteria are observable
+  from the skill sources, discovery output, automated contract tests, link
+  validation, and repository checks. Human review remains required at delivery.
 
 ## Human approvals
 
@@ -64,6 +74,16 @@ repository documentation.
   unique post-move task position.
 - Claim commit `cf421657b96ba9bf34ffdb4e991b4d26acd96baf` was pushed and verified
   reachable from refreshed `origin/main`.
+- `pnpm check:skills` discovered six skills, including independently listed
+  `ui-change-review` and `business-data-model-review` entries with their intended
+  descriptions.
+- `pnpm test:review-skills` passed 4 focused contract tests covering skill
+  frontmatter and independence, UI comparison guidance, ER lifecycle semantics,
+  README installation, and optional task-ledger composition.
+- `pnpm check` passed all 84 repoledger tests, package pack/smoke validation,
+  all 12 release tests, the 4 review-skill tests, and the full ledger/link check.
+- `git diff --check` passed, and editor diagnostics reported no errors in the
+  two skills, README, package scripts, ledger guidance, or contract tests.
 
 ## Blockers
 
