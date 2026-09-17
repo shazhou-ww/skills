@@ -117,9 +117,9 @@ acceptance are always required for completed work.
 | Checkpoint | Applicability | Reviewer | Planned review artifact | Approval required before |
 | --- | --- | --- | --- | --- |
 | Scope | Required | User or accountable owner | This task's goal, scope, out of scope, constraints, and acceptance criteria. | Substantive implementation. |
-| Interface | Required | User or delegated skill consumer | A compact skill contract covering names, discovery descriptions, invocation, outputs, human review budget, and examples. | Finalizing the public skill interfaces and user-facing documentation. |
+| Interface | Not applicable: the task adds guidance-only skills and changes no GUI, CLI command, MCP tool, or API contract. | Not applicable | Not applicable | Not applicable |
 | Business and data model | Not applicable: this task teaches model review but introduces no repository business entities, persistence schema, or migration. | Not applicable | Not applicable | Not applicable |
-| Architecture | Required | User or delegated skill maintainer | The same compact skill contract covering independent ownership, bundled assets, optional ledger composition, and validation boundaries. | Adding cross-skill composition or shared assets. |
+| Architecture | Not applicable: each skill is a self-contained Markdown package with no runtime dependency or shared module boundary. | Not applicable | Not applicable | Not applicable |
 | Delivery acceptance | Required | User or accountable owner | Integrated skills, discovery and contract-test results, documentation, and concise example-output review. | Marking the task completed and archiving it. |
 
 ## References
