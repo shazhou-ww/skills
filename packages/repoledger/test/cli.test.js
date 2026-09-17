@@ -36,7 +36,7 @@ test("prints the package version without requiring a command", async () => {
   const exitCode = await runCli(["--version"], capture.io);
 
   assert.equal(exitCode, 0);
-  assert.deepEqual(capture.output, ["0.4.0"]);
+  assert.deepEqual(capture.output, ["0.4.1"]);
   assert.deepEqual(capture.errors, []);
 });
 
