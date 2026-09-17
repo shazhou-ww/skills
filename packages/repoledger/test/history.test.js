@@ -28,7 +28,7 @@ async function createTask() {
 
 | Milestone | Evidence | Status |
 | --- | --- | --- |
-| Claim | origin/main commit abcdef0. | Published |
+| Claim | Claim published to origin/main. | Published |
 | Implementation complete | Pending. | Pending |
 | Archive | Pending. | Pending |
 `,
@@ -45,23 +45,21 @@ async function createTask() {
   };
 }
 
-async function createArchivedTask({ duplicateImplementation = false } = {}) {
+async function createArchivedTask({ legacyReferences = false } = {}) {
   const root = await mkdtemp(join(tmpdir(), "repoledger-history-archive-"));
   temporaryDirectories.push(root);
   const taskPath = join(root, "tasks", "archived", "history-task");
   await mkdir(taskPath, { recursive: true });
   await writeFile(join(taskPath, "Task.md"), "# History task\n");
-  const claim = "a".repeat(40);
-  const implementation = duplicateImplementation ? claim : "b".repeat(40);
   await writeFile(
     join(taskPath, "Progress.md"),
     `## Publication milestones
 
 | Milestone | Evidence | Status |
 | --- | --- | --- |
-| Claim | origin/main commit ${claim}. | Published |
-| Implementation complete | origin/main commit ${implementation}. | Published |
-| Archive | origin/main archive commit. | Published |
+| Claim | ${legacyReferences ? "Commit `aaaaaaa` on origin/main." : "Claim published to origin/main."} | Published |
+| Implementation complete | ${legacyReferences ? "Commit `bbbbbbb` on origin/main." : "Validated implementation published to origin/main."} | Published |
+| Archive | Task archived on origin/main. | Published |
 `,
   );
   return {
@@ -92,7 +90,7 @@ test("reports unavailable history as an error", async () => {
   assert.equal(result.diagnostics[0].level, "error");
 });
 
-test("validates published evidence against a full remote history", async () => {
+test("derives published milestones from full remote history", async () => {
   const { root, task } = await createTask();
   const git = (_root, args) => {
     const command = args.join(" ");
@@ -101,10 +99,9 @@ test("validates published evidence against a full remote history", async () => {
     if (command === "rev-parse --verify refs/remotes/origin/main^{commit}") {
       return { ok: true, stdout: "f".repeat(40) };
     }
-    if (command === "rev-parse --verify abcdef0^{commit}") {
+    if (args[0] === "log" && args.includes("-G")) {
       return { ok: true, stdout: "a".repeat(40) };
     }
-    if (command.startsWith("merge-base --is-ancestor")) return { ok: true, stdout: "" };
     return { ok: false, status: 128, stderr: `unexpected command: ${command}`, stdout: "" };
   };
 
@@ -121,9 +118,9 @@ test("rejects an ongoing task that reuses its claim commit for implementation", 
   await writeFile(
     progressPath,
     (await readFile(progressPath, "utf8")).replace(
-        "| Implementation complete | Pending. | Pending |",
-        "| Implementation complete | origin/main commit abcdef0. | Published |",
-      ),
+      "| Implementation complete | Pending. | Pending |",
+      "| Implementation complete | Validated implementation published to origin/main. | Published |",
+    ),
   );
   const git = (_root, args) => {
     const command = args.join(" ");
@@ -132,10 +129,9 @@ test("rejects an ongoing task that reuses its claim commit for implementation", 
     if (command === "rev-parse --verify refs/remotes/origin/main^{commit}") {
       return { ok: true, stdout: "f".repeat(40) };
     }
-    if (command === "rev-parse --verify abcdef0^{commit}") {
+    if (args[0] === "log" && args.includes("-G")) {
       return { ok: true, stdout: "a".repeat(40) };
     }
-    if (command.startsWith("merge-base --is-ancestor")) return { ok: true, stdout: "" };
     return { ok: false, status: 128, stderr: `unexpected command: ${command}`, stdout: "" };
   };
 
@@ -146,7 +142,7 @@ test("rejects an ongoing task that reuses its claim commit for implementation", 
   );
 });
 
-test("surfaces shallow history and unavailable published evidence", async () => {
+test("surfaces shallow history and a milestone absent from remote history", async () => {
   const { root, task } = await createTask();
   const git = (_root, args) => {
     const command = args.join(" ");
@@ -155,6 +151,7 @@ test("surfaces shallow history and unavailable published evidence", async () => 
     if (command === "rev-parse --verify refs/remotes/origin/main^{commit}") {
       return { ok: true, stdout: "f".repeat(40) };
     }
+    if (args[0] === "log" && args.includes("-G")) return { ok: true, stdout: "" };
     return { ok: false, status: 128, stderr: "missing", stdout: "" };
   };
 
@@ -163,7 +160,7 @@ test("surfaces shallow history and unavailable published evidence", async () => 
 
   assert.equal(result.capability, "shallow");
   assert.ok(codes.includes("history.shallow"));
-  assert.ok(codes.includes("history.evidence.commit-unavailable"));
+  assert.ok(codes.includes("history.milestone.not-published"));
 });
 
 test("fails closed when Git cannot report history completeness", async () => {
@@ -182,7 +179,7 @@ test("fails closed when Git cannot report history completeness", async () => {
   assert.equal(result.diagnostics[0].level, "error");
 });
 
-function archivedGit({ copy = false } = {}) {
+function archivedGit({ copy = false, duplicateMilestones = false } = {}) {
   const remote = "f".repeat(40);
   const archive = "c".repeat(40);
   const source = "tasks/ongoing/fixture/history-task/Task.md";
@@ -193,8 +190,16 @@ function archivedGit({ copy = false } = {}) {
     if (command === "rev-parse --verify refs/remotes/origin/main^{commit}") {
       return { ok: true, stdout: remote };
     }
-    if (/^rev-parse --verify [ab]{40}\^\{commit\}$/.test(command)) {
-      return { ok: true, stdout: command.slice(19, 59) };
+    const legacyReference = /^rev-parse --verify ([ab])\1{6}\^\{commit\}$/.exec(command);
+    if (legacyReference) {
+      return { ok: true, stdout: legacyReference[1].repeat(40) };
+    }
+    if (args[0] === "log" && args.includes("-G")) {
+      const pattern = args[args.indexOf("-G") + 1];
+      const commit = pattern.includes("Implementation complete") && !duplicateMilestones
+        ? "b".repeat(40)
+        : "a".repeat(40);
+      return { ok: true, stdout: commit };
     }
     if (command.startsWith("merge-base --is-ancestor")) return { ok: true, stdout: "" };
     if (command === "log --format=%H -- tasks/archived/history-task/Task.md") {
@@ -227,6 +232,19 @@ test("accepts distinct claim, implementation, and archive move commits", async (
   assert.deepEqual(result.diagnostics, []);
 });
 
+test("accepts valid legacy references when milestone status was recorded later", async () => {
+  const { root, task } = await createArchivedTask({ legacyReferences: true });
+
+  const result = await inspectHistory({
+    config,
+    git: archivedGit({ duplicateMilestones: true }),
+    root,
+    tasks: [task],
+  });
+
+  assert.deepEqual(result.diagnostics, []);
+});
+
 test("rejects copying a task into archived while its ongoing source remains", async () => {
   const { root, task } = await createArchivedTask();
 
@@ -243,9 +261,14 @@ test("rejects copying a task into archived while its ongoing source remains", as
 });
 
 test("rejects lifecycle milestones that reuse a commit", async () => {
-  const { root, task } = await createArchivedTask({ duplicateImplementation: true });
+  const { root, task } = await createArchivedTask();
 
-  const result = await inspectHistory({ config, git: archivedGit(), root, tasks: [task] });
+  const result = await inspectHistory({
+    config,
+    git: archivedGit({ duplicateMilestones: true }),
+    root,
+    tasks: [task],
+  });
 
   assert.ok(
     result.diagnostics.some(({ code }) => code === "history.milestones.not-distinct"),

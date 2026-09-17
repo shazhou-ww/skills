@@ -136,17 +136,16 @@ async function prepareOngoingTask(root, identity) {
     `[Task](../tasks/ongoing/${identity}/move-task/Task.md)\n`,
   );
   const pending = await createClaimProgress(destination, "2026-09-16");
-  await writeFile(join(destination, "Progress.md"), pending);
-  const claim = commitAndPush(root, `Claim task under ${identity}`);
   const published = pending
     .replace("- [ ] Publish the claim", "- [x] Publish the claim")
     .replace(
       "| Claim | Pending publication of the task move. | Pending |",
-      `| Claim | Commit ${claim} on origin/main. | Published |`,
-    );
+      "| Claim | Task ownership published to origin/main. | Published |",
+    )
+    .replace("Claim publication remains pending.", "None.");
   await writeFile(join(destination, "Progress.md"), published);
-  commitAndPush(root, "Record claim evidence");
-  return { claim, path: destination };
+  commitAndPush(root, `Claim task under ${identity}`);
+  return { path: destination };
 }
 
 test("previews and applies a claim without rewriting references by default", async () => {
@@ -312,39 +311,38 @@ test("takes over only from the explicitly named source identity", async () => {
 
 test("archives a completed current task after prospective content validation", async () => {
   const root = await createRepository();
-  const { claim, path: source } = await prepareOngoingTask(root, "fixture-identity");
+  const { path: source } = await prepareOngoingTask(root, "fixture-identity");
   const destination = join(root, "tasks", "archived", "move-task");
   const taskText = (await readFile(join(source, "Task.md"), "utf8"))
     .replace("- [ ] The task moves safely.", "- [x] The task moves safely.");
   await writeFile(join(source, "Task.md"), taskText);
   await writeFile(join(root, "implementation.txt"), "implemented\n");
-  const implementation = commitAndPush(root, "Implement move task");
   const progressPath = join(source, "Progress.md");
-  const progress = (await readFile(progressPath, "utf8"))
+  const implemented = (await readFile(progressPath, "utf8"))
+    .replace("- [ ] Publish implementation completion", "- [x] Publish implementation completion")
+    .replace(
+      "| Scope | Pending | Review Fixture scope. with Fixture owner. |",
+      "| Scope | Approved | Fixture owner approved scope on 2026-09-16. |",
+    )
+    .replace(
+      "| Implementation complete | Pending. | Pending |",
+      "| Implementation complete | Validated implementation published to origin/main. | Published |",
+    );
+  await writeFile(progressPath, implemented);
+  commitAndPush(root, "Implement move task");
+
+  const accepted = implemented
     .replaceAll("- [ ]", "- [x]")
     .replace(
       "- [x] Archive and publish the task as its final action.",
       "- [ ] Archive and publish the task as its final action.",
     )
     .replace(
-      "| Scope | Pending | Review Fixture scope. with Fixture owner. |",
-      "| Scope | Approved | Fixture owner approved scope on 2026-09-16. |",
-    )
-    .replace(
       "| Delivery acceptance | Pending | Review Fixture result. with Fixture owner. |",
       "| Delivery acceptance | Approved | Fixture owner approved delivery on 2026-09-16. |",
     )
-    .replace(
-      "| Implementation complete | Pending. | Pending |",
-      `| Implementation complete | Commit ${implementation} on origin/main. | Published |`,
-    )
-    .replace("## Outcome\n\nPending.", "## Outcome\n\nCompleted. Fixture work is accepted.")
-    .replace(
-      "Claim publication and immutable evidence remain pending.",
-      "None.",
-    );
-  assert.match(progress, new RegExp(claim.slice(0, 7)));
-  await writeFile(progressPath, progress);
+    .replace("## Outcome\n\nPending.", "## Outcome\n\nCompleted. Fixture work is accepted.");
+  await writeFile(progressPath, accepted);
   commitAndPush(root, "Prepare task archive");
 
   const preview = await transitionRepository({
@@ -550,7 +548,7 @@ test("archives an abandoned current task without implementation publication", as
       "## Outcome\n\nAbandoned. The fixture was intentionally stopped.",
     )
     .replace(
-      "Claim publication and immutable evidence remain pending.",
+      "Claim publication remains pending.",
       "None. The abandonment reason is recorded.",
     );
   await writeFile(progressPath, progress);

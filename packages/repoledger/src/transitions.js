@@ -88,8 +88,8 @@ Updated: ${date}
 ## Current state
 
 The task has been moved into the current worktree identity. Review this record,
-publish the claim, and replace the pending claim milestone with its immutable
-shared-branch commit before substantive implementation.
+mark the claim milestone Published with descriptive evidence, then commit,
+publish, and verify the claim before substantive implementation.
 
 ## Decisions
 
@@ -116,7 +116,7 @@ ${rows}
 
 ## Blockers
 
-- Claim publication and immutable evidence remain pending.
+- Claim publication remains pending.
 
 ## Outcome
 
@@ -583,7 +583,7 @@ export async function transitionRepository({
   const nextActions = [];
   if (applied) {
     if (actualOperation === "claim") {
-      nextActions.push("Review Progress.md, commit and publish the claim, then record its immutable commit hash.");
+      nextActions.push("Review Progress.md, mark the claim Published with descriptive evidence, then commit, publish, and verify it.");
     } else if (actualOperation === "takeover") {
       nextActions.push("Commit and publish the coordinated ownership transfer before continuing work.");
     } else {

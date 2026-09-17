@@ -263,7 +263,7 @@ function validateMilestones({
         "progress.milestones.claim-unpublished",
         path,
         `Claim milestone status must be Published, found ${claimStatus ?? "missing"}.`,
-        "Publish the claim and record its immutable evidence before implementation.",
+        "Record Published with descriptive evidence in the claim commit, then publish it before implementation.",
       ),
     );
   }

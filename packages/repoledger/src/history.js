@@ -24,8 +24,8 @@ function rowsByMilestone(document) {
   );
 }
 
-function commitReference(evidence) {
-  return /(?:^|[^0-9a-f])([0-9a-f]{7,40})(?=$|[^0-9a-f])/i.exec(evidence)?.[1] ?? null;
+function legacyCommitReference(evidence) {
+  return /\bcommit\s+`?([0-9a-f]{7,64})`?/i.exec(evidence)?.[1] ?? null;
 }
 
 function historyRequirementDiagnostic(status, detail) {
@@ -40,45 +40,58 @@ function historyRequirementDiagnostic(status, detail) {
   );
 }
 
-function resolveCommit({ diagnostics, evidence, git, milestone, path, remoteRef, root }) {
-  const reference = commitReference(evidence);
-  if (!reference) {
-    diagnostics.push(
-      error(
-        "history.evidence.commit-missing",
-        path,
-        `${milestone} is Published but its evidence has no commit reference.`,
-        `Record an immutable ${milestone} commit hash from the shared primary branch.`,
-      ),
-    );
-    return null;
-  }
+function milestoneRowPattern(milestone) {
+  const escaped = milestone.replace(/[\\.^$*+?()[\]{}]/g, "\\$&");
+  return `^[|][[:space:]]*${escaped}[[:space:]]*[|].*[|][[:space:]]*Published[[:space:]]*[|]`;
+}
+
+function resolveLegacyCommit({ evidence, git, remoteRef, root }) {
+  const reference = legacyCommitReference(evidence);
+  if (!reference) return null;
   const resolved = git(root, ["rev-parse", "--verify", `${reference}^{commit}`]);
-  if (!resolved.ok) {
+  if (!resolved.ok) return null;
+  const ancestor = git(root, ["merge-base", "--is-ancestor", resolved.stdout, remoteRef]);
+  return ancestor.ok ? resolved.stdout : null;
+}
+
+function findMilestoneCommit({ diagnostics, git, milestone, path, remoteRef, root }) {
+  const history = git(root, [
+    "log",
+    "--follow",
+    "--format=%H",
+    "-G",
+    milestoneRowPattern(milestone),
+    remoteRef,
+    "--",
+    path,
+  ]);
+  if (!history.ok) {
     diagnostics.push(
       error(
-        "history.evidence.commit-unavailable",
+        "history.milestone.history-unavailable",
         path,
-        `${milestone} commit ${reference} is unavailable in local Git history.`,
-        "Fetch full shared-branch history or correct the recorded evidence.",
+        `${milestone} publication history could not be inspected on ${remoteRef}.`,
+        "Fetch full shared-branch history and retry the check.",
       ),
     );
     return null;
   }
-  if (remoteRef) {
-    const ancestor = git(root, ["merge-base", "--is-ancestor", resolved.stdout, remoteRef]);
-    if (!ancestor.ok) {
-      diagnostics.push(
-        error(
-          "history.evidence.not-published",
-          path,
-          `${milestone} commit ${resolved.stdout} is not reachable from ${remoteRef}.`,
-          "Publish the milestone through the shared primary branch and refresh the remote ref.",
-        ),
-      );
-    }
+  const commits = history.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => /^[0-9a-f]+$/i.test(line));
+  if (commits.length === 0) {
+    diagnostics.push(
+      error(
+        "history.milestone.not-published",
+        path,
+        `${milestone} is marked Published, but that status is absent from ${remoteRef} history.`,
+        `Record ${milestone} as Published with descriptive evidence in the milestone commit, then publish it.`,
+      ),
+    );
+    return null;
   }
-  return resolved.stdout;
+  return commits.at(-1);
 }
 
 function findArchiveCommit({ config, git, root, task }) {
@@ -177,15 +190,20 @@ export async function inspectHistory({ config, git = runGit, root, tasks }) {
     for (const milestone of ["Claim", "Implementation complete"]) {
       const row = rows.get(milestone);
       if (row?.status !== "Published") continue;
-      const commit = resolveCommit({
-        diagnostics,
+      if (!verifiedRemoteRef) continue;
+      const commit = resolveLegacyCommit({
         evidence: row.evidence,
         git,
-        milestone,
-        path: progressPath,
         remoteRef: verifiedRemoteRef,
         root,
-      });
+      }) ?? findMilestoneCommit({
+          diagnostics,
+          git,
+          milestone,
+          path: progressPath,
+          remoteRef: verifiedRemoteRef,
+          root,
+        });
       if (commit) commits.push(commit);
     }
 

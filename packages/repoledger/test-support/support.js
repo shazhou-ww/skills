@@ -16,8 +16,14 @@ export function fullHistoryGit(_root, args) {
   if (command === "rev-parse --verify refs/remotes/origin/main^{commit}") {
     return { ok: true, stdout: "f".repeat(40) };
   }
-  if (/^rev-parse --verify [0-9a-f]{7,40}\^\{commit\}$/.test(command)) {
-    return { ok: true, stdout: "a".repeat(40) };
+  if (args[0] === "log" && args.includes("-G")) {
+    const pattern = args[args.indexOf("-G") + 1];
+    return {
+      ok: true,
+      stdout: pattern.includes("Implementation complete")
+        ? "b".repeat(40)
+        : "a".repeat(40),
+    };
   }
   if (command.startsWith("merge-base --is-ancestor")) return { ok: true, stdout: "" };
   return { ok: false, status: 128, stderr: `unexpected command: ${command}`, stdout: "" };

@@ -87,7 +87,7 @@ ${HUMAN_APPROVALS}
 
 | Milestone | Evidence | Status |
 | --- | --- | --- |
-| Claim | origin/main commit abcdef0. | Published |
+| Claim | Claim published to origin/main. | Published |
 | Implementation complete | Pending. | Pending |
 | Archive | Pending. | Pending |
 
@@ -157,7 +157,7 @@ test("preserves an unversioned archived task as legacy", async () => {
   );
   await writeFile(
     join(task, "Progress.md"),
-    PROGRESS.replace("## Publication milestones\n\n| Milestone | Evidence | Status |\n| --- | --- | --- |\n| Claim | origin/main commit abcdef0. | Published |\n| Implementation complete | Pending. | Pending |\n| Archive | Pending. | Pending |\n\n", "")
+    PROGRESS.replace("## Publication milestones\n\n| Milestone | Evidence | Status |\n| --- | --- | --- |\n| Claim | Claim published to origin/main. | Published |\n| Implementation complete | Pending. | Pending |\n| Archive | Pending. | Pending |\n\n", "")
       .replaceAll("- [ ]", "- [x]")
       .replace(
         "| Delivery acceptance | Pending | Review the integrated fixture after implementation. |",
@@ -185,7 +185,7 @@ test("rejects completed archives with pending delivery approval", async () => {
   );
   await writeFile(
     join(task, "Progress.md"),
-    PROGRESS.replace("## Publication milestones\n\n| Milestone | Evidence | Status |\n| --- | --- | --- |\n| Claim | origin/main commit abcdef0. | Published |\n| Implementation complete | Pending. | Pending |\n| Archive | Pending. | Pending |\n\n", "")
+    PROGRESS.replace("## Publication milestones\n\n| Milestone | Evidence | Status |\n| --- | --- | --- |\n| Claim | Claim published to origin/main. | Published |\n| Implementation complete | Pending. | Pending |\n| Archive | Pending. | Pending |\n\n", "")
       .replaceAll("- [ ]", "- [x]")
       .replace("In progress.\n", "Completed.\n")
       .replace("In progress.\n", "Completed.\n"),
@@ -211,7 +211,7 @@ test("allows an abandoned legacy archive to retain unchecked acceptance", async 
   );
   await writeFile(
     join(task, "Progress.md"),
-    PROGRESS.replace("## Publication milestones\n\n| Milestone | Evidence | Status |\n| --- | --- | --- |\n| Claim | origin/main commit abcdef0. | Published |\n| Implementation complete | Pending. | Pending |\n| Archive | Pending. | Pending |\n\n", "")
+    PROGRESS.replace("## Publication milestones\n\n| Milestone | Evidence | Status |\n| --- | --- | --- |\n| Claim | Claim published to origin/main. | Published |\n| Implementation complete | Pending. | Pending |\n| Archive | Pending. | Pending |\n\n", "")
       .replace("In progress.\n", "Abandoned. No implementation was started.\n")
       .replace("In progress.\n", "Abandoned. No implementation was started.\n"),
   );
@@ -302,7 +302,7 @@ test("reports task artifacts, milestones, acceptance, and local link failures", 
   );
   await writeFile(
     join(task, "Progress.md"),
-    PROGRESS.replace("| Claim | origin/main commit abcdef0. | Published |", ""),
+    PROGRESS.replace("| Claim | Claim published to origin/main. | Published |", ""),
   );
   await writeFile(
     join(task, "UserAcceptance.md"),

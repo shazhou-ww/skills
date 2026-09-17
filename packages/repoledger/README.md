@@ -122,8 +122,9 @@ informational diagnostics rather than migration edits.
   reporting instructions, and accepted status for completed archives;
 - move-stable task-local links and repository-local Markdown links under the
   declared renderer convention;
-- recorded published commit references, shared-branch reachability, archive
-  move history, and distinct lifecycle integrations when history is present.
+- publication milestone history on the shared branch, archive move history,
+  and distinct lifecycle integrations without storing commit hashes in task
+  documents.
 
 `doctor` adds:
 

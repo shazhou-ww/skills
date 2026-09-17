@@ -104,7 +104,7 @@ Integration fixture.
 | Interface | Not applicable: the fixture has no interface. | Not applicable | Not applicable. | Not applicable. |
 | Business and data model | Not applicable: the fixture has no business data. | Not applicable | Not applicable. | Not applicable. |
 | Architecture | Not applicable: the fixture has no architecture change. | Not applicable | Not applicable. | Not applicable. |
-| Delivery acceptance | Required | Fixture owner | Integrated fixture and validation evidence. | Completion and archive. |
+| Delivery acceptance | Required | Fixture owner | Published fixture and validation evidence. | Completion and archive. |
 
 ## References
 
@@ -155,9 +155,9 @@ ${archive ? "Archived." : "In progress."}
 
 | Milestone | Evidence | Status |
 | --- | --- | --- |
-| Claim | ${claim ? `Commit ${claim} on origin/main.` : "Pending."} | ${claim ? "Published" : "Pending"} |
-| Implementation complete | ${implementation ? `Commit ${implementation} on origin/main.` : "Pending."} | ${implementation ? "Published" : "Pending"} |
-| Archive | ${archive ? "This archive move commit on origin/main." : "Pending."} | ${archive ? "Published" : "Pending"} |
+| Claim | ${claim ? "Task ownership published to origin/main." : "Pending."} | ${claim ? "Published" : "Pending"} |
+| Implementation complete | ${implementation ? "Validated implementation published to origin/main." : "Pending."} | ${implementation ? "Published" : "Pending"} |
+| Archive | ${archive ? "Task archived on origin/main." : "Pending."} | ${archive ? "Published" : "Pending"} |
 
 ## Validation
 
@@ -218,16 +218,19 @@ test("validates a real archive move with phased publications and approval", asyn
     "real-history-task",
   );
   await rename(backlog, ongoing);
-  await writeFile(join(ongoing, "Progress.md"), progressDocument({}));
-  const claim = commitAndPush(root, "Claim real history task");
+  await writeFile(join(ongoing, "Progress.md"), progressDocument({ claim: true }));
+  commitAndPush(root, "Claim real history task");
 
   await writeFile(join(root, "implementation.txt"), "implemented\n");
-  await writeFile(join(ongoing, "Progress.md"), progressDocument({ claim }));
-  const implementation = commitAndPush(root, "Implement real history task");
+  await writeFile(
+    join(ongoing, "Progress.md"),
+    progressDocument({ claim: true, implementation: true }),
+  );
+  commitAndPush(root, "Implement real history task");
 
   await writeFile(
     join(ongoing, "Progress.md"),
-    progressDocument({ claim, deliveryApproved: true, implementation }),
+    progressDocument({ claim: true, deliveryApproved: true, implementation: true }),
   );
   commitAndPush(root, "Record delivery approval");
 
@@ -236,7 +239,7 @@ test("validates a real archive move with phased publications and approval", asyn
   await writeFile(join(archived, "Task.md"), taskDocument(true));
   await writeFile(
     join(archived, "Progress.md"),
-    progressDocument({ archive: true, claim, implementation }),
+    progressDocument({ archive: true, claim: true, implementation: true }),
   );
   commitAndPush(root, "Archive real history task");
 
