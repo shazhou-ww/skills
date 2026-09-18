@@ -125,8 +125,8 @@ and global or worktree identity configuration. It does not replace the skill's j
 Git integration, or lifecycle rules.
 
 ```sh
-npx repoledger@0.6.0 check
-npx repoledger@0.6.0 doctor
+npx repoledger@0.6.1 check
+npx repoledger@0.6.1 doctor
 ```
 
 Repositories should pin the package for CI. By default, `check` validates

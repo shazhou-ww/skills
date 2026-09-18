@@ -35,7 +35,7 @@ Pin the companion CLI in each adopting repository instead of resolving
 `latest` during CI:
 
 ```sh
-pnpm add --save-dev repoledger@0.6.0
+pnpm add --save-dev repoledger@0.6.1
 ```
 
 Track this `repoledger.json` at the repository root, adapting the task
