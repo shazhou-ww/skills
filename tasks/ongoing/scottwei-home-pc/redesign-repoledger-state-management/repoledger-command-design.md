@@ -17,7 +17,9 @@ operation boundaries are defined in
 
 ```text
 repoledger init --remote <remote> --primary-branch <branch> [--tasks-directory <path>]
-repoledger task list [--state <state>...] [--created-since <timestamp>] [--updated-since <timestamp>]
+repoledger task list [--state <state>...]
+                     [--created-since <timestamp>] [--created-before <timestamp>]
+                     [--updated-since <timestamp>] [--updated-before <timestamp>]
                      [--sort <name|created|updated>] [--limit <count>] [--local]
 repoledger status <task-name> [--local]
 repoledger check [<task-name>] [--remote]
@@ -91,6 +93,13 @@ export type TaskSummary = {
 export type TaskListResult = {
    source: "remote" | "local";
    primary?: string;
+   filters: {
+      states?: Array<"backlog" | "ongoing" | "completed" | "abandoned">;
+      createdSince?: string;
+      createdBefore?: string;
+      updatedSince?: string;
+      updatedBefore?: string;
+   };
    sort: "name" | "created" | "updated";
    tasks: TaskSummary[];
 };
@@ -104,11 +113,12 @@ short form.
 The following examples use illustrative paths, timestamps, and commit IDs.
 Text output favors scanning, while JSON retains the complete stable report.
 
-Tasks updated since midnight, limited to backlog and ongoing work:
+Backlog and ongoing tasks updated during one UTC day:
 
 ```text
 $ repoledger task list --state backlog --state ongoing \
-   --updated-since 2026-09-19T00:00:00Z --sort updated --limit 10
+   --updated-since 2026-09-19T00:00:00Z \
+   --updated-before 2026-09-20T00:00:00Z --sort updated --limit 10
 TASK                                      STATE     CREATED               UPDATED
 redesign-repoledger-state-management     ongoing   2026-09-18T08:30:00Z  2026-09-19T10:15:42Z
 add-release-provenance                    backlog   2026-09-19T09:12:08Z  2026-09-19T09:12:08Z
@@ -234,17 +244,24 @@ the task-specific migration procedure, not this initializer.
 ## `repoledger task list`
 
 ```text
-repoledger task list [--state <state>...] [--created-since <timestamp>] [--updated-since <timestamp>]
+repoledger task list [--state <state>...]
+                     [--created-since <timestamp>] [--created-before <timestamp>]
+                     [--updated-since <timestamp>] [--updated-before <timestamp>]
                      [--sort <name|created|updated>] [--limit <count>] [--local]
 ```
 
 Fetches primary and lists task summaries without changing the worktree.
-`--state` is repeatable; repeated values are ORed. `--created-since` and
-`--updated-since` accept exact UTC second-precision timestamps and are inclusive.
-Different filter classes are ANDed. `--sort name` is the default ascending
-order; `created` and `updated` sort newest first with task name as the stable
-tie-breaker. `--limit` is a positive integer applied after filtering and
-sorting. No match is a successful empty result.
+`--state` is repeatable; repeated values are ORed. All four time options accept
+exact UTC second-precision timestamps. `--created-since` and `--updated-since`
+are inclusive lower bounds; `--created-before` and `--updated-before` are
+exclusive upper bounds. Supplying both bounds for one field forms a half-open
+interval and requires `since < before`. Different filter classes are ANDed.
+This permits adjacent intervals without returning a boundary record twice.
+
+`--sort name` is the default ascending order; `created` and `updated` sort
+newest first with task name as the stable tie-breaker. `--limit` is a positive
+integer applied after filtering and sorting. No match is a successful empty
+result. JSON reports the normalized filters that were actually applied.
 
 `--local` performs no network call and reads the worktree snapshot, clearly
 labeling it local. It never silently falls back to local data after a fetch
