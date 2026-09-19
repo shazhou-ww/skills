@@ -5,10 +5,12 @@ Updated: 2026-09-19
 ## Current state
 
 Handoff from `scottwei-office-pc` to `scottwei-home-pc` is published and
-verified at commit `d1bf334` on `origin/main`. The user requested revisions to
-the design review bundle: keep the three documents with this task and add
-representative output examples to the command design. Await review of the
-revised candidate before implementation.
+verified at commit `d1bf334` on `origin/main`. The revised design review bundle
+is published and verified at commit `18b0598` on `origin/main`: the three
+documents now live with this task, and the command design includes
+representative text and JSON output examples. Await explicit scope, business
+and data model, interface, and architecture decisions on that commit before
+implementation.
 
 ## Decisions
 
@@ -30,14 +32,26 @@ revised candidate before implementation.
 
 | Checkpoint | Status | Review artifact and decision evidence |
 | --- | --- | --- |
-| Scope | Pending | User requested revisions to the review bundle previously published at `c068fa7`; review the revised Task.md and three design documents after publication. |
-| Business and data model | Pending | User to review the revised [storage model](./repoledger-storage-model.md), including YAML and TypeScript schemas, invariants, lifecycle, timestamps, and migration. |
-| Interface | Pending | User to review the revised [command design](./repoledger-command-design.md), including command grammar, reports, examples, Git side effects, idempotency, and failures. |
-| Architecture | Pending | User to review all three revised documents, including actor boundaries, Git publication, and removal of legacy subsystems. |
+| Scope | Pending | User to review Task.md and the three task-local design documents at commit `18b0598`. |
+| Business and data model | Pending | User to review the revised [storage model](./repoledger-storage-model.md) at commit `18b0598`, including YAML and TypeScript schemas, invariants, lifecycle, timestamps, and migration. |
+| Interface | Pending | User to review the revised [command design](./repoledger-command-design.md) at commit `18b0598`, including command grammar, reports, examples, Git side effects, idempotency, and failures. |
+| Architecture | Pending | User to review all three revised documents at commit `18b0598`, including actor boundaries, Git publication, and removal of legacy subsystems. |
 | Delivery acceptance | Pending | Review Published implementation, migrated repository, validation evidence, and final diff against the approved designs. with User. |
 
 ## Validation
 
+- Revised review candidate `18b0598` is reachable from refreshed
+  `origin/main`.
+- `pnpm check` passed for the revised bundle: 85 repoledger tests, package and
+  smoke checks, 12 release tests, 4 review-skill tests, and the full 15-task
+  ledger check succeeded with only the five expected pending-approval warnings.
+- Mermaid CLI rendered the task-local storage lifecycle and collaboration
+  sequence diagrams successfully.
+- VS Code reported no diagnostics in the three task-local design documents or
+  `Progress.md`; the `Task.md` trailing-newline diagnostic was corrected and
+  rechecked successfully.
+- No repository references remain to the former `/docs/repoledger-*.md`
+  locations, and `git diff --check` passed.
 - Refreshed `origin/main` at `94a36b0` before handoff; the worktree identity is
   `scottwei-home-pc`, and its registered lane contains `.gitkeep`.
 - Handoff commit `d1bf334` is reachable from refreshed `origin/main`.
@@ -63,9 +77,9 @@ revised candidate before implementation.
 
 ## Blockers
 
-- The revised review candidate must be published, then the user must approve or
-  request changes for scope, business and data model, interface, and
-  architecture before protected implementation begins.
+- The user must approve or request changes to commit `18b0598` for scope,
+  business and data model, interface, and architecture before protected
+  implementation begins.
 
 ## Outcome
 
