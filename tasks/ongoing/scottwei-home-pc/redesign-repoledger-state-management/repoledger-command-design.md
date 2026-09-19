@@ -82,6 +82,83 @@ export type PublicationResult = {
 Commit IDs are full object IDs in JSON. Text output may show an unambiguous
 short form.
 
+## Output examples
+
+The following examples use illustrative paths, timestamps, and commit IDs.
+Text output favors scanning, while JSON retains the complete stable report.
+
+Remote status for one ongoing task:
+
+```text
+$ repoledger status redesign-repoledger-state-management
+redesign-repoledger-state-management  ongoing
+   branch      task/redesign-repoledger-state-management
+   branch tip  7bd3e4c6293e
+   created     2026-09-18T08:30:00Z
+   updated     2026-09-19T10:15:42Z
+   source      origin/main@4f6d2a9816d8
+```
+
+Successful remote validation:
+
+```text
+$ repoledger check redesign-repoledger-state-management --remote
+OK redesign-repoledger-state-management (ongoing)
+   primary      origin/main@4f6d2a9816d8
+   branch       task/redesign-repoledger-state-management@7bd3e4c6293e
+   diagnostics  0 errors, 0 warnings
+```
+
+Successful start publication with `--json`:
+
+```json
+{
+   "command": "task start",
+   "ok": true,
+   "root": "/work/skills",
+   "diagnostics": [],
+   "result": {
+      "task": "redesign-repoledger-state-management",
+      "transition": "backlog -> ongoing",
+      "publication": "published",
+      "primaryBefore": "4f6d2a9816d8bf9856ef472a94d91cb7b4a95f22",
+      "primaryAfter": "7bd3e4c6293e7ad7f084ac5ef3d66e3476c8a41e",
+      "branch": "task/redesign-repoledger-state-management",
+      "branchBefore": null,
+      "branchAfter": "7bd3e4c6293e7ad7f084ac5ef3d66e3476c8a41e",
+      "commit": "7bd3e4c6293e7ad7f084ac5ef3d66e3476c8a41e"
+   }
+}
+```
+
+A start rejected because another actor already started the task:
+
+```json
+{
+   "command": "task start",
+   "ok": false,
+   "root": "/work/skills",
+   "diagnostics": [
+      {
+         "code": "task.state.conflict",
+         "level": "error",
+         "message": "Task redesign-repoledger-state-management is no longer backlog.",
+         "remediation": "Refresh status and coordinate with the active collaborator.",
+         "task": "redesign-repoledger-state-management",
+         "path": "tasks/status.yaml",
+         "expected": {
+            "state": "backlog"
+         },
+         "actual": {
+            "state": "ongoing",
+            "branch": "task/redesign-repoledger-state-management"
+         }
+      }
+   ],
+   "result": null
+}
+```
+
 ## Git publication algorithm
 
 Every `repoledger task` mutation owns the complete publication cycle. The

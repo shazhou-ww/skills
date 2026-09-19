@@ -24,13 +24,13 @@ focused storage, use-case, and command artifacts before implementation.
 
 ## Scope
 
-- Create the [storage model](/docs/repoledger-storage-model.md) covering the stable directory
+- Create the [storage model](./repoledger-storage-model.md) covering the stable directory
   layout, `repoledger.yaml` and `tasks/status.yaml` formats, TypeScript schema
   definitions, invariants, timestamps, lifecycle transitions, and migration.
-- Create the [use-case analysis](/docs/repoledger-use-cases.md) covering human and agent use cases and
+- Create the [use-case analysis](./repoledger-use-cases.md) covering human and agent use cases and
   the repository checks, Git operations, conflict handling, and review flow for
   each use case.
-- Create the [command design](/docs/repoledger-command-design.md) covering every repoledger
+- Create the [command design](./repoledger-command-design.md) covering every repoledger
   subcommand, options, preconditions, execution logic, structured results,
   idempotency, and failure behavior.
 - Replace worktree identity lanes and movable backlog, ongoing, and archived
@@ -119,8 +119,8 @@ acceptance are always required for completed work.
 | Checkpoint | Applicability | Reviewer | Planned review artifact | Approval required before |
 | --- | --- | --- | --- | --- |
 | Scope | Required | User | Goal, scope, exclusions, constraints, acceptance criteria, and three-document delivery plan in this task. | Substantive implementation beyond preparing the review documents. |
-| Business and data model | Required | User | [Storage model](/docs/repoledger-storage-model.md) with YAML and TypeScript schemas, invariants, lifecycle, timestamps, and migration mapping. | Implementing parsers, schemas, status transitions, or repository data migration. |
-| Interface | Required | User | [Command design](/docs/repoledger-command-design.md) with command grammar, outputs, Git side effects, compatibility, idempotency, and failures. | Changing the repoledger CLI or its public package contract. |
+| Business and data model | Required | User | [Storage model](./repoledger-storage-model.md) with YAML and TypeScript schemas, invariants, lifecycle, timestamps, and migration mapping. | Implementing parsers, schemas, status transitions, or repository data migration. |
+| Interface | Required | User | [Command design](./repoledger-command-design.md) with command grammar, outputs, Git side effects, compatibility, idempotency, and failures. | Changing the repoledger CLI or its public package contract. |
 | Architecture | Required | User | The three design documents together, including use-case flows, module responsibilities, Git transaction boundaries, and removal of legacy subsystems. | Replacing identity, layout, transition, transaction, and publication internals or changing task-ledger skills. |
 | Delivery acceptance | Required | User | Published implementation, migrated repository, validation evidence, and final diff against the approved designs. | Marking the task completed and archiving it. |
 
@@ -128,6 +128,6 @@ acceptance are always required for completed work.
 
 - [Repository task ledger skill](/skills/repository-task-ledger/SKILL.md)
 - [Repository task profile](/tasks/README.md)
-- [Storage model](/docs/repoledger-storage-model.md)
-- [Use-case analysis](/docs/repoledger-use-cases.md)
-- [Command design](/docs/repoledger-command-design.md)
+- [Storage model](./repoledger-storage-model.md)
+- [Use-case analysis](./repoledger-use-cases.md)
+- [Command and output design](./repoledger-command-design.md)

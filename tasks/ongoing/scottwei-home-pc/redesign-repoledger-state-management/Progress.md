@@ -5,13 +5,15 @@ Updated: 2026-09-19
 ## Current state
 
 Handoff from `scottwei-office-pc` to `scottwei-home-pc` is published and
-verified at commit `d1bf334` on `origin/main`. The three design review artifacts
-remain published and verified at commit `c068fa7` on `origin/main`. Await
-explicit scope, business and data model, interface, and architecture decisions
-on that commit before implementation.
+verified at commit `d1bf334` on `origin/main`. The user requested revisions to
+the design review bundle: keep the three documents with this task and add
+representative output examples to the command design. Await review of the
+revised candidate before implementation.
 
 ## Decisions
 
+- Keep the storage model, use cases, and command design as task-specific review
+  artifacts in this task directory rather than stable project documentation.
 - Transfer ownership to the current worktree identity, `scottwei-home-pc`,
   without changing the approved review surface or bypassing pending approvals.
 - Do not publish the consolidated `docs/task-collaboration-workflow.md` draft.
@@ -28,10 +30,10 @@ on that commit before implementation.
 
 | Checkpoint | Status | Review artifact and decision evidence |
 | --- | --- | --- |
-| Scope | Pending | User to review Task.md and the three design documents at commit `c068fa7`. |
-| Business and data model | Pending | User to review the [storage model](/docs/repoledger-storage-model.md) at commit `c068fa7`, including YAML and TypeScript schemas, invariants, lifecycle, timestamps, and migration. |
-| Interface | Pending | User to review the [command design](/docs/repoledger-command-design.md) at commit `c068fa7`, including command grammar, reports, Git side effects, idempotency, and failures. |
-| Architecture | Pending | User to review all three documents at commit `c068fa7`, including actor boundaries, Git publication, and removal of legacy subsystems. |
+| Scope | Pending | User requested revisions to the review bundle previously published at `c068fa7`; review the revised Task.md and three design documents after publication. |
+| Business and data model | Pending | User to review the revised [storage model](./repoledger-storage-model.md), including YAML and TypeScript schemas, invariants, lifecycle, timestamps, and migration. |
+| Interface | Pending | User to review the revised [command design](./repoledger-command-design.md), including command grammar, reports, examples, Git side effects, idempotency, and failures. |
+| Architecture | Pending | User to review all three revised documents, including actor boundaries, Git publication, and removal of legacy subsystems. |
 | Delivery acceptance | Pending | Review Published implementation, migrated repository, validation evidence, and final diff against the approved designs. with User. |
 
 ## Validation
@@ -61,9 +63,9 @@ on that commit before implementation.
 
 ## Blockers
 
-- The user must approve or request changes to commit `c068fa7` for scope,
-  business and data model, interface, and architecture before protected
-  implementation begins.
+- The revised review candidate must be published, then the user must approve or
+  request changes for scope, business and data model, interface, and
+  architecture before protected implementation begins.
 
 ## Outcome
 
