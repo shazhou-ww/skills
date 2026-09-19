@@ -1,16 +1,19 @@
 # Progress
 
-Updated: 2026-09-18
+Updated: 2026-09-19
 
 ## Current state
 
-Claim commit `98e8e1b` is published and verified on `origin/main`. The three
-design review artifacts are published and verified at commit `c068fa7` on
-`origin/main`. Await explicit scope, business and data model, interface, and
-architecture decisions on that commit before implementation.
+Handoff from `scottwei-office-pc` to `scottwei-home-pc` is published and
+verified at commit `d1bf334` on `origin/main`. The three design review artifacts
+remain published and verified at commit `c068fa7` on `origin/main`. Await
+explicit scope, business and data model, interface, and architecture decisions
+on that commit before implementation.
 
 ## Decisions
 
+- Transfer ownership to the current worktree identity, `scottwei-home-pc`,
+  without changing the approved review surface or bypassing pending approvals.
 - Do not publish the consolidated `docs/task-collaboration-workflow.md` draft.
   Replace it with the three focused storage-model, use-case, and command-design
   documents requested by the user.
@@ -33,6 +36,14 @@ architecture decisions on that commit before implementation.
 
 ## Validation
 
+- Refreshed `origin/main` at `94a36b0` before handoff; the worktree identity is
+  `scottwei-home-pc`, and its registered lane contains `.gitkeep`.
+- Handoff commit `d1bf334` is reachable from refreshed `origin/main`.
+- The destination contains both task artifacts, the source task directory is
+  gone, and the task appears exactly once across backlog, ongoing, and archive.
+- `pnpm exec repoledger check --task redesign-repoledger-state-management
+  --json` passed after the handoff with only the five expected pending-approval
+  warnings.
 - Repoledger verified the claim source, destination, identity, references, and
   unique post-move task position.
 - `pnpm exec repoledger check --task redesign-repoledger-state-management
