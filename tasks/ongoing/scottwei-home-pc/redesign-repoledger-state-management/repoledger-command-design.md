@@ -17,11 +17,13 @@ operation boundaries are defined in
 
 ```text
 repoledger init --remote <remote> --primary-branch <branch> [--tasks-directory <path>]
-repoledger status [<task-name>] [--state <state>] [--sort <name|created|updated>] [--local]
+repoledger task list [--state <state>...] [--created-since <timestamp>] [--updated-since <timestamp>]
+                     [--sort <name|created|updated>] [--limit <count>] [--local]
+repoledger status <task-name> [--local]
 repoledger check [<task-name>] [--remote]
 repoledger task register <task-name>
-repoledger task start <task-name> [--branch <branch>]
-repoledger task complete <task-name>
+repoledger task start <task-name>
+repoledger task complete <task-name> --approved-commit <commit>
 repoledger task abandon <task-name>
 ```
 
@@ -72,10 +74,25 @@ export type PublicationResult = {
   publication: "published" | "already-published";
   primaryBefore: string;
   primaryAfter: string;
-  branch?: string;
-  branchBefore?: string | null;
-  branchAfter?: string | null;
   commit: string;
+};
+```
+
+List results additionally report:
+
+```ts
+export type TaskSummary = {
+   task: string;
+   state: "backlog" | "ongoing" | "completed" | "abandoned";
+   createdAt: string;
+   updatedAt: string;
+};
+
+export type TaskListResult = {
+   source: "remote" | "local";
+   primary?: string;
+   sort: "name" | "created" | "updated";
+   tasks: TaskSummary[];
 };
 ```
 
@@ -87,16 +104,26 @@ short form.
 The following examples use illustrative paths, timestamps, and commit IDs.
 Text output favors scanning, while JSON retains the complete stable report.
 
+Tasks updated since midnight, limited to backlog and ongoing work:
+
+```text
+$ repoledger task list --state backlog --state ongoing \
+   --updated-since 2026-09-19T00:00:00Z --sort updated --limit 10
+TASK                                      STATE     CREATED               UPDATED
+redesign-repoledger-state-management     ongoing   2026-09-18T08:30:00Z  2026-09-19T10:15:42Z
+add-release-provenance                    backlog   2026-09-19T09:12:08Z  2026-09-19T09:12:08Z
+
+2 tasks from origin/main@4f6d2a9816d8, sorted by updated (newest first)
+```
+
 Remote status for one ongoing task:
 
 ```text
 $ repoledger status redesign-repoledger-state-management
 redesign-repoledger-state-management  ongoing
-   branch      task/redesign-repoledger-state-management
-   branch tip  7bd3e4c6293e
    created     2026-09-18T08:30:00Z
    updated     2026-09-19T10:15:42Z
-   source      origin/main@4f6d2a9816d8
+   primary     origin/main@4f6d2a9816d8
 ```
 
 Successful remote validation:
@@ -105,7 +132,6 @@ Successful remote validation:
 $ repoledger check redesign-repoledger-state-management --remote
 OK redesign-repoledger-state-management (ongoing)
    primary      origin/main@4f6d2a9816d8
-   branch       task/redesign-repoledger-state-management@7bd3e4c6293e
    diagnostics  0 errors, 0 warnings
 ```
 
@@ -123,9 +149,6 @@ Successful start publication with `--json`:
       "publication": "published",
       "primaryBefore": "4f6d2a9816d8bf9856ef472a94d91cb7b4a95f22",
       "primaryAfter": "7bd3e4c6293e7ad7f084ac5ef3d66e3476c8a41e",
-      "branch": "task/redesign-repoledger-state-management",
-      "branchBefore": null,
-      "branchAfter": "7bd3e4c6293e7ad7f084ac5ef3d66e3476c8a41e",
       "commit": "7bd3e4c6293e7ad7f084ac5ef3d66e3476c8a41e"
    }
 }
@@ -150,8 +173,7 @@ A start rejected because another actor already started the task:
             "state": "backlog"
          },
          "actual": {
-            "state": "ongoing",
-            "branch": "task/redesign-repoledger-state-management"
+            "state": "ongoing"
          }
       }
    ],
@@ -165,10 +187,10 @@ Every `repoledger task` mutation owns the complete publication cycle. The
 caller does not separately pull, stage, commit, or push the status change.
 
 1. Discover the repository root and load strict `repoledger.yaml`.
-2. Fetch the configured primary branch and any relevant collaboration ref.
+2. Fetch the configured primary branch.
 3. Read configuration, status, and task artifacts from explicit commits; do
    not assume the checked-out branch is current.
-4. Verify the command's expected task state, ref tips, artifact facts, and
+4. Verify the command's expected task state, primary tip, artifact facts, and
    operation-specific preconditions.
 5. Build the prospective tree from the fetched primary commit in an isolated
    temporary worktree or index. Import only operation-owned local paths when a
@@ -176,16 +198,15 @@ caller does not separately pull, stage, commit, or push the status change.
 6. Apply the pure state transition, maintain timestamps, serialize canonical
    YAML, and run complete prospective validation.
 7. Create a commit with the configured Git author and a command-owned message.
-8. Push all required ref updates non-force, using `git push --atomic` for every
-   multi-ref operation.
-9. Fetch the affected refs again and verify the expected commit, state, and
-   reachability.
+8. Push the primary ref non-force with the fetched tip as the expected base.
+9. Fetch primary again and verify the expected commit, state, and reachability.
 10. Remove temporary state while leaving the caller's branch, index, staged
     files, and unrelated working files unchanged.
 
 The implementation never runs unrestricted `git pull` in the caller's
-worktree. It never force-pushes, guesses conflict resolutions, or falls back
-from atomic to sequential multi-ref publication.
+worktree. It never force-pushes or guesses conflict resolutions. Repoledger
+does not create, update, delete, or record source branches; optional branch or
+pull-request workflows remain repository policy outside the task ledger.
 
 If primary moves because only unrelated task records changed, repoledger
 refetches, reapplies the operation to the new canonical status, and retries a
@@ -205,26 +226,40 @@ Creates `repoledger.yaml`, the configured task directory, and an empty
 so the coordination target is never inferred.
 
 The command requires a Git repository, the named configured remote, an
-existing remote primary branch, and absent configuration/status paths. It
-fails rather than overwriting an existing or partial ledger. Adoption from
-layout v1 uses the task-specific migration procedure, not this initializer.
+existing remote primary branch, absent configuration/status paths, and an
+absent or empty configured task directory. It fails rather than overwriting an
+existing or partial ledger. A repository with existing task directories uses
+the task-specific migration procedure, not this initializer.
+
+## `repoledger task list`
+
+```text
+repoledger task list [--state <state>...] [--created-since <timestamp>] [--updated-since <timestamp>]
+                     [--sort <name|created|updated>] [--limit <count>] [--local]
+```
+
+Fetches primary and lists task summaries without changing the worktree.
+`--state` is repeatable; repeated values are ORed. `--created-since` and
+`--updated-since` accept exact UTC second-precision timestamps and are inclusive.
+Different filter classes are ANDed. `--sort name` is the default ascending
+order; `created` and `updated` sort newest first with task name as the stable
+tie-breaker. `--limit` is a positive integer applied after filtering and
+sorting. No match is a successful empty result.
+
+`--local` performs no network call and reads the worktree snapshot, clearly
+labeling it local. It never silently falls back to local data after a fetch
+failure. Invalid states, timestamps, sort keys, and limits are usage errors.
 
 ## `repoledger status`
 
 ```text
-repoledger status [<task-name>] [--state <state>] [--sort <name|created|updated>] [--local]
+repoledger status <task-name> [--local]
 ```
 
-By default, fetches primary and reads its status blob without changing the
-worktree. With a task name it returns exactly that record; with no name it
-lists records. `--state` accepts one lifecycle state and applies only to list
-mode. `--sort name` is the default ascending order; `created` and `updated`
-sort newest first with task name as the stable tie-breaker.
-
-For ongoing tasks, remote mode also reports the collaboration ref and fetched
-tip. `--local` performs no network call and reads the worktree snapshot,
-clearly labeling it local. It never silently falls back to local data after a
-fetch failure.
+Fetches primary and returns exactly one task record plus its source primary
+commit. `--local` has the same explicit offline semantics as `task list`.
+Missing tasks fail with a diagnostic; listing and filtering belong only to
+`task list`.
 
 ## `repoledger check`
 
@@ -237,10 +272,11 @@ timestamps, directory correspondence, and task artifacts. A task name limits
 content checks while retaining repository-wide uniqueness and structural
 invariants.
 
-`--remote` fetches and additionally validates primary reachability, every
-ongoing branch, branch uniqueness, and recorded Git facts. Local check is
-network-free. This command replaces `doctor`; there is no identity readiness
-state left to diagnose.
+`--remote` fetches and additionally validates the configured primary ref,
+lifecycle history, commit reachability referenced by task artifacts, and the
+post-migration `Progress.md` commit rule. Local check is network-free and
+cannot validate history-only invariants. This command replaces `doctor`; there
+is no identity or source-branch readiness state left to diagnose.
 
 ## `repoledger task register`
 
@@ -266,38 +302,38 @@ same-name task with different content or state is a conflict.
 ## `repoledger task start`
 
 ```text
-repoledger task start <task-name> [--branch <branch>]
+repoledger task start <task-name>
 ```
 
 Transition: `backlog` to `ongoing`.
 
-The branch defaults to `task/<task-name>`. Repoledger requires the latest
-record to remain backlog, the branch name to be valid and unused by any record,
-and the remote ref not to exist. It adds `branch`, advances only that record's
-`updatedAt`, and creates one claim commit on the latest primary commit.
-
-One atomic push advances primary to the claim commit and creates the task ref
-at that same commit. If either compare-and-swap condition fails or the remote
-does not support atomic pushes, neither ref changes. Verification requires
-both fetched refs to equal the claim commit.
+Repoledger requires the latest record to remain backlog. It changes only that
+record's state and `updatedAt`, creates one start commit on the latest primary
+commit, pushes primary non-force, and verifies the published record. It does
+not create or record a source branch.
 
 ## `repoledger task complete`
 
 ```text
-repoledger task complete <task-name>
+repoledger task complete <task-name> --approved-commit <commit>
 ```
 
 Transition: `ongoing` to `completed`.
 
-Repoledger requires the latest primary artifacts to record completed
-acceptance criteria, all required human approvals including delivery, and any
-required user acceptance. The collaboration ref must exist, and its tip plus
-all reviewed implementation commits must be reachable from primary.
+The skill permits invocation only after completed acceptance criteria, required
+human approvals including delivery, and any required user acceptance.
+`--approved-commit` names the exact full or unambiguous abbreviated commit the
+human accepted for delivery. The CLI resolves it and requires it to equal the
+fetched primary tip; any primary movement requires the agent to refresh,
+revalidate, and obtain delivery approval for the new tip. This binds completion
+without a `Progress.md`-only approval commit. The CLI validates artifact facts
+that are present in the repository but does not infer or manufacture a human
+decision.
 
-The command removes `branch`, changes `state`, advances `updatedAt`, and
-commits with `task: complete <task-name>`. One atomic push advances primary
-and deletes the verified task ref. A reachability failure, moved ref, or
-partial publication capability leaves the task ongoing.
+The command changes `state`, advances `updatedAt`, commits with
+`task: complete <task-name>`, pushes primary non-force, and verifies the
+published terminal record. A reachability failure or moved primary leaves the
+task ongoing.
 
 ## `repoledger task abandon`
 
@@ -307,35 +343,30 @@ repoledger task abandon <task-name>
 
 Transitions: `backlog` to `abandoned`, or `ongoing` to `abandoned`.
 
-The task artifacts must contain an explicit human decision, reason, useful
-findings, and next action. Backlog abandonment writes the terminal status and
-publishes one primary commit.
+The skill permits invocation only after an explicit human or accountable-owner
+decision. Backlog abandonment writes the terminal status and publishes one
+primary commit; it does not create `Progress.md` for work that never changed a
+path outside the task directory.
 
-For ongoing abandonment, the command also fetches the collaboration tip. It
-constructs a terminal commit with primary and the task tip as parents, retains
-the task's durable artifacts from the branch, changes only the selected status
-record, and keeps all other primary-tree content. This makes abandoned branch
-history reachable without delivering its unapproved implementation tree. It
-then atomically advances primary and deletes the exact fetched task ref.
-
-If task-local artifacts cannot be separated unambiguously from implementation
-changes, the command reports the affected paths and requires the agent to
-prepare a safe abandonment candidate before retrying.
+For ongoing abandonment, existing useful findings remain in the most recent
+implementation-linked `Progress.md`. The command changes only the selected
+status record and publishes one primary commit. Optional contributor-branch
+content is outside repoledger and is never merged or deleted by this command.
 
 ## Idempotency and conflicts
 
 After any interrupted mutation, repoledger fetches before retrying:
 
-- if all expected refs and the task record already match the verified result,
+- if primary and the task record already match the verified result,
   return `already-published` without changing `updatedAt`;
-- if no required ref advanced, safely recompute from current primary;
+- if primary did not advance, safely retry the same publication;
 - if only unrelated records advanced, recompose and bounded-retry;
 - otherwise return a conflict with expected and actual records, ref commit
   IDs, affected paths, and one concrete remediation.
 
-Authentication, permissions, protected branches, failed validation, unsupported
-atomic push, and non-fast-forward rejection remain explicit failures. The CLI
-does not prompt interactively or conceal stderr in JSON mode.
+Authentication, permissions, protected branches, failed validation, and
+non-fast-forward rejection remain explicit failures. The CLI does not prompt
+interactively or conceal stderr in JSON mode.
 
 ## Removed commands and options
 
@@ -343,6 +374,8 @@ does not prompt interactively or conceal stderr in JSON mode.
 - `task archive` becomes explicit `task complete` and `task abandon`.
 - `doctor` is covered by `check --remote`.
 - Worktree identity setup, takeover, and handoff commands disappear.
+- Task source-branch fields and `task start --branch` disappear; repoledger
+   reads and publishes only the configured primary branch.
 - `--identity`, `--all-identities`, `--archived`, `--take-from`,
   `--update-all-refs`, `--config`, and mutation `--apply` disappear with their
   underlying concepts.

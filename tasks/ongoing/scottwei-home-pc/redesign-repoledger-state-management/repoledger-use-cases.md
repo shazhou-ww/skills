@@ -18,10 +18,10 @@ reports are defined in
 
 | Actor | Responsibilities | Must not infer or perform |
 | --- | --- | --- |
-| Human | Define intent, resolve semantic overlap, approve or reject reviewed commits, authorize handoff, and accept delivery. | Git activity is not approval; silence is not a decision. |
-| Agent | Prepare task artifacts, invoke repoledger, implement on the recorded branch, validate work, publish review candidates, and record human decisions. | It cannot invent approval, ownership consent, or semantic conflict resolution. |
+| Human | Define intent, resolve semantic overlap, approve or reject reviewed commits, and accept delivery. | Git activity is not approval; silence is not a decision. |
+| Agent | Prepare task artifacts, invoke repoledger, implement from refreshed primary, validate work, and publish implementation plus concise progress evidence together. | It cannot invent approval or semantic conflict resolution, and it must not create bookkeeping-only progress commits. |
 | Repoledger | Query and validate canonical status, enforce legal transitions, maintain timestamps, and publish operation-owned Git changes. | It does not decide admission, scope overlap, review outcomes, or code correctness. |
-| Git remote | Provide compare-and-swap ref updates, shared history, reachability, and cross-device access. | It is not a task lock or a human-review system. |
+| Git remote | Provide compare-and-swap primary updates, shared history, reachability, and cross-device access. | It is not a task lock or a human-review system. |
 
 ## End-to-end collaboration
 
@@ -41,33 +41,34 @@ sequenceDiagram
   H->>A: Invoke task-exec
   A->>L: status and check <name> --remote
   A->>L: task start <name>
-  L->>R: Atomically publish ongoing record and task branch
+  L->>R: Publish ongoing record to primary
 
   loop Each applicable checkpoint
-    A->>R: Push validated candidate Cn to task branch
-    A->>H: Request decision for exact Cn
-    H->>R: Fetch Cn from any device
+    A->>R: Publish implementation + Progress to primary as Cn
+    A->>H: Request decision for exact primary commit Cn
+    H->>R: Fetch primary from any device
     alt Changes requested
       H-->>A: Request changes against Cn
-      A->>R: Push revised candidate Cn+1
+      A->>R: Publish revised implementation + Progress as Cn+1
     else Approved
       H-->>A: Approve exact Cn
-      A->>R: Record decision and integrate accepted history
+      A->>A: Continue from approved primary
     end
   end
 
-  A->>L: task complete <name>
-  L->>R: Atomically publish completed state and remove task ref
+  A->>L: task complete <name> --approved-commit Cn
+  L->>R: Publish completed state to primary
 ```
 
 ## Human use cases
 
 ### Inspect work
 
-The human runs `repoledger status` or asks an agent for the same report.
-Repoledger fetches the configured primary branch, reads its status blob without
-changing the worktree, and returns tasks sorted by name or timestamp. For an
-ongoing task it also reports the collaboration branch and fetched tip.
+The human runs `repoledger task list` to inventory work or
+`repoledger status <name>` for one task. List filters may select one or more
+states, creation and update time windows, ordering, and a result limit.
+Repoledger fetches the configured primary branch and reads its status blob
+without changing the worktree.
 
 No state changes, commits, or pushes occur. Network or authentication failure
 is reported; `--local` is an explicit offline snapshot rather than a fallback
@@ -77,7 +78,10 @@ that could be mistaken for current shared state.
 
 The human explicitly invokes `task-new` and supplies or confirms one testable
 outcome. The agent checks active records for plausible semantic overlap,
-applies repository admission policy, and prepares `tasks/<name>/Task.md`.
+applies repository admission policy, and prepares `tasks/<name>/Task.md`. A
+task is eligible only when the accepted outcome requires changing at least one
+path outside the configured task directory on primary. Task-only documentation,
+coordination, validation, and status maintenance never create another task.
 
 Repoledger checks that the name is absent, the stable directory and task plan
 are valid, and the latest primary branch still has no matching record. It adds
@@ -87,25 +91,27 @@ conflict requiring human direction.
 
 ### Review a checkpoint from another device
 
-The agent publishes a validated candidate to the recorded collaboration
-branch and sends a review envelope containing task, checkpoint, branch, base
-commit, candidate commit, artifact, validation, and requested decision.
+The agent publishes a validated candidate to primary and sends a review
+envelope containing task, checkpoint, candidate commit, artifact, validation,
+and requested decision.
 
-The human fetches the branch on any device and reviews the exact candidate
-commit. An approval or change request explicitly names that commit. Branch
-movement after the request does not change the object under review.
+The human fetches primary on any device and reviews the exact candidate commit.
+An approval or change request explicitly names that commit. Later primary
+movement does not change the object under review.
 
 ### Approve, request changes, or abandon
 
-On approval, the agent records reviewer, date, checkpoint, candidate commit,
-and evidence in `Progress.md`, publishes that metadata, refreshes primary, and
-revalidates the composed result. Material reconciliation changes reopen the
-checkpoint.
+Approval authorizes the work protected by that checkpoint but does not by
+itself trigger a repository write. When later implementation changes paths
+outside the task directory, the agent includes any decision that materially
+affected that implementation in the same `Progress.md` update and publication.
+Material changes to the reviewed result reopen the checkpoint.
 
-On requested changes, the agent leaves status ongoing and pushes a new
-candidate. On abandonment, the human or accountable owner supplies the
-decision and reason; repoledger only validates and publishes the already
-recorded outcome.
+On requested changes, the agent leaves status ongoing and publishes a new
+primary candidate only when it includes the requested implementation change.
+On abandonment, the human or accountable owner supplies the decision and
+reason; repoledger publishes the terminal state without inventing an
+implementation-progress entry.
 
 ### Accept delivery
 
@@ -118,87 +124,96 @@ repoledger to complete the task.
 
 ### Inventory and select work
 
-1. Run `repoledger status` to read the latest shared state.
+1. Run `repoledger task list` to read and filter the latest shared state.
 2. Run `repoledger check <name> --remote` to validate the selected task,
-   primary ref, and collaboration ref when present.
-3. Read the stable `Task.md` and `Progress.md` from the appropriate remote
-   commit.
+  artifacts, and primary ref.
+3. Read the stable `Task.md` and any existing `Progress.md` from primary.
 4. Compare plausible active scopes semantically. Repoledger can expose records
    and changed paths but cannot decide conceptual overlap.
 
-The agent stops on no match, duplicate identity, invalid artifacts, another
-task using the same branch, or an unresolved ownership decision.
+The agent stops on no match, invalid artifacts, semantic overlap, or a
+same-task primary conflict.
+
+### Maintain progress efficiently
+
+`Progress.md` exists to explain implementation deltas, not to mirror Git or
+the conversation. The skills require a task only for an accepted outcome that
+will change at least one path outside the configured task directory. While the
+task is ongoing, they require a `Progress.md` update only in a publication that
+also changes at least one such path.
+
+The update records the outcome-relevant code or configuration change, material
+decision, validation result, blocker, and next action. It does not record
+routine fetches, checks, pushes, commit reachability, status transitions,
+resumes, handoffs, review requests, or edits confined to task artifacts. The
+skills must not create a follow-up commit merely to insert the hash or narrate
+the publication that just succeeded; Git already records those facts.
 
 ### Start backlog work
 
 The agent invokes `task start`. Repoledger fetches primary, verifies the task
-is still backlog, selects an unused branch, updates only that record, and
-creates one claim commit. It atomically pushes that commit to both primary and
-the new collaboration ref, then verifies both fetched refs.
+is still backlog, updates only that record, creates one start commit, pushes it
+non-force to primary, and verifies the fetched primary ref.
 
 If another actor already started or abandoned the task, changed an owned
-artifact, or created the branch, repoledger reports expected and actual state
-and publishes nothing.
+artifact, or advanced the same task record, repoledger reports expected and
+actual state and publishes nothing.
 
 ### Publish a review candidate
 
-The agent works on the collaboration branch, commits only validated progress,
-and pushes without force. Before asking for review it refreshes primary,
-records the candidate's primary base, and checks whether new primary changes
-invalidate the artifact.
+The agent starts from refreshed primary and prepares a publication that changes
+at least one path outside the configured task directory. The same publication
+must add or update `Progress.md` with only the resulting implementation facts,
+material decisions, validation, blockers, and next action. It then follows the
+repository's normal direct-push or review integration path until the exact
+candidate commit is reachable from primary.
 
-Repoledger is not invoked because task lifecycle state remains `ongoing`.
-`Progress.md` is the durable checkpoint record; `status.yaml` must not be
-edited on the collaboration branch.
+Repoledger is not invoked because lifecycle state remains `ongoing`, and
+`status.yaml` does not change. A check, fetch, push, review request, handoff,
+task-only document edit, or repeated validation result never requires or
+justifies a standalone `Progress.md` commit.
 
 ### Integrate an approved checkpoint
 
-The agent verifies that the recorded approval names the current candidate,
-fetches latest primary, and composes the candidate without changing its
-protected result. It reruns applicable validation and creates a no-fast-forward
-integration so the reviewed commit remains reachable.
+The agent verifies that the approval names an immutable primary commit and
+continues from refreshed primary. Approval without a new implementation delta
+does not produce a metadata-only commit. When the decision affects later code,
+the next publication outside the task directory records the relevant decision
+in `Progress.md` alongside that code.
 
-A changed result, merge conflict, failed check, or rejected push reopens the
-checkpoint. A clean integration advances primary; the collaboration branch
-then fast-forwards to the integration commit so the next checkpoint starts
-from accepted shared state.
+A materially changed result or failed validation reopens the checkpoint.
 
 ### Resume or hand off
 
-A receiving agent queries status, fetches the existing collaboration branch,
-and verifies its tip against `Progress.md`. Handoff changes no status field and
-requires no directory move or branch rename. The agents record the explicit
-handoff in progress before either continues.
-
-If both agents publish concurrently, normal non-force branch updates expose
-the race. Neither actor force-pushes or silently takes the other one's tip.
+A receiving agent fetches primary, queries status, validates the task, and
+continues from the latest primary commit. Resume and handoff change no task
+field and do not update `Progress.md`. If two agents publish concurrently,
+normal non-force primary updates expose the race; neither actor force-pushes or
+silently overwrites the other's work.
 
 ### Complete work
 
 After delivery approval is integrated, the agent invokes `task complete`.
-Repoledger verifies the record is ongoing, approval and completion facts are
-valid on primary, and the task-branch tip is reachable from primary. It writes
-the completed record, advances only its `updatedAt`, commits, and atomically
-pushes the primary update with deletion of the collaboration ref.
-
-Failure to prove reachability leaves both refs unchanged and the task ongoing.
+The skill verifies that the human decision names the commit supplied with
+`--approved-commit`. Repoledger verifies the record is ongoing, validates the
+repository's completion facts, and requires the supplied commit to be the
+fetched primary tip. It writes the completed record, advances only its
+`updatedAt`, commits, and pushes primary non-force. No final `Progress.md`
+update is created merely to narrate completion. If primary moved, the agent
+revalidates the new tip and obtains delivery approval again.
 
 ### Abandon work
 
-For backlog work, the agent records the human decision and reason, invokes
-`task abandon`, and repoledger publishes the terminal status.
-
-For ongoing work, the agent first records useful findings and the abandonment
-decision on the task branch. Repoledger creates a terminal primary commit that
-retains the task artifacts and makes the branch history reachable while
-keeping unapproved implementation changes out of the primary tree. It then
-atomically advances primary and deletes the collaboration ref. Any ambiguity
-about which content is safe to retain is a blocker, not an automatic merge.
+The agent invokes `task abandon` after the human or accountable owner supplies
+the decision and reason. Repoledger publishes the terminal status to primary.
+Existing implementation findings remain in the last `Progress.md` that
+accompanied outside-task changes; abandonment does not create a progress-only
+commit.
 
 ### Validate in CI
 
 CI runs `repoledger check --remote`. Repoledger validates canonical files,
-task artifacts, state consistency, remote branches, and reachability without
+task artifacts, state consistency, primary history, and reachability without
 performing a mutation. Diagnostics identify the exact task, path, invariant,
 and remediation. CI does not run task transition commands.
 
@@ -208,23 +223,21 @@ and remediation. CI does not run task transition commands.
 | --- | --- |
 | Another task record changes on primary | Refetch, reapply the requested transition to the new canonical map, revalidate, and retry a bounded number of times. |
 | The selected task record changes | Stop with expected and actual records; never choose a winner. |
-| The expected task or primary ref tip moves | Stop or bounded-retry only when the movement is proven unrelated; never force-push. |
+| The expected primary ref tip moves | Stop or bounded-retry only when the movement is proven unrelated; never force-push. |
 | A task-owned artifact changes | Stop with the changed paths and commit IDs. |
-| The requested collaboration branch appears or moves | Stop with the expected and actual ref tips. |
-| A merge changes an approved result | Reopen the human checkpoint and publish a new candidate. |
+| Primary changes the approved result | Reopen the human checkpoint and publish a new candidate. |
 | Authentication, permission, or branch protection rejects publication | Preserve local evidence and report the exact external action required. |
-| Atomic push is unsupported | Fail before a multi-ref lifecycle transition; do not fall back to sequential partial publication. |
 
 ## Repository effects by use case
 
 | Use case | Reads | Writes | Commits and refs |
 | --- | --- | --- | --- |
-| Inspect | Remote primary status; optional task ref | None | None |
+| Inspect | Remote primary status and task artifacts | None | None |
 | Register | Prepared task directory; remote primary | Task directory and status in isolated publication state | One primary commit |
-| Start | Remote primary; selected record; branch namespace | Selected status record | One claim commit atomically to primary and task branch |
-| Prepare/revise review | Task branch; latest primary for context | Task artifacts and implementation on task branch | Ordinary non-force task-branch commits |
-| Approve/integrate | Candidate, approval evidence, latest primary | Progress and accepted implementation | Metadata commit plus no-FF primary integration |
-| Handoff/resume | Status, task branch, progress | Progress handoff evidence | Ordinary task-branch commit; no status mutation |
-| Complete | Primary completion facts; reachable task ref | Selected status record | Atomic primary commit and task-ref deletion |
-| Abandon | Decision evidence; primary; optional task ref | Progress and selected status record | Primary terminal commit; optional atomic task-ref deletion |
-| Check | Config, status, artifacts, optional remote refs | None | None |
+| Start | Remote primary and selected record | Selected status record | One primary commit |
+| Prepare/revise review | Latest primary | Outside-task implementation and its `Progress.md` evidence | Normal repository publication to primary |
+| Approve/continue | Immutable primary candidate and human decision | None until the next implementation delta | No approval-only commit |
+| Handoff/resume | Primary status, task, and existing progress | None | No handoff-only commit |
+| Complete | Primary completion facts and accepted implementation | Selected status record | One primary terminal commit |
+| Abandon | Human decision and primary | Selected status record | One primary terminal commit |
+| Check | Config, status, artifacts, and primary history | None | None |

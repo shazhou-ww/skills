@@ -5,9 +5,9 @@ Created: 2026-09-18
 ## Goal
 
 Replace path- and worktree-identity-based task tracking with stable task
-directories, a canonical YAML status ledger, branch-based collaboration, and a
-repoledger CLI that queries and publishes validated state transitions through
-Git.
+directories, a canonical YAML status ledger, primary-branch collaboration, and
+a repoledger CLI that queries, filters, and publishes validated state
+transitions through Git.
 
 ## Context
 
@@ -17,10 +17,11 @@ configuration, move transactions, recovery journals, and reference rewrites,
 while human review performed from another device cannot inspect unpublished
 work.
 
-The accepted direction keeps every task at one stable path, records lifecycle
-state and the active collaboration branch in `tasks/status.yaml`, and uses the
-remote Git branch as the cross-device review surface. The design is split into
-focused storage, use-case, and command artifacts before implementation.
+The accepted direction keeps every task at one stable path, records only
+lifecycle state and timestamps in `tasks/status.yaml`, and uses the remote
+primary branch as the shared collaboration and review surface. The design is
+split into focused storage, use-case, and command artifacts before
+implementation.
 
 ## Scope
 
@@ -39,14 +40,16 @@ focused storage, use-case, and command artifacts before implementation.
 - Replace `repoledger.json` with the specified `repoledger.yaml` repository
   configuration and implement strict YAML parsing and validation.
 - Refocus repoledger on task registration, state queries, validation, legal
-  lifecycle transitions, timestamp maintenance, collaboration-ref checks, and
-  automatic Git commit and publication.
+  lifecycle transitions, timestamp maintenance, filterable task inventory, and
+  automatic Git commit and publication to primary.
 - Make task mutations refresh remote state, recompute on the latest primary
-  branch, commit only owned paths, publish with non-force and atomic ref
-  updates where required, verify publication, and report conflicts without
-  overwriting concurrent work.
+  branch, commit only owned paths, publish primary non-force, verify
+  publication, and report conflicts without overwriting concurrent work.
 - Update the reusable task-ledger skills, templates, repository profile, CLI
   documentation, schemas, tests, and package contents for the new model.
+- Require tasks only for accepted outcomes that change paths outside the
+  configured task directory, and require `Progress.md` updates only in the same
+  publication as such implementation changes.
 - Migrate this repository's configuration and all existing task artifacts to
   the stable layout without losing task content or historical Git reachability.
 
@@ -69,28 +72,33 @@ focused storage, use-case, and command artifacts before implementation.
 - [ ] `repoledger.yaml` and `tasks/status.yaml` have strict documented and
   machine-validated schemas matching their TypeScript definitions.
 - [ ] Task records use only `backlog`, `ongoing`, `completed`, or `abandoned`;
-  ongoing records uniquely name a collaboration branch, and repoledger alone
-  maintains immutable `createdAt` and mutation-based `updatedAt` timestamps.
+  no record stores a source branch, and repoledger alone maintains immutable
+  `createdAt` and mutation-based `updatedAt` timestamps.
 - [ ] Every task has one stable `tasks/<task-name>/` directory and exactly one
   alphabetically ordered `tasks/status.yaml` record, with all existing task
   artifacts migrated intact.
-- [ ] The implemented CLI exposes the approved initialization, status, check,
-  registration, start, completion, and abandonment commands with documented
-  text and JSON results.
+- [ ] The implemented CLI exposes the approved initialization, filterable task
+  list, single-task status, check, registration, start, completion, and
+  abandonment commands with documented text and JSON results; completion binds
+  delivery approval to the exact current primary commit.
 - [ ] Every task write command performs its required fetch, optimistic state
   check, deterministic YAML update, validation, commit, non-force push, and
   post-publication verification without modifying unrelated worktree state.
-- [ ] Multi-ref start and terminal transitions fail rather than partially
-  publish when atomic publication is unavailable or rejected.
+- [ ] Repoledger neither stores nor manages source branches; lifecycle
+  transitions use one non-force primary ref update and verify it after fetch.
 - [ ] Concurrent unrelated task updates can be recomposed, while same-task,
-  owned-path, validation, ref-tip, authentication, and push conflicts stop with
-  actionable structured diagnostics and never force-push.
+  owned-path, validation, primary-tip, authentication, and push conflicts stop
+  with actionable structured diagnostics and never force-push.
 - [ ] Identity lanes, directory-move transactions, recovery journals, and
   move-sensitive reference rewriting are removed from the active protocol and
   implementation.
 - [ ] The reusable skills, templates, repository instructions, package README,
   schemas, tests, and release contents consistently describe and enforce the
   new workflow.
+- [ ] The reusable skills admit tasks only for expected changes outside the
+  configured task directory and prohibit standalone `Progress.md` bookkeeping
+  commits; progress changes accompany implementation changes outside that
+  directory.
 - [ ] `pnpm check`, `pnpm check:skills`, package checks, Markdown links,
   Mermaid rendering, and whitespace validation pass after migration.
 
@@ -105,9 +113,8 @@ focused storage, use-case, and command artifacts before implementation.
 - Keep canonical YAML deterministic: task keys are alphabetically ordered,
   record fields have a fixed order, unknown properties are rejected, and UTC
   timestamps use the documented second-precision format.
-- Preserve historical task artifacts and accepted collaboration commits during
-  migration; delete a collaboration ref only after required history is proven
-  reachable from the refreshed primary branch.
+- Preserve historical task artifacts and accepted commits during migration;
+  all completed implementation must be reachable from refreshed primary.
 - Obtain the applicable data-model, interface, and architecture approvals
   before implementing their protected surfaces.
 

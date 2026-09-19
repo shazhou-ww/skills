@@ -13,12 +13,15 @@ and repository migration.
 
 - Task state is data in one shared status file, not a directory path.
 - Every task keeps one stable directory for its complete lifetime.
-- A task branch identifies ongoing collaboration; it does not identify a
-  person, agent, device, or worktree.
-- The remote primary branch is authoritative for repository configuration and
-  task status.
-- Detailed plans, progress, approvals, and validation remain task artifacts;
-  they are not duplicated into the status record.
+- The remote primary branch is authoritative for repository configuration,
+  task status, task artifacts, and accepted implementation history.
+- Tasks do not store or manage a source branch. A contributor may use a local
+  or hosting-provider branch, but it is outside the repoledger protocol and all
+  task outcomes must return to primary.
+- Detailed plans, implementation progress, and validation remain task
+  artifacts; they are not duplicated into the status record. Human decisions
+  bind immutable primary commits and do not require approval-only artifact
+  commits.
 
 The related human and agent flows are defined in
 [repoledger use cases](./repoledger-use-cases.md). CLI behavior is defined in
@@ -42,9 +45,12 @@ tasks/
 
 The configured task directory contains exactly one `status.yaml` and one
 directory per task record. Task directories use lowercase kebab-case and never
-move when state changes. Every task requires `Task.md`; `ongoing`, `completed`,
-and `abandoned` tasks also require `Progress.md`. Other task-local artifacts,
-including `UserAcceptance.md` and design notes, remain allowed.
+move when state changes. Every task requires `Task.md`. `Progress.md` is an
+implementation journal: an ongoing task may omit it until its first publication
+that changes a path outside the configured task directory. Completed tasks
+require it. Abandoned tasks require it only if implementation changes were
+previously published. Other task-local artifacts, including `UserAcceptance.md`
+and design notes, remain allowed.
 
 The status file and task directories have one-to-one correspondence. A missing
 record, missing directory, duplicate record, unexpected top-level directory,
@@ -95,7 +101,6 @@ tasks:
     updatedAt: "2026-09-16T17:20:00Z"
   redesign-repoledger-state-management:
     state: ongoing
-    branch: task/redesign-repoledger-state-management
     createdAt: "2026-09-18T08:30:00Z"
     updatedAt: "2026-09-18T09:00:00Z"
   some-backlog-task:
@@ -113,21 +118,15 @@ export type TaskStatusFile = {
 };
 
 export type TaskRecord = {
+  state: "backlog" | "ongoing" | "completed" | "abandoned";
   createdAt: string;
   updatedAt: string;
-} & (
-  | { state: "backlog" }
-  | { state: "ongoing"; branch: string }
-  | { state: "completed" }
-  | { state: "abandoned" }
-);
+};
 ```
 
 The mapping key is the exact task-directory name and is the task's immutable
-identifier. A record does not repeat its name. Only an `ongoing` record has a
-`branch`; the other variants reject it. The branch is a short branch name with
-no remote or `refs/heads/` prefix, must differ from the primary branch, and
-must be unique across ongoing records.
+identifier. A record does not repeat its name or encode a source branch,
+worktree, device, person, or agent.
 
 ## Canonical YAML
 
@@ -138,8 +137,7 @@ Repoledger is the normal writer for both files and emits one canonical form:
   tags, directives, or comments;
 - top-level properties in the order shown by the examples;
 - task records sorted by task name using ascending Unicode code-point order;
-- record properties ordered as `state`, `branch` when present, `createdAt`,
-  then `updatedAt`; and
+- record properties ordered as `state`, `createdAt`, then `updatedAt`; and
 - timestamps always double-quoted.
 
 Parsing rejects unsupported YAML features instead of silently normalizing
@@ -160,8 +158,8 @@ lexicographically by time.
   second after the previous value. This preserves strict monotonicity when two
   transitions occur within one clock second or the local clock moves backward.
 - Mutating one record never refreshes timestamps on another record.
-- Collaboration-branch commits do not change `updatedAt`; branch activity is a
-  separate Git fact queried from the remote ref.
+- Implementation commits and `Progress.md` edits do not change `updatedAt`
+  unless they also perform a lifecycle transition.
 
 The invariants `createdAt <= updatedAt` and
 `new.updatedAt > old.updatedAt` for every record mutation are mandatory.
@@ -187,19 +185,14 @@ the mistaken or superseded record.
 
 The authoritative status is the `status.yaml` blob on
 `refs/remotes/<remote>/<primaryBranch>`. A worktree copy is only an offline
-snapshot. Task branches may contain an older copy inherited from their branch
-point, but agents must not edit status records there.
+snapshot. Repoledger reads and publishes lifecycle state only through that
+configured primary ref.
 
-An ongoing branch resolves as
-`refs/remotes/<remote>/<task.branch>`. Its history is append-only after
-creation: routine collaboration never rebases or force-pushes it. Human
-approval names an immutable candidate commit, not merely the mutable branch
-tip.
-
-The primary branch contains accepted coordination and implementation states.
-Pending review artifacts remain on the collaboration branch until approved.
-An accepted integration preserves the reviewed commit in primary history; it
-is not squashed or cherry-picked away.
+Task records do not name a source branch. Optional contributor branches and
+pull requests are transport choices outside repoledger; the skills may use
+them when repository policy requires it, but may not treat them as task state.
+Review and delivery decisions name immutable commits. Completion requires the
+accepted implementation commit to be reachable from refreshed primary.
 
 ## Validation invariants
 
@@ -209,10 +202,9 @@ is not squashed or cherry-picked away.
 | Status syntax | One canonical, strictly parsed `status.yaml` matching the TypeScript union. |
 | Identity | Each task name occurs exactly once as a record key and exactly once as a stable directory. |
 | Lifecycle | Every observed state change is one legal directed transition. |
-| Branches | Only ongoing records have branches; names are unique and remote refs exist when remote validation is requested. |
-| Artifacts | Required task documents exist and their state-dependent facts agree with the status record. |
+| Artifacts | Required task documents exist and their state-dependent facts agree with the status record. Every post-migration commit that creates or edits `Progress.md` also changes at least one path outside the configured task directory. |
 | Time | Creation is immutable; updates are per-record and strictly monotonic. |
-| History | Required approval and implementation commits are reachable before a collaboration ref is removed. |
+| History | Required implementation and reviewed commits are reachable from refreshed primary before completion. |
 
 ## Migration from layout v1
 
@@ -231,15 +223,27 @@ command.
 5. Derive `createdAt` from the first primary-history commit introducing the
    task's `Task.md`. Set `updatedAt` to the migration operation time because
    this is the first canonical status-record write.
-6. Assign each ongoing task the unique branch `task/<task-name>`. Create any
-   missing collaboration ref from the migration commit as part of one atomic
-   push.
-7. Replace `repoledger.json` with `repoledger.yaml`, write canonical
+6. Replace `repoledger.json` with `repoledger.yaml`, write canonical
    `tasks/status.yaml`, remove identity markers and obsolete status
    directories, then run both local and remote validation.
-8. Publish the migration without force and verify every task, status record,
-   branch, and required historical commit from refreshed remote refs.
+7. Publish the migration without force and verify every task, status record,
+  and required historical commit from refreshed primary.
 
 Before publication, rollback is deletion of the isolated migration result.
 After publication, corrections are forward commits; published history is
 never rewritten.
+
+### Progress history rule
+
+For every commit introduced on primary after the migration commit, repoledger
+compares that commit with its first parent. If the diff creates or modifies any
+`<tasksDirectory>/<task-name>/Progress.md`, the same diff must create, modify,
+rename, or delete at least one tracked path outside `<tasksDirectory>/`.
+Multiple progress files in one commit share that publication-level condition.
+
+The migration commit and all earlier history are exempt. Repoledger-generated
+register, start, complete, and abandon commits never edit `Progress.md`.
+Merge commits are checked against their first parent, so a pull-request merge
+must present the implementation and progress delta together in the resulting
+primary change. This rule is enforced by `check --remote`; local check reports
+that history validation was not performed.
