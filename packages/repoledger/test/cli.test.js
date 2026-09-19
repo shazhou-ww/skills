@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, test } from "node:test";
 
 import { runCli } from "../src/cli.js";
-import { projectConfig } from "../test-support/support.js";
 
 const temporaryDirectories = [];
 
@@ -30,57 +29,64 @@ function captureIo() {
   };
 }
 
-test("prints the package version without requiring a command", async () => {
+test("renders the approved command surface without legacy commands", async () => {
   const capture = captureIo();
-
-  const exitCode = await runCli(["--version"], capture.io);
-
-  assert.equal(exitCode, 0);
-  assert.deepEqual(capture.output, ["0.6.1"]);
-  assert.deepEqual(capture.errors, []);
-});
-
-test("returns a usage error for an unknown command", async () => {
-  const capture = captureIo();
-
-  const exitCode = await runCli(["repair"], capture.io);
-
-  assert.equal(exitCode, 2);
-  assert.deepEqual(capture.output, []);
-  assert.match(capture.errors.join("\n"), /unknown command 'repair'/);
-  assert.match(capture.errors.join("\n"), /--help for usage/);
-});
-
-test("renders command-oriented root help with examples", async () => {
-  const capture = captureIo();
-
   const exitCode = await runCli([], capture.io);
   const help = capture.output.join("\n");
 
   assert.equal(exitCode, 0);
-  assert.match(help, /Usage: repoledger \[options\] \[command\]/);
-  assert.match(help, /check \[options\]\s+validate repository task state/);
-  assert.match(help, /doctor \[options\]\s+validate local task-work readiness/);
-  assert.match(help, /init \[options\]\s+initialize repository task state/);
-  assert.match(help, /task\s+manage a task transition/);
-  assert.match(help, /status \[options\]\s+show repository task status/);
-  assert.match(help, /Examples:/);
+  assert.match(help, /check \[options\] \[task-name\]/);
+  assert.match(help, /init \[options\]/);
+  assert.match(help, /status \[options\] <task-name>/);
+  assert.match(help, /task\s+query or mutate task lifecycle state/);
+  assert.doesNotMatch(help, /doctor/);
+  assert.doesNotMatch(help, /claim/);
+  assert.doesNotMatch(help, /archive/);
+  assert.doesNotMatch(help, /--config/);
 });
 
-test("renders focused doctor help", async () => {
+test("renders task list time and state filters", async () => {
   const capture = captureIo();
-
-  const exitCode = await runCli(["doctor", "--help"], capture.io);
+  const exitCode = await runCli(["task", "list", "--help"], capture.io);
   const help = capture.output.join("\n");
 
   assert.equal(exitCode, 0);
-  assert.match(help, /Usage: repoledger doctor \[options\]/);
-  assert.doesNotMatch(help, /--offline/);
-  assert.match(help, /--json/);
-  assert.match(help, /--config <path>/);
+  for (const option of [
+    "--state <state>",
+    "--created-since <timestamp>",
+    "--created-before <timestamp>",
+    "--updated-since <timestamp>",
+    "--updated-before <timestamp>",
+    "--sort <key>",
+    "--limit <count>",
+    "--local",
+  ]) {
+    assert.match(help, new RegExp(option.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
 });
 
-test("returns exit code one with a complete JSON validation report", async () => {
+test("rejects invalid time filters as usage errors", async () => {
+  const invalid = captureIo();
+  const reversed = captureIo();
+
+  assert.equal(
+    await runCli(["task", "list", "--created-since", "today"], invalid.io),
+    2,
+  );
+  assert.equal(
+    await runCli([
+      "task",
+      "list",
+      "--updated-since",
+      "2026-09-20T00:00:00Z",
+      "--updated-before",
+      "2026-09-19T00:00:00Z",
+    ], reversed.io),
+    2,
+  );
+});
+
+test("returns a stable JSON validation report", async () => {
   const root = await mkdtemp(join(tmpdir(), "repoledger-cli-invalid-"));
   temporaryDirectories.push(root);
   const capture = captureIo();
@@ -89,124 +95,18 @@ test("returns exit code one with a complete JSON validation report", async () =>
   const report = JSON.parse(capture.output.join("\n"));
 
   assert.equal(exitCode, 1);
-  assert.equal(report.ok, false);
   assert.equal(report.command, "check");
-  assert.equal(report.summary.errors, 1);
+  assert.equal(report.ok, false);
+  assert.equal(report.result.checked, 0);
   assert.equal(report.diagnostics[0].code, "config.missing");
-  assert.deepEqual(capture.errors, []);
 });
 
-test("renders focused check help", async () => {
-  const capture = captureIo();
+test("requires explicit init coordination target and completion approval", async () => {
+  const init = captureIo();
+  const complete = captureIo();
 
-  const exitCode = await runCli(["check", "--help"], capture.io);
-  const help = capture.output.join("\n");
-
-  assert.equal(exitCode, 0);
-  assert.match(help, /--all-identities/);
-  assert.match(help, /--archived/);
-  assert.match(help, /--task <name>/);
-});
-
-test("emits machine-readable status without requiring a Git identity", async () => {
-  const root = await mkdtemp(join(tmpdir(), "repoledger-cli-status-"));
-  temporaryDirectories.push(root);
-  const globalConfig = join(root, "empty-global-config");
-  await writeFile(globalConfig, "");
-  await writeFile(join(root, "repoledger.json"), JSON.stringify(projectConfig()));
-  for (const state of ["backlog", "ongoing", "archived"]) {
-    await mkdir(join(root, "tasks", state), { recursive: true });
-  }
-  const capture = captureIo();
-  const previousGlobalConfig = process.env.GIT_CONFIG_GLOBAL;
-  process.env.GIT_CONFIG_GLOBAL = globalConfig;
-  let exitCode;
-  try {
-    exitCode = await runCli(["status", "--root", root, "--json"], capture.io);
-  } finally {
-    if (previousGlobalConfig === undefined) delete process.env.GIT_CONFIG_GLOBAL;
-    else process.env.GIT_CONFIG_GLOBAL = previousGlobalConfig;
-  }
-  const report = JSON.parse(capture.output.join("\n"));
-
-  assert.equal(exitCode, 0);
-  assert.equal(report.command, "status");
-  assert.deepEqual(report.identity, { scope: null, value: null });
-  assert.deepEqual(report.tasks, []);
-  assert.deepEqual(capture.errors, []);
-});
-
-test("renders initialization help and rejects conflicting modes", async () => {
-  const helpCapture = captureIo();
-  const conflictCapture = captureIo();
-
-  const helpExitCode = await runCli(["init", "--help"], helpCapture.io);
-  const conflictExitCode = await runCli(
-    ["init", "--apply", "--dry-run"],
-    conflictCapture.io,
-  );
-
-  assert.equal(helpExitCode, 0);
-  assert.match(helpCapture.output.join("\n"), /--identity <identity>/);
-  assert.match(helpCapture.output.join("\n"), /--tasks-directory <path>/);
-  assert.doesNotMatch(helpCapture.output.join("\n"), /--branch/);
-  assert.doesNotMatch(helpCapture.output.join("\n"), /--remote/);
-  assert.equal(conflictExitCode, 2);
-  assert.match(conflictCapture.errors.join("\n"), /cannot be used together/);
-});
-
-test("renders takeover grammar and machine-readable operation semantics", async () => {
-  const helpCapture = captureIo();
-  const archiveHelpCapture = captureIo();
-  const reportCapture = captureIo();
-  const root = await mkdtemp(join(tmpdir(), "repoledger-cli-plan-"));
-  temporaryDirectories.push(root);
-
-  const helpExitCode = await runCli(["task", "claim", "--help"], helpCapture.io);
-  const archiveHelpExitCode = await runCli(
-    ["task", "archive", "--help"],
-    archiveHelpCapture.io,
-  );
-  const reportExitCode = await runCli(
-    [
-      "task",
-      "claim",
-      "move-task",
-      "--take-from",
-      "source-identity",
-      "--root",
-      root,
-      "--json",
-    ],
-    reportCapture.io,
-  );
-  const report = JSON.parse(reportCapture.output.join("\n"));
-
-  assert.equal(helpExitCode, 0);
-  assert.match(helpCapture.output.join("\n"), /--take-from <identity>/);
-  assert.match(helpCapture.output.join("\n"), /--update-all-refs/);
-  assert.equal(archiveHelpExitCode, 0);
-  assert.match(
-    archiveHelpCapture.output.join("\n"),
-    /--update-all-refs/,
-  );
-  assert.equal(reportExitCode, 1);
-  assert.equal(report.command, "task");
-  assert.equal(report.operation, "takeover");
-  assert.equal(report.sourceIdentity, "source-identity");
-});
-
-test("renders move and reference details for human transition reports", async () => {
-  const capture = captureIo();
-  const root = await mkdtemp(join(tmpdir(), "repoledger-cli-plan-human-"));
-  temporaryDirectories.push(root);
-
-  const exitCode = await runCli(
-    ["task", "claim", "move-task", "--root", root],
-    capture.io,
-  );
-
-  assert.equal(exitCode, 1);
-  assert.match(capture.errors.join("\n"), /config\.missing/);
-  assert.doesNotMatch(capture.output.join("\n"), /undefined/);
+  assert.equal(await runCli(["init"], init.io), 2);
+  assert.match(init.errors.join("\n"), /--remote/);
+  assert.equal(await runCli(["task", "complete", "sample-task"], complete.io), 2);
+  assert.match(complete.errors.join("\n"), /--approved-commit/);
 });

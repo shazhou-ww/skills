@@ -1,7 +1,7 @@
 {
   "name": "repoledger",
   "version": "0.6.1",
-  "description": "Inspect, validate, initialize, and safely move repository-owned task ledgers.",
+  "description": "Query, validate, and publish Git-native repository task lifecycle state.",
   "type": "module",
   "bin": {
     "repoledger": "bin/repoledger.js"
@@ -45,6 +45,7 @@
     "commander": "^14.0.3",
     "marked": "^18.0.13",
     "mdast-util-from-markdown": "^2.0.3",
-    "mdast-util-to-markdown": "^2.1.2"
+    "mdast-util-to-markdown": "^2.1.2",
+    "yaml": "^2.9.1"
   }
 }

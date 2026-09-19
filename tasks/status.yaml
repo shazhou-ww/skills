@@ -1,0 +1,62 @@
+version: 1
+tasks:
+  add-task-entry-skills:
+    state: completed
+    createdAt: "2026-09-15T07:12:57Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  adopt-repository-task-ledger:
+    state: completed
+    createdAt: "2026-09-15T04:30:00Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  automate-monorepo-package-releases:
+    state: completed
+    createdAt: "2026-09-15T08:59:59Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  build-repoledger-cli:
+    state: completed
+    createdAt: "2026-09-15T08:12:57Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  define-task-admission-boundary:
+    state: completed
+    createdAt: "2026-09-15T04:30:00Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  expand-repoledger-cli-operations:
+    state: completed
+    createdAt: "2026-09-16T05:07:26Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  fix-skill-fragment-link-warnings:
+    state: completed
+    createdAt: "2026-09-15T09:43:39Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  publish-human-centered-review-skills:
+    state: completed
+    createdAt: "2026-09-17T02:42:29Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  redesign-repoledger-state-management:
+    state: ongoing
+    createdAt: "2026-09-18T07:36:12Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  refine-task-entry-input-routing:
+    state: completed
+    createdAt: "2026-09-15T08:57:15Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  require-autonomous-task-publication:
+    state: completed
+    createdAt: "2026-09-15T06:35:48Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  require-task-move-cleanup:
+    state: completed
+    createdAt: "2026-09-15T06:03:10Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  support-device-default-identity:
+    state: completed
+    createdAt: "2026-09-15T06:03:10Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  use-repository-root-task-links:
+    state: completed
+    createdAt: "2026-09-15T06:03:10Z"
+    updatedAt: "2026-09-19T02:26:51Z"
+  validate-ledger-facts-not-wording:
+    state: completed
+    createdAt: "2026-09-17T13:02:23Z"
+    updatedAt: "2026-09-19T02:26:51Z"

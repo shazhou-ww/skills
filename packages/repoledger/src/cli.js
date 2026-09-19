@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
-import { Command, CommanderError } from "commander";
+import { Command, CommanderError, Option } from "commander";
 
-import { doctorRepository } from "./doctor.js";
 import { checkRepository } from "./index.js";
 import { initRepository } from "./init.js";
-import { statusRepository } from "./status.js";
-import { transitionRepository } from "./transitions.js";
+import { isTimestamp, TASK_STATES } from "./ledger.js";
+import { mutateTask } from "./publication.js";
+import { listTasks, statusRepository } from "./status.js";
 
 const { version: VERSION } = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
@@ -18,125 +18,86 @@ function write(method, value) {
 
 function addCommonOptions(command) {
   return command
-    .option("-c, --config <path>", "configuration path relative to the repository root")
     .option("--json", "emit the complete machine-readable report")
     .option("-r, --root <path>", "repository root", process.cwd());
 }
 
-function renderReport(report, json, io) {
-  if (json) {
-    io.log(JSON.stringify(report, null, 2));
-    return;
-  }
-
-  for (const diagnostic of report.diagnostics.filter(
-    ({ level }) => level === "error" || level === "warning",
-  )) {
+function renderDiagnostics(report, io) {
+  for (const diagnostic of report.diagnostics) {
+    const location = diagnostic.path ? ` ${diagnostic.path}` : "";
     const output = diagnostic.level === "error" ? io.error : io.log;
-    output(
-      `${diagnostic.level.toUpperCase()} ${diagnostic.code} ${diagnostic.path}: ${diagnostic.message}`,
-    );
+    output(`${diagnostic.level.toUpperCase()} ${diagnostic.code}${location}: ${diagnostic.message}`);
     output(`  Fix: ${diagnostic.remediation}`);
-  }
-  if (report.ok) {
-    io.log(
-      `OK: ${report.command} passed at ${report.root} (${report.summary.tasks} task(s), ${report.summary.warnings} warning(s), ${report.summary.infos} info)`,
-    );
-  } else {
-    io.error(`FAILED: ${report.summary.errors} error(s)`);
   }
 }
 
-function renderStatus(report, json, io) {
+function render(report, json, io) {
   if (json) {
     io.log(JSON.stringify(report, null, 2));
     return;
   }
-
-  for (const diagnostic of report.diagnostics.filter(
-    ({ level }) => level === "error" || level === "warning",
-  )) {
-    const output = diagnostic.level === "error" ? io.error : io.log;
-    output(
-      `${diagnostic.level.toUpperCase()} ${diagnostic.code} ${diagnostic.path}: ${diagnostic.message}`,
-    );
-    output(`  Fix: ${diagnostic.remediation}`);
-  }
-  if (report.command === "task") {
-    io.log(`Operation: ${report.operation}`);
-    if (report.source) io.log(`Source: ${report.source}`);
-    if (report.destination) io.log(`Destination: ${report.destination}`);
-    if (report.sourceIdentity) io.log(`Source identity: ${report.sourceIdentity}`);
-    if (report.destinationIdentity) {
-      io.log(`Destination identity: ${report.destinationIdentity}`);
-    }
-    for (const reference of report.referenceEdits) {
-      const action = reference.updated ? "UPDATE" : "SKIP";
-      io.log(`Reference ${action}: ${reference.file} ${reference.from} -> ${reference.to}`);
-    }
-  }
+  renderDiagnostics(report, io);
   if (!report.ok) {
-    io.error(`FAILED: ${report.summary.errors} error(s)`);
+    io.error("FAILED");
     return;
   }
-
-  const identity = report.identity.value
-    ? `${report.identity.value} (${report.identity.scope})`
-    : "unbound";
-  io.log(`Identity: ${identity}`);
-  if (report.tasks.length === 0) {
-    io.log("No tasks.");
+  if (report.command === "task list") {
+    const tasks = report.result.tasks;
+    if (tasks.length === 0) io.log("No tasks.");
+    for (const task of tasks) {
+      io.log(`${task.task}  ${task.state}  ${task.createdAt}  ${task.updatedAt}`);
+    }
     return;
   }
-  for (const task of report.tasks) {
-    const owner = task.identity ? ` [${task.identity}]` : "";
-    io.log(`${task.state.toUpperCase()} ${task.name}${owner} ${task.path}`);
+  if (report.command === "status") {
+    const result = report.result;
+    io.log(`${result.task}  ${result.state}`);
+    io.log(`  created  ${result.createdAt}`);
+    io.log(`  updated  ${result.updatedAt}`);
+    if (result.primary) io.log(`  primary  ${result.primary}`);
+    return;
   }
+  if (report.result?.publication) {
+    io.log(`${report.result.publication}: ${report.result.transition ?? report.command}`);
+    io.log(`  commit  ${report.result.commit.slice(0, 12)}`);
+    return;
+  }
+  io.log(`OK: ${report.command}`);
 }
 
-function renderOperation(report, json, io) {
-  if (json) {
-    io.log(JSON.stringify(report, null, 2));
-    return;
-  }
+function collect(value, previous) {
+  return [...previous, value];
+}
 
-  for (const diagnostic of report.diagnostics.filter(
-    ({ level }) => level === "error" || level === "warning",
-  )) {
-    const output = diagnostic.level === "error" ? io.error : io.log;
-    output(
-      `${diagnostic.level.toUpperCase()} ${diagnostic.code} ${diagnostic.path}: ${diagnostic.message}`,
-    );
-    output(`  Fix: ${diagnostic.remediation}`);
-  }
-  if (!report.ok) {
-    io.error(`FAILED: ${report.summary.errors} error(s)`);
-    return;
-  }
+function positiveInteger(value) {
+  if (!/^[1-9]\d*$/.test(value)) throw new CommanderError(2, "repoledger.invalid-limit", "Limit must be a positive integer");
+  return Number(value);
+}
 
-  io.log(`${report.mode === "apply" ? "Applied" : "Preview"}: ${report.command}`);
-  for (const change of report.changes) {
-    const detail = change.key ? ` ${change.key}=${change.value}` : "";
-    const target = change.from
-      ? `${change.from} -> ${change.to}`
-      : change.path;
-    io.log(`  ${change.action} ${target}${detail}`);
+function validateTimestampOptions(program, options) {
+  for (const key of ["createdSince", "createdBefore", "updatedSince", "updatedBefore"]) {
+    if (options[key] !== undefined && !isTimestamp(options[key])) {
+      program.error(`error: option --${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)} requires YYYY-MM-DDTHH:mm:ssZ`, {
+        exitCode: 2,
+        code: "repoledger.invalid-timestamp",
+      });
+    }
   }
-  for (const reference of report.referenceEdits ?? []) {
-    const action = reference.updated ? "UPDATE" : "SKIP";
-    io.log(`  reference-${action.toLowerCase()} ${reference.file} ${reference.from} -> ${reference.to}`);
+  for (const field of ["created", "updated"]) {
+    if (options[`${field}Since`] && options[`${field}Before`] && options[`${field}Since`] >= options[`${field}Before`]) {
+      program.error(`error: --${field}-since must be earlier than --${field}-before`, {
+        exitCode: 2,
+        code: "repoledger.invalid-time-range",
+      });
+    }
   }
-  if (report.mode === "preview" && report.changes.length > 0) {
-    io.log("Preview only; rerun with --apply to apply these changes.");
-  }
-  for (const nextAction of report.nextActions) io.log(`Next: ${nextAction}`);
 }
 
 export function createProgram(io = console) {
   const program = new Command();
   program
     .name("repoledger")
-    .description("Inspect, validate, initialize, and safely move repository-owned task ledgers.")
+    .description("Query and publish repository-owned task lifecycle state.")
     .version(VERSION, "-v, --version", "display the installed version")
     .showHelpAfterError("(run with --help for usage)")
     .showSuggestionAfterError()
@@ -147,151 +108,109 @@ export function createProgram(io = console) {
       writeOut: (value) => write(io.log, value),
     })
     .exitOverride()
-    .addHelpText(
-      "after",
-      `
+    .addHelpText("after", `
 Examples:
-  $ repoledger status
-  $ repoledger init
-  $ repoledger check
-  $ repoledger check --task <task-name>
-  $ repoledger check --json
-  $ repoledger task claim <task-name>
-  $ repoledger task claim <task-name> --take-from <identity>
-  $ repoledger task archive <task-name>
-  $ repoledger doctor`,
-    );
+  $ repoledger task list --state ongoing --sort updated
+  $ repoledger status <task-name>
+  $ repoledger check --remote
+  $ repoledger task start <task-name>`);
 
   addCommonOptions(
     program
-      .command("check")
-      .description("validate local task files, links, and layout")
-      .summary("validate repository task state")
-      .option("--all-identities", "include ongoing tasks from every identity")
-      .option("--archived", "include archived tasks")
-      .option("--task <name>", "validate one unambiguously named task"),
-  ).action(async (options) => {
-    const report = await checkRepository({
-      configPath: options.config,
-      includeAllIdentities: options.allIdentities,
-      includeArchived: options.archived,
-      root: options.root,
-      taskName: options.task,
-    });
-    renderReport(report, options.json, io);
+      .command("check [task-name]")
+      .description("validate task configuration, status, artifacts, and optional remote history")
+      .option("--remote", "fetch and validate the configured primary branch"),
+  ).action(async (taskName, options) => {
+    const report = await checkRepository({ remote: options.remote, root: options.root, taskName });
+    render(report, options.json, io);
     program.setOptionValue("resultCode", report.ok ? 0 : 1);
   });
 
   addCommonOptions(
     program
       .command("init")
-      .description("plan or apply safe repository task-ledger initialization")
-      .summary("initialize repository task state")
-      .option("--apply", "apply the recomputed initialization plan")
-      .option("--dry-run", "explicitly preview without changing local state")
-      .option("--identity <identity>", "identity lane to initialize")
-      .option("--tasks-directory <path>", "repository-relative task directory"),
+      .description("initialize and publish a new task ledger")
+      .requiredOption("--remote <remote>", "Git remote name")
+      .requiredOption("--primary-branch <branch>", "shared primary branch")
+      .option("--tasks-directory <path>", "repository-relative task directory", "tasks"),
   ).action(async (options) => {
-    if (options.apply && options.dryRun) {
-      program.error(
-        "error: options '--apply' and '--dry-run' cannot be used together",
-        { exitCode: 2, code: "repoledger.init.conflicting-mode" },
-      );
-    }
     const report = await initRepository({
-      apply: options.apply,
-      configPath: options.config,
-      identity: options.identity,
+      primaryBranch: options.primaryBranch,
+      remote: options.remote,
       root: options.root,
       tasksDirectory: options.tasksDirectory,
     });
-    renderOperation(report, options.json, io);
+    render(report, options.json, io);
     program.setOptionValue("resultCode", report.ok ? 0 : 1);
   });
 
   addCommonOptions(
     program
-      .command("status")
-      .description("list canonical task positions and the effective identity")
-      .summary("show repository task status")
-      .option("--archived", "include archived task positions"),
-  ).action(async (options) => {
-    const report = await statusRepository({
-      configPath: options.config,
-      includeArchived: options.archived,
-      root: options.root,
-    });
-    renderStatus(report, options.json, io);
+      .command("status <task-name>")
+      .description("show one task record")
+      .option("--local", "read the worktree snapshot without fetching"),
+  ).action(async (taskName, options) => {
+    const report = await statusRepository({ local: options.local, root: options.root, taskName });
+    render(report, options.json, io);
     program.setOptionValue("resultCode", report.ok ? 0 : 1);
   });
 
-  const task = program
-    .command("task")
-    .description("preview or apply a validated local task transition")
-    .summary("manage a task transition");
+  const task = program.command("task").description("query or mutate task lifecycle state");
+  const list = addCommonOptions(
+    task
+      .command("list")
+      .description("list and filter task records")
+      .addOption(new Option("--state <state>", "include a lifecycle state").choices(TASK_STATES).argParser(collect).default([]))
+      .option("--created-since <timestamp>", "inclusive creation lower bound")
+      .option("--created-before <timestamp>", "exclusive creation upper bound")
+      .option("--updated-since <timestamp>", "inclusive update lower bound")
+      .option("--updated-before <timestamp>", "exclusive update upper bound")
+      .addOption(new Option("--sort <key>", "sort key").choices(["name", "created", "updated"]).default("name"))
+      .option("--limit <count>", "maximum result count", positiveInteger)
+      .option("--local", "read the worktree snapshot without fetching"),
+  );
+  list.action(async (options) => {
+    validateTimestampOptions(program, options);
+    const report = await listTasks({
+      filters: {
+        states: options.state,
+        createdSince: options.createdSince,
+        createdBefore: options.createdBefore,
+        updatedSince: options.updatedSince,
+        updatedBefore: options.updatedBefore,
+      },
+      limit: options.limit,
+      local: options.local,
+      root: options.root,
+      sort: options.sort,
+    });
+    render(report, options.json, io);
+    program.setOptionValue("resultCode", report.ok ? 0 : 1);
+  });
+
+  for (const operation of ["register", "start", "abandon"]) {
+    addCommonOptions(
+      task.command(`${operation} <task-name>`).description(`${operation} one task`),
+    ).action(async (taskName, options) => {
+      const report = await mutateTask({ operation, root: options.root, taskName });
+      render(report, options.json, io);
+      program.setOptionValue("resultCode", report.ok ? 0 : 1);
+    });
+  }
 
   addCommonOptions(
     task
-      .command("claim <task-name>")
-      .description("plan a backlog claim or explicit ownership takeover")
-      .summary("plan a task claim")
-      .option("--apply", "apply the recomputed transition plan")
-      .option(
-        "--update-all-refs",
-        "update all affected references, including archived task history",
-      )
-      .option(
-        "--take-from <identity>",
-        "take an ongoing task only from this expected source identity",
-      ),
+      .command("complete <task-name>")
+      .description("complete one approved task")
+      .requiredOption("--approved-commit <commit>", "exact primary commit approved for delivery"),
   ).action(async (taskName, options) => {
-    const report = await transitionRepository({
-      apply: options.apply,
-      configPath: options.config,
-      operation: "claim",
-      root: options.root,
-      takeFrom: options.takeFrom,
-      taskName,
-      updateAllReferences: options.updateAllRefs,
-    });
-    renderOperation(report, options.json, io);
-    program.setOptionValue("resultCode", report.ok ? 0 : 1);
-  });
-
-  addCommonOptions(
-    task
-      .command("archive <task-name>")
-      .description("plan archival of a completed or abandoned current task")
-      .summary("plan task archival")
-      .option("--apply", "apply the recomputed transition plan")
-      .option(
-        "--update-all-refs",
-        "update all affected references, including archived task history",
-      ),
-  ).action(async (taskName, options) => {
-    const report = await transitionRepository({
-      apply: options.apply,
-      configPath: options.config,
-      operation: "archive",
+    const report = await mutateTask({
+      approvedCommit: options.approvedCommit,
+      operation: "complete",
       root: options.root,
       taskName,
-      updateAllReferences: options.updateAllRefs,
     });
-    renderOperation(report, options.json, io);
-    program.setOptionValue("resultCode", report.ok ? 0 : 1);
-  });
-
-  addCommonOptions(
-    program
-      .command("doctor")
-      .description("validate the effective identity and repository task state")
-      .summary("validate local task-work readiness"),
-  ).action(async (options) => {
-    const report = await doctorRepository({
-      configPath: options.config,
-      root: options.root,
-    });
-    renderReport(report, options.json, io);
+    render(report, options.json, io);
     program.setOptionValue("resultCode", report.ok ? 0 : 1);
   });
 
@@ -302,9 +221,9 @@ export async function runCli(args, io = console) {
   const program = createProgram(io);
   try {
     await program.parseAsync(args.length === 0 ? ["--help"] : args, { from: "user" });
-  } catch (error) {
-    if (error instanceof CommanderError) return error.exitCode === 0 ? 0 : 2;
-    throw error;
+  } catch (caught) {
+    if (caught instanceof CommanderError) return caught.exitCode === 0 ? 0 : 2;
+    throw caught;
   }
   return program.getOptionValue("resultCode") ?? 0;
 }

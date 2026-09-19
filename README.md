@@ -119,30 +119,24 @@ implementation requests into tasks.
 ## Deterministic validation
 
 [`repoledger`](packages/repoledger/README.md) is the npm-distributed companion
-CLI for task inventory, focused or repository-wide validation, safe
-initialization, previewable local moves, Markdown reference preservation,
-and global or worktree identity configuration. It does not replace the skill's judgment,
-Git integration, or lifecycle rules.
+CLI for filterable task inventory, strict YAML validation, stable lifecycle
+state, and isolated publication to the configured primary branch. It does not
+replace the skill's judgment about admission, overlap, or human approval.
 
 ```sh
 npx repoledger@0.6.1 check
-npx repoledger@0.6.1 doctor
+npx repoledger@0.6.1 task list --state ongoing
 ```
 
-Repositories should pin the package for CI. By default, `check` validates
-backlog plus the current identity's ongoing lane; CI can add
-`--all-identities --archived`. `doctor` validates the effective Git identity without
-fetching or inspecting history. The versioned configuration contract is the
-GitHub-hosted
+Repositories should pin the package for CI and run `check --remote`. The
+versioned configuration and task-record contract is the GitHub-hosted
 [`schema/v1.json`](packages/repoledger/schema/v1.json).
 
-Newer source versions also expose `status`, `check --task`, preview-first
-`init`, and preview-first `task claim|archive`. A coordinated receiving
-worktree can use `task claim <task> --take-from <identity>` to guard against a
-stale source owner. Task moves report affected references without changing
-them unless `--update-all-refs` is present. Only explicit `--apply` changes
-local files; no command modifies Git configuration, stages, commits, or
-publishes those changes.
+The lifecycle commands are `task register`, `task start`, `task complete`, and
+`task abandon`. Task paths remain stable and records never contain an identity
+or source branch. Mutations fetch primary, construct and validate an isolated
+commit, push without force, and verify publication while preserving the
+caller's branch, index, and unrelated worktree files.
 
 ## Project release skill
 

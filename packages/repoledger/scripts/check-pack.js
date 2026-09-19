@@ -29,18 +29,15 @@ if (packed.status !== 0) {
     "src/cli.js",
     "src/config.js",
     "src/content.js",
-    "src/discovery.js",
-    "src/doctor.js",
     "src/git.js",
-    "src/identity.js",
     "src/init.js",
     "src/index.js",
     "src/layout.js",
+    "src/ledger.js",
     "src/markdown.js",
-    "src/references.js",
+    "src/publication.js",
     "src/status.js",
-    "src/transaction.js",
-    "src/transitions.js",
+    "src/yaml.js",
   ].sort();
   const missing = expected.filter((path) => !files.includes(path));
   const unexpected = files.filter((path) => !expected.includes(path));

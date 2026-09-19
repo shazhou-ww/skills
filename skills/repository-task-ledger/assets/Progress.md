@@ -18,6 +18,9 @@ after a colon or dash; the leading value remains the canonical fact. An
 approval entry names the human reviewer, date, reviewed artifact, and decision
 evidence. A not-applicable entry repeats the task-specific rationale. Task
 creation, invocation, silence, and routine Git authorization are not approval.
+Record only decisions known when publishing an implementation delta. Delivery
+may remain Pending here; `task complete --approved-commit` binds the later
+delivery decision without a Progress-only commit.
 
 | Checkpoint | Status | Review artifact and decision evidence |
 | --- | --- | --- |
@@ -41,5 +44,5 @@ portable file-relative convention.
 
 ## Outcome
 
-Fill this in before archiving as `Completed` or `Abandoned`, with a concise
-reason and remaining follow-up.
+Describe the implementation outcome and remaining delivery action. Lifecycle
+state remains authoritative in `tasks/status.yaml`.

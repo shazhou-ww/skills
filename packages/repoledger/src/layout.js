@@ -1,10 +1,11 @@
-import { lstat, readdir } from "node:fs/promises";
+import { lstat, readFile, readdir } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 
-const PORTABLE_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const STATUS_DIRECTORIES = ["backlog", "ongoing", "archived"];
+import { parseStatusFile, STATUS_FILE_NAME } from "./ledger.js";
 
-function toPath(root, path) {
+const PORTABLE_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function displayPath(root, path) {
   return relative(root, path).replaceAll("\\", "/");
 }
 
@@ -12,229 +13,147 @@ function error(code, path, message, remediation) {
   return { code, level: "error", path, message, remediation };
 }
 
-async function directoryEntries(path) {
+async function metadata(path) {
   try {
-    const metadata = await lstat(path);
-    if (!metadata.isDirectory()) return { entries: null, kind: "not-directory" };
-    const entries = await readdir(path, { withFileTypes: true });
-    return {
-      entries: entries
-        .filter(({ name }) => !name.startsWith("."))
-        .sort((left, right) => left.name.localeCompare(right.name)),
-      kind: "directory",
-    };
+    return await lstat(path);
   } catch (caught) {
-    if (caught.code === "ENOENT") return { entries: null, kind: "missing" };
+    if (caught.code === "ENOENT") return null;
     throw caught;
   }
 }
 
-function validatePortableName({ diagnostics, kind, name, path }) {
-  if (!PORTABLE_NAME.test(name)) {
+export async function inspectLayout({ config, root }) {
+  const diagnostics = [];
+  const tasksRoot = resolve(root, config.tasksDirectory);
+  const tasksMetadata = await metadata(tasksRoot);
+  if (!tasksMetadata) {
     diagnostics.push(
       error(
-        `${kind}.invalid-name`,
-        path,
-        `${kind === "identity" ? "Identity" : "Task"} names must use lowercase kebab-case: ${name}`,
-        `Rename ${name} to a portable lowercase kebab-case name.`,
+        "layout.tasks.missing",
+        config.tasksDirectory,
+        `Configured task directory does not exist: ${config.tasksDirectory}`,
+        `Create ${config.tasksDirectory} and ${config.tasksDirectory}/${STATUS_FILE_NAME}.`,
       ),
     );
+    return { diagnostics, status: null, tasks: [] };
   }
-}
+  if (tasksMetadata.isSymbolicLink()) {
+    diagnostics.push(
+      error(
+        "layout.tasks.symlink",
+        config.tasksDirectory,
+        "The configured task directory must not be a symbolic link.",
+        "Replace it with a repository-owned directory.",
+      ),
+    );
+    return { diagnostics, status: null, tasks: [] };
+  }
+  if (!tasksMetadata.isDirectory()) {
+    diagnostics.push(
+      error(
+        "layout.tasks.not-directory",
+        config.tasksDirectory,
+        "The configured task path must be a directory.",
+        `Replace ${config.tasksDirectory} with a directory.`,
+      ),
+    );
+    return { diagnostics, status: null, tasks: [] };
+  }
 
-async function collectTaskEntries({ diagnostics, root, state, statePath }) {
-  const result = await directoryEntries(statePath);
-  if (result.kind !== "directory") return [];
-  const tasks = [];
+  const statusPath = resolve(tasksRoot, STATUS_FILE_NAME);
+  const statusMetadata = await metadata(statusPath);
+  let status = null;
+  if (!statusMetadata || !statusMetadata.isFile() || statusMetadata.isSymbolicLink()) {
+    diagnostics.push(
+      error(
+        statusMetadata ? "status.invalid-file" : "status.missing",
+        displayPath(root, statusPath),
+        `The task status file must be a regular file: ${displayPath(root, statusPath)}`,
+        `Create a canonical ${STATUS_FILE_NAME}.`,
+      ),
+    );
+  } else {
+    try {
+      status = parseStatusFile(await readFile(statusPath, "utf8"));
+    } catch (caught) {
+      diagnostics.push(
+        error(
+          "status.invalid",
+          displayPath(root, statusPath),
+          caught.message,
+          `Rewrite ${displayPath(root, statusPath)} in canonical form.`,
+        ),
+      );
+    }
+  }
 
-  for (const entry of result.entries) {
-    const path = resolve(statePath, entry.name);
-    const displayPath = toPath(root, path);
-    if (!entry.isDirectory()) {
+  const directoryNames = new Set();
+  for (const entry of await readdir(tasksRoot, { withFileTypes: true })) {
+    if (entry.name === STATUS_FILE_NAME) continue;
+    const path = resolve(tasksRoot, entry.name);
+    const pathMetadata = await metadata(path);
+    const relativePath = displayPath(root, path);
+    if (!PORTABLE_NAME.test(entry.name)) {
+      diagnostics.push(
+        error(
+          "task.invalid-name",
+          relativePath,
+          `Task names must use lowercase kebab-case: ${entry.name}`,
+          "Rename the task directory and its status key.",
+        ),
+      );
+      continue;
+    }
+    if (!entry.isDirectory() || pathMetadata?.isSymbolicLink()) {
       diagnostics.push(
         error(
           "task.not-directory",
-          displayPath,
-          `Every ${state} entry must be a task directory: ${displayPath}`,
-          `Move or remove the non-directory entry at ${displayPath}.`,
+          relativePath,
+          `Every task entry must be a repository-owned directory: ${relativePath}`,
+          "Replace or remove the invalid task entry.",
         ),
       );
       continue;
     }
-    validatePortableName({ diagnostics, kind: "task", name: entry.name, path: displayPath });
-    tasks.push({ name: entry.name, path, relativePath: displayPath, state });
+    directoryNames.add(entry.name);
   }
 
-  return tasks;
-}
-
-async function collectOngoingTasks({
-  diagnostics,
-  ongoingIdentities,
-  root,
-  statePath,
-}) {
-  const result = await directoryEntries(statePath);
-  if (result.kind !== "directory") return [];
   const tasks = [];
-
-  for (const identity of result.entries) {
-    if (ongoingIdentities && !ongoingIdentities.has(identity.name)) continue;
-    const identityPath = resolve(statePath, identity.name);
-    const displayIdentityPath = toPath(root, identityPath);
-    if (!identity.isDirectory()) {
-      diagnostics.push(
-        error(
-          "identity.not-directory",
-          displayIdentityPath,
-          `Every ongoing entry must be an identity directory: ${displayIdentityPath}`,
-          `Move or remove the non-directory entry at ${displayIdentityPath}.`,
-        ),
-      );
-      continue;
-    }
-
-    validatePortableName({
-      diagnostics,
-      kind: "identity",
-      name: identity.name,
-      path: displayIdentityPath,
-    });
-
-    try {
-      const marker = await lstat(resolve(identityPath, ".gitkeep"));
-      if (!marker.isFile()) throw new Error("not a file");
-    } catch {
-      diagnostics.push(
-        error(
-          "identity.marker.missing",
-          `${displayIdentityPath}/.gitkeep`,
-          `Identity lane ${identity.name} is missing its .gitkeep marker.`,
-          `Add the local marker at ${displayIdentityPath}/.gitkeep.`,
-        ),
-      );
-    }
-
-    const identityTasks = await collectTaskEntries({
-      diagnostics,
-      root,
-      state: "ongoing",
-      statePath: identityPath,
-    });
-    tasks.push(
-      ...identityTasks.map((task) => ({ ...task, identity: identity.name })),
-    );
-  }
-
-  return tasks;
-}
-
-export async function inspectLayout({
-  checkDuplicatePositions = true,
-  config,
-  includeArchived = true,
-  ongoingIdentities = null,
-  root,
-}) {
-  const diagnostics = [];
-  const tasksRoot = resolve(root, config.tasksDirectory);
-  const rootResult = await directoryEntries(tasksRoot);
-
-  if (rootResult.kind !== "directory") {
-    diagnostics.push(
-      error(
-        rootResult.kind === "missing" ? "layout.tasks.missing" : "layout.tasks.not-directory",
-        config.tasksDirectory,
-        `Configured task path is not a directory: ${config.tasksDirectory}`,
-        `Create the task ledger directory at ${config.tasksDirectory}.`,
-      ),
-    );
-    return { diagnostics, tasks: [] };
-  }
-
-  for (const entry of rootResult.entries) {
-    if (entry.isDirectory() && !STATUS_DIRECTORIES.includes(entry.name)) {
-      diagnostics.push(
-        error(
-          "layout.status.unexpected",
-          `${config.tasksDirectory}/${entry.name}`,
-          `Unexpected task status directory: ${entry.name}`,
-          "Move its tasks into backlog, ongoing, or archived and remove the directory.",
-        ),
-      );
-    }
-  }
-
-  const statePaths = Object.fromEntries(
-    STATUS_DIRECTORIES.map((state) => [state, resolve(tasksRoot, state)]),
-  );
-  const includeOngoing =
-    ongoingIdentities === null || ongoingIdentities.size > 0;
-  const includedStates = STATUS_DIRECTORIES.filter(
-    (state) =>
-      (state !== "ongoing" || includeOngoing) &&
-      (state !== "archived" || includeArchived),
-  );
-  for (const state of includedStates) {
-    const result = await directoryEntries(statePaths[state]);
-    if (result.kind !== "directory") {
-      const path = `${config.tasksDirectory}/${state}`;
-      diagnostics.push(
-        error(
-          result.kind === "missing" ? "layout.status.missing" : "layout.status.not-directory",
-          path,
-          `Missing canonical task status directory: ${path}`,
-          `Create ${path} before using the task ledger.`,
-        ),
-      );
-    }
-  }
-
-  const tasks = [
-    ...(await collectTaskEntries({
-      diagnostics,
-      root,
-      state: "backlog",
-      statePath: statePaths.backlog,
-    })),
-    ...(includeOngoing
-      ? await collectOngoingTasks({
-          diagnostics,
-          ongoingIdentities,
-          root,
-          statePath: statePaths.ongoing,
-        })
-      : []),
-    ...(includeArchived
-      ? await collectTaskEntries({
-          diagnostics,
-          root,
-          state: "archived",
-          statePath: statePaths.archived,
-        })
-      : []),
-  ];
-
-  if (checkDuplicatePositions) {
-    const positions = new Map();
-    for (const task of tasks) {
-      const paths = positions.get(task.name) ?? [];
-      paths.push(task.relativePath);
-      positions.set(task.name, paths);
-    }
-    for (const [name, paths] of positions) {
-      if (paths.length > 1) {
+  if (status) {
+    for (const [name, record] of Object.entries(status.tasks)) {
+      const path = resolve(tasksRoot, name);
+      if (!directoryNames.has(name)) {
         diagnostics.push(
           error(
-            "task.duplicate-position",
-            paths.join(", "),
-            `Task ${name} appears in ${paths.length} ledger positions.`,
-            "Preserve one canonical task directory and reconcile the duplicates without discarding work.",
+            "task.directory.missing",
+            displayPath(root, path),
+            `Task record ${name} has no matching directory.`,
+            `Create ${config.tasksDirectory}/${name} or remove the stale record through an approved migration.`,
+          ),
+        );
+        continue;
+      }
+      tasks.push({
+        name,
+        path,
+        record,
+        relativePath: displayPath(root, path),
+        state: record.state,
+      });
+    }
+    for (const name of [...directoryNames].sort()) {
+      if (!Object.hasOwn(status.tasks, name)) {
+        diagnostics.push(
+          error(
+            "task.record.missing",
+            `${config.tasksDirectory}/${name}`,
+            `Task directory ${name} has no status record.`,
+            `Register ${name} or remove the unexpected directory.`,
           ),
         );
       }
     }
   }
 
-  return { diagnostics, tasks };
+  return { diagnostics, status, statusPath, tasks };
 }

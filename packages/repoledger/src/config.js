@@ -1,16 +1,13 @@
 import { lstat, readFile } from "node:fs/promises";
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { isAbsolute, posix, relative, resolve, sep } from "node:path";
 
-export const DEFAULT_CONFIG_NAME = "repoledger.json";
-export const SCHEMA_URL =
-  "https://github.com/shazhou-ww/skills/raw/refs/heads/main/packages/repoledger/schema/v1.json";
+import { runGit } from "./git.js";
+import { parseStrictYaml, stringifyCanonicalYaml } from "./yaml.js";
 
-const CONFIG_KEYS = new Set([
-  "$schema",
-  "branch",
-  "remote",
-  "tasksDirectory",
-]);
+export const DEFAULT_CONFIG_NAME = "repoledger.yaml";
+
+const CONFIG_KEYS = ["version", "tasksDirectory", "remote", "primaryBranch"];
+const REMOTE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 function configDiagnostic(code, path, message, remediation) {
   return { code, level: "error", path, message, remediation };
@@ -25,19 +22,69 @@ function escapesRoot(root, path) {
   );
 }
 
-async function resolveSchemaId(root, configPath, reference) {
-  if (reference === SCHEMA_URL) return SCHEMA_URL;
-  if (typeof reference !== "string" || /^[a-z][a-z0-9+.-]*:/i.test(reference)) {
-    return null;
+export function validTasksDirectory(value) {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value === "." ||
+    isAbsolute(value) ||
+    value.includes("\\")
+  ) {
+    return false;
   }
-  const schemaPath = resolve(dirname(configPath), reference);
-  if (escapesRoot(root, schemaPath)) return null;
-  try {
-    const schema = JSON.parse(await readFile(schemaPath, "utf8"));
-    return schema.$id === SCHEMA_URL ? schema.$id : null;
-  } catch {
-    return null;
+  const normalized = posix.normalize(value);
+  return (
+    normalized === value &&
+    normalized !== ".." &&
+    !normalized.startsWith("../") &&
+    !normalized.endsWith("/")
+  );
+}
+
+export async function safeTasksPath(root, value) {
+  if (!validTasksDirectory(value)) return false;
+  let current = root;
+  for (const segment of value.split("/")) {
+    current = resolve(current, segment);
+    try {
+      const metadata = await lstat(current);
+      if (metadata.isSymbolicLink()) return false;
+      if (!metadata.isDirectory()) return false;
+    } catch (caught) {
+      if (caught.code === "ENOENT") return true;
+      throw caught;
+    }
   }
+  return true;
+}
+
+export function validRemote(value) {
+  return (
+    typeof value === "string" &&
+    REMOTE_PATTERN.test(value) &&
+    !value.includes("..") &&
+    !value.endsWith(".lock")
+  );
+}
+
+export function validPrimaryBranch(root, value) {
+  if (
+    typeof value !== "string" ||
+    value.startsWith("refs/") ||
+    value.includes("/") && value.startsWith("remotes/")
+  ) {
+    return false;
+  }
+  return runGit(root, ["check-ref-format", "--branch", value]).ok;
+}
+
+export function serializeConfig(config) {
+  return stringifyCanonicalYaml({
+    version: config.version,
+    tasksDirectory: config.tasksDirectory,
+    remote: config.remote,
+    primaryBranch: config.primaryBranch,
+  });
 }
 
 export async function loadConfig({ root, configPath = DEFAULT_CONFIG_NAME }) {
@@ -52,46 +99,58 @@ export async function loadConfig({ root, configPath = DEFAULT_CONFIG_NAME }) {
           "config.path.outside-root",
           displayPath,
           "The repoledger configuration path must stay within the repository root.",
-          "Use a configuration path relative to the repository root.",
+          "Use repoledger.yaml at the repository root.",
         ),
       ],
     };
   }
-  let value;
 
+  let source;
   try {
     const metadata = await lstat(absolutePath);
-    if (metadata.isSymbolicLink()) {
-      return {
-        config: null,
-        configPath: absolutePath,
-        diagnostics: [
-          configDiagnostic(
-            "config.path.symlink",
-            displayPath,
-            "The repoledger configuration path must not be a symbolic link.",
-            "Replace the link with a regular repository-owned configuration file.",
-          ),
-        ],
-      };
+    if (!metadata.isFile() || metadata.isSymbolicLink()) {
+      throw Object.assign(new Error("Configuration must be a regular file"), {
+        code: "EINVAL",
+      });
     }
-    value = JSON.parse(await readFile(absolutePath, "utf8"));
+    source = await readFile(absolutePath, "utf8");
   } catch (error) {
-    const diagnostic =
-      error.code === "ENOENT"
-        ? configDiagnostic(
-          "config.missing",
+    const missing = error.code === "ENOENT";
+    return {
+      config: null,
+      configPath: absolutePath,
+      diagnostics: [
+        configDiagnostic(
+          missing ? "config.missing" : "config.invalid-file",
           displayPath,
-          `Missing repoledger configuration: ${displayPath}`,
-          `Create ${displayPath} from the published configuration schema.`,
-        )
-        : configDiagnostic(
-          "config.invalid-json",
+          missing
+            ? `Missing repoledger configuration: ${displayPath}`
+            : `Cannot read repoledger configuration: ${error.message}`,
+          missing
+            ? `Create ${DEFAULT_CONFIG_NAME} at the repository root.`
+            : `Replace ${displayPath} with a regular repository-owned file.`,
+        ),
+      ],
+    };
+  }
+
+  let value;
+  const normalizedSource = source.replaceAll("\r\n", "\n");
+  try {
+    value = parseStrictYaml(normalizedSource);
+  } catch (error) {
+    return {
+      config: null,
+      configPath: absolutePath,
+      diagnostics: [
+        configDiagnostic(
+          "config.invalid-yaml",
           displayPath,
           `Cannot parse repoledger configuration: ${error.message}`,
-          `Fix the JSON syntax in ${displayPath}.`,
-        );
-    return { config: null, configPath: absolutePath, diagnostics: [diagnostic] };
+          `Use the strict YAML contract in ${DEFAULT_CONFIG_NAME}.`,
+        ),
+      ],
+    };
   }
 
   if (value === null || Array.isArray(value) || typeof value !== "object") {
@@ -102,8 +161,8 @@ export async function loadConfig({ root, configPath = DEFAULT_CONFIG_NAME }) {
         configDiagnostic(
           "config.invalid-type",
           displayPath,
-          "The repoledger configuration must be a JSON object.",
-          `Replace ${displayPath} with an object that follows the schema.`,
+          "The repoledger configuration must be a YAML mapping.",
+          `Replace ${displayPath} with the documented mapping.`,
         ),
       ],
     };
@@ -111,56 +170,91 @@ export async function loadConfig({ root, configPath = DEFAULT_CONFIG_NAME }) {
 
   const diagnostics = [];
   for (const key of Object.keys(value).sort()) {
-    if (!CONFIG_KEYS.has(key)) {
+    if (!CONFIG_KEYS.includes(key)) {
       diagnostics.push(
         configDiagnostic(
           "config.unknown-key",
           `${displayPath}#${key}`,
           `Unknown repoledger configuration key: ${key}`,
-          `Remove ${key} or use a schema version that defines it.`,
+          `Remove ${key}.`,
         ),
       );
     }
   }
 
-  const schemaId = await resolveSchemaId(root, absolutePath, value.$schema);
-  if (schemaId !== SCHEMA_URL) {
+  for (const [key, code] of [
+    ["version", "config.missing-version"],
+    ["tasksDirectory", "config.missing-tasks-directory"],
+    ["remote", "config.missing-remote"],
+    ["primaryBranch", "config.missing-primary-branch"],
+  ]) {
+    if (!Object.hasOwn(value, key)) {
+      diagnostics.push(
+        configDiagnostic(code, `${displayPath}#${key}`, `Missing required key: ${key}`, `Add ${key} to ${displayPath}.`),
+      );
+    }
+  }
+
+  if (Object.hasOwn(value, "version") && value.version !== 1) {
     diagnostics.push(
       configDiagnostic(
-        "config.unsupported-schema",
-        `${displayPath}#$schema`,
-        `Unsupported or unavailable repoledger schema: ${String(value.$schema)}`,
-        `Reference schema/v1.json from the pinned repoledger package or use ${SCHEMA_URL}.`,
+        "config.unsupported-version",
+        `${displayPath}#version`,
+        `Unsupported repoledger version: ${String(value.version)}`,
+        "Use version: 1.",
       ),
     );
   }
-
-  const tasksDirectory = value.tasksDirectory ?? "tasks";
-  const resolvedTasksDirectory =
-    typeof tasksDirectory === "string" ? relative(root, resolve(root, tasksDirectory)) : "";
   if (
-    typeof tasksDirectory !== "string" ||
-    tasksDirectory.length === 0 ||
-    isAbsolute(tasksDirectory) ||
-    resolvedTasksDirectory === ".." ||
-    resolvedTasksDirectory.startsWith(`..${sep}`) ||
-    isAbsolute(resolvedTasksDirectory)
+    Object.hasOwn(value, "tasksDirectory") &&
+    !(await safeTasksPath(root, value.tasksDirectory))
   ) {
     diagnostics.push(
       configDiagnostic(
         "config.invalid-tasks-directory",
         `${displayPath}#tasksDirectory`,
-        "tasksDirectory must stay within the repository root.",
-        "Use a non-empty repository-relative directory such as tasks.",
+        "tasksDirectory must be a normalized repository-relative directory.",
+        "Use a path such as tasks without backslashes, trailing slashes, or parent traversal.",
+      ),
+    );
+  }
+  if (Object.hasOwn(value, "remote") && !validRemote(value.remote)) {
+    diagnostics.push(
+      configDiagnostic(
+        "config.invalid-remote",
+        `${displayPath}#remote`,
+        "remote must be a safe Git remote name.",
+        "Use a name such as origin.",
+      ),
+    );
+  }
+  if (
+    Object.hasOwn(value, "primaryBranch") &&
+    !validPrimaryBranch(root, value.primaryBranch)
+  ) {
+    diagnostics.push(
+      configDiagnostic(
+        "config.invalid-primary-branch",
+        `${displayPath}#primaryBranch`,
+        "primaryBranch must be a valid short Git branch name.",
+        "Use a branch such as main without refs/ or remote prefixes.",
+      ),
+    );
+  }
+
+  if (diagnostics.length === 0 && serializeConfig(value) !== normalizedSource) {
+    diagnostics.push(
+      configDiagnostic(
+        "config.noncanonical",
+        displayPath,
+        "The repoledger configuration is valid but not canonical.",
+        "Rewrite properties in version, tasksDirectory, remote, primaryBranch order with LF endings.",
       ),
     );
   }
 
   return {
-    config:
-      diagnostics.length === 0
-        ? { ...value, schemaId, tasksDirectory }
-        : null,
+    config: diagnostics.length === 0 ? value : null,
     configPath: absolutePath,
     diagnostics,
   };

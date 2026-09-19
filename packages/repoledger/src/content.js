@@ -1,4 +1,4 @@
-import { access, readFile, readdir, realpath, stat } from "node:fs/promises";
+import { access, lstat, readFile, readdir, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 
 import { parseMarkdown, sectionText } from "./markdown.js";
@@ -78,10 +78,42 @@ function displayPath(root, path) {
 
 async function isFile(path) {
   try {
-    return (await stat(path)).isFile();
+    const metadata = await lstat(path);
+    return metadata.isFile() && !metadata.isSymbolicLink();
   } catch (caught) {
     if (caught.code === "ENOENT") return false;
     throw caught;
+  }
+}
+
+async function validateArtifactTree({ diagnostics, root, path }) {
+  for (const entry of await readdir(path, { withFileTypes: true })) {
+    const entryPath = resolve(path, entry.name);
+    const artifactPath = displayPath(root, entryPath);
+    const metadata = await lstat(entryPath);
+    if (metadata.isSymbolicLink()) {
+      diagnostics.push(
+        error(
+          "task.artifact.symlink",
+          artifactPath,
+          `Task artifacts must not be symbolic links: ${artifactPath}`,
+          "Replace the link with a regular repository-owned file or directory.",
+        ),
+      );
+      continue;
+    }
+    if (metadata.isDirectory()) {
+      await validateArtifactTree({ diagnostics, root, path: entryPath });
+    } else if (!metadata.isFile()) {
+      diagnostics.push(
+        error(
+          "task.artifact.invalid-type",
+          artifactPath,
+          `Unsupported task artifact type: ${artifactPath}`,
+          "Use regular repository-owned files and directories only.",
+        ),
+      );
+    }
   }
 }
 
@@ -115,7 +147,7 @@ function validateAcceptanceCriteria({
     return;
   }
   if (
-    state === "archived" &&
+    state === "completed" &&
     outcome === "Completed" &&
     taskItems.some(({ checked }) => checked !== true)
   ) {
@@ -123,8 +155,8 @@ function validateAcceptanceCriteria({
       error(
         "task.acceptance.incomplete",
         displayPath(root, filePath),
-        "Archived task acceptance criteria contain unchecked items.",
-        "Record the actual result before archiving, or mark the task abandoned with its reason.",
+          "Completed task acceptance criteria contain unchecked items.",
+          "Record the actual result before completion, or mark the task abandoned.",
       ),
     );
   }
@@ -189,7 +221,7 @@ function parseAcceptanceStatus(value) {
 function validateHumanReviewPlan({ diagnostics, document, filePath, root, state }) {
   const path = displayPath(root, filePath);
   if (!document.headings.has("Human review checkpoints")) {
-    if (state !== "archived") {
+    if (!["completed", "abandoned"].includes(state)) {
       diagnostics.push(
         error(
           "task.human-review.missing",
@@ -365,17 +397,17 @@ function validateHumanApprovals({
       );
     }
     if (["Pending", "Reopened"].includes(status)) {
-      const completedArchive = state === "archived" && outcome === "Completed";
+      const completedTask = state === "completed" && outcome === "Completed";
       diagnostics.push(
         warning(
-          completedArchive
+          completedTask
             ? "progress.human-approvals.incomplete"
             : "progress.human-approvals.pending",
           path,
-          completedArchive
-            ? `Completed archived task has unresolved ${checkpoint} approval status: ${status}.`
+          completedTask
+            ? `Completed task has unresolved ${checkpoint} approval status: ${status}.`
             : `Human approval checkpoint ${checkpoint} remains ${status}.`,
-          completedArchive
+          completedTask
             ? "Obtain and record approval, or mark a conditional checkpoint not applicable with its rationale."
             : "Complete and record the review when its approval gate is reached.",
         ),
@@ -409,17 +441,18 @@ async function validateProgress({
     }
     return { outcome: null, strict: true };
   }
-  if (!exists) {
+  if (!exists && state === "completed") {
     diagnostics.push(
       error(
         "progress.missing",
         path,
-        `${state} tasks must contain Progress.md.`,
+        "Completed tasks must contain Progress.md.",
         "Create Progress.md from the task-ledger progress template.",
       ),
     );
-    return { outcome: null, strict: state !== "archived" };
+    return { outcome: null, strict: true };
   }
+  if (!exists) return { outcome: null, strict: true };
 
   const document = parseMarkdown(await readFile(filePath, "utf8"));
   const usesCurrentSchema = strict ?? reviewPlan !== null;
@@ -438,13 +471,16 @@ async function validateProgress({
 
   const outcomeText = sectionText(document.section("Outcome"));
   const outcome = parseOutcome(outcomeText);
-  if (state === "archived" && outcome === null) {
+  if (
+    (state === "completed" && outcome === "Abandoned") ||
+    (state === "abandoned" && outcome === "Completed")
+  ) {
     diagnostics.push(
       error(
-        "progress.outcome.invalid",
+        "progress.outcome.conflict",
         path,
-        "Archived progress must start with an unambiguous Completed or Abandoned outcome.",
-        "Record the actual final outcome and concise reason.",
+        `Progress outcome ${outcome} conflicts with task state ${state}.`,
+        "Correct the lifecycle state or the explicitly recorded outcome.",
       ),
     );
   }
@@ -525,7 +561,7 @@ async function validateUserAcceptance({ diagnostics, outcome, root, state, task 
       ),
     );
   } else if (
-    state === "archived" &&
+    state === "completed" &&
     outcome === "Completed" &&
     parseAcceptanceStatus(status) !== "Accepted"
   ) {
@@ -533,8 +569,8 @@ async function validateUserAcceptance({ diagnostics, outcome, root, state, task 
       error(
         "acceptance.status.not-accepted",
         path,
-        "Completed archived user acceptance does not record an Accepted result.",
-        "Record only the user's actual Accepted result before archiving as completed.",
+        "Completed task user acceptance does not record an Accepted result.",
+        "Record only the user's actual Accepted result before completion.",
       ),
     );
   }
@@ -649,6 +685,7 @@ export async function inspectTaskContents({ root, tasks }) {
   const diagnostics = [];
 
   for (const task of tasks) {
+    await validateArtifactTree({ diagnostics, root, path: task.path });
     const taskFile = resolve(task.path, "Task.md");
     const taskPath = displayPath(root, taskFile);
     if (!(await isFile(taskFile))) {
@@ -697,13 +734,13 @@ export async function inspectTaskContents({ root, tasks }) {
       state: task.state,
       task,
     });
-    if (task.state === "archived" && !progress.strict) {
+    if (["completed", "abandoned"].includes(task.state) && !progress.strict) {
       diagnostics.push(
         info(
-          "task.archive.legacy",
+          "task.terminal.legacy",
           taskPath,
-          "Archived task predates the current human review plan format.",
-          "Keep archived history unchanged; current checks still validate universal invariants.",
+          "Terminal task predates the current human review plan format.",
+          "Keep historical content unchanged; current checks still validate universal invariants.",
         ),
       );
     }

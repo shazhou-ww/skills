@@ -44,13 +44,11 @@ require a different sequence.
 | Interface | `<Required, Not applicable: reason, or Assess during execution: trigger>` | `<Reviewer or role>` | Affected GUI flows, CLI commands, MCP tools, or API contracts and compatibility. | Implementing the affected interface. |
 | Business and data model | `<Required, Not applicable: reason, or Assess during execution: trigger>` | `<Reviewer or role>` | Business concepts, rules, entities, relationships, schemas, and migration impact. | Implementing the affected model or data changes. |
 | Architecture | `<Required, Not applicable: reason, or Assess during execution: trigger>` | `<Reviewer or role>` | Affected modules, responsibilities, boundaries, dependencies, and any split or combination. | Implementing the affected structural changes. |
-| Delivery acceptance | Required | User or accountable owner | Published implementation, validation evidence, and manual test results when required. | Marking the task completed and archiving it. |
+| Delivery acceptance | Required | User or accountable owner | Published implementation, validation evidence, and manual test results when required. | Running `task complete` for the exact approved primary commit. |
 
 ## References
 
-Use a file-relative link for anything stored in this task directory. For other
-repository-local targets, use `/path/from/repository/root` when the project
-profile declares root-link support; otherwise use a portable file-relative
-link.
+Use a file-relative link for anything stored in this stable task directory.
+For other repository-local targets, follow the project profile.
 
 - External issue or canonical repository document.
