@@ -4,13 +4,10 @@ Updated: 2026-09-19
 
 ## Current state
 
-Handoff from `scottwei-office-pc` to `scottwei-home-pc` is published and
-verified at commit `d1bf334` on `origin/main`. The revised design review bundle
-is published at commit `18b0598` on `origin/main`. The user requested another
-revision: add a filterable task-list command, remove task source branches, use
-primary as the shared target, and prevent bookkeeping-only progress updates.
-Await review of the primary commit containing this revised proposal before
-implementation.
+The user approved scope, business and data model, interface, and architecture
+for design candidate `529e93a` on 2026-09-19. Publish this decision to primary,
+then implement the approved storage model, CLI, workflow, skills, and repository
+migration. Delivery acceptance remains pending.
 
 ## Decisions
 
@@ -39,10 +36,10 @@ implementation.
 
 | Checkpoint | Status | Review artifact and decision evidence |
 | --- | --- | --- |
-| Scope | Pending | User to review Task.md and the three task-local design documents in the primary commit containing this revision. |
-| Business and data model | Pending | User to review the revised [storage model](./repoledger-storage-model.md), including branchless records, artifact rules, lifecycle, timestamps, and migration. |
-| Interface | Pending | User to review the revised [command design](./repoledger-command-design.md), including task-list filters, reports, examples, primary-only Git effects, idempotency, and failures. |
-| Architecture | Pending | User to review all three revised documents, including primary-only collaboration and implementation-linked progress updates. |
+| Scope | Approved | User approved the scope and acceptance contract at commit `529e93a` on 2026-09-19. |
+| Business and data model | Approved | User approved the branchless status records, artifact rules, lifecycle, timestamps, and migration at commit `529e93a` on 2026-09-19. |
+| Interface | Approved | User approved the task-list filters, reports, examples, primary-only Git effects, idempotency, and failures at commit `529e93a` on 2026-09-19. |
+| Architecture | Approved | User approved primary-only collaboration, isolated publication, and implementation-linked progress updates at commit `529e93a` on 2026-09-19. |
 | Delivery acceptance | Pending | Review Published implementation, migrated repository, validation evidence, and final diff against the approved designs. with User. |
 
 ## Validation
@@ -84,9 +81,7 @@ implementation.
 
 ## Blockers
 
-- The revised proposal must be published to primary, then the user must approve
-  or request changes for scope, business and data model, interface, and
-  architecture before protected implementation begins.
+- None before implementation after this approval record is published.
 
 ## Outcome
 
