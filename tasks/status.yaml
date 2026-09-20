@@ -41,10 +41,9 @@ tasks:
     createdAt: "2026-09-15T08:57:15Z"
     updatedAt: "2026-09-19T02:26:51Z"
   rename-core-skill-to-repoledger:
-    state: ongoing
-    sourceBranch: task/rename-core-skill-to-repoledger
+    state: completed
     createdAt: "2026-09-20T07:04:24Z"
-    updatedAt: "2026-09-20T07:05:46Z"
+    updatedAt: "2026-09-20T07:18:14Z"
   require-autonomous-task-publication:
     state: completed
     createdAt: "2026-09-15T06:35:48Z"
