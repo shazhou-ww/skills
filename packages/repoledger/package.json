@@ -1,6 +1,6 @@
 {
   "name": "repoledger",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Query, validate, and publish Git-native repository task lifecycle state.",
   "type": "module",
   "bin": {

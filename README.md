@@ -124,8 +124,8 @@ state, and isolated publication to the configured primary branch. It does not
 replace the skill's judgment about admission, overlap, or human approval.
 
 ```sh
-npx repoledger@0.8.0 check
-npx repoledger@0.8.0 task list --state ongoing
+npx repoledger@0.8.1 check
+npx repoledger@0.8.1 task list --state ongoing
 ```
 
 Repositories should pin the package for CI and run `check --remote`. The
