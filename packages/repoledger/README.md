@@ -23,8 +23,8 @@ primaryBranch: main
 clone. Local remote names are irrelevant. Git credential helpers and
 `url.*.insteadOf` or `url.*.pushInsteadOf` may provide machine-specific access.
 
-`tasks/status.yaml` contains one sorted record per `tasks/<task-name>/`
-directory:
+`tasks/status.yaml` contains one sorted record per registered
+`tasks/<task-name>/` directory:
 
 ```yaml
 version: 2
@@ -41,6 +41,11 @@ record requires `sourceBranch`; `sourceRepository` is stored only for a fork
 and otherwise inherits `primaryRepository`. Terminal and backlog records reject
 both source fields. Records never store a person, device, worktree, credential,
 or local remote name.
+
+A task directory without a status record has the derived `unregistered` state.
+It is visible to list, status, and check commands but is never written to
+`status.yaml`; `task register` is the only transition from `unregistered` to
+the persisted `backlog` state.
 
 ## Commands
 
@@ -82,6 +87,10 @@ filtering. Time filters use half-open intervals: `since` is inclusive and
 applied. Invalid dates, times, offsets, or duration syntax are usage errors
 with copyable examples and exit status `2`.
 
+Unregistered tasks have no fabricated creation or update timestamps. Time
+filters exclude unregistered tasks. Sorting by `created` or `updated` places
+them after timestamped tasks and sorts them by name.
+
 ```sh
 repoledger task list --state completed --updated-since 2026-09-20
 repoledger task list --updated-since 6h30m --updated-before 15m
@@ -102,11 +111,13 @@ means validation or operational failure, and `2` means invalid CLI usage.
 
 ## Validation
 
-`check` validates strict canonical YAML, stable directory correspondence,
+`check` validates strict canonical YAML, registered-directory correspondence,
 lifecycle records and timestamps, source-ref uniqueness, required task
 artifacts, human review facts, acceptance state, and repository-local Markdown
-links. `check --remote` reads from refreshed primary and verifies every selected
-ongoing source branch and its start ancestry.
+links. Unregistered directories are valid pre-registration state, while their
+task artifacts are still validated. `check --remote` reads from refreshed
+primary and verifies every selected ongoing source branch and its start
+ancestry.
 
 The current package schema at `schema/v2.json` defines both configuration and
 task status record shapes. `schema/v1.json` remains historical; v2 commands

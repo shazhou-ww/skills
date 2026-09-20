@@ -6,6 +6,8 @@ import { inspectLayout } from "./layout.js";
 import { isTimestamp, TASK_STATES } from "./ledger.js";
 import { effectiveSourceRepository } from "./repository.js";
 
+const LIST_STATES = [...TASK_STATES, "unregistered"];
+
 function diagnostic(code, message, remediation) {
   return { code, level: "error", message, remediation };
 }
@@ -34,12 +36,12 @@ function validateFilters(filters, sort, limit) {
   const diagnostics = [];
   if (filters.states) {
     for (const state of filters.states) {
-      if (!TASK_STATES.includes(state)) {
+      if (!LIST_STATES.includes(state)) {
         diagnostics.push(
           diagnostic(
             "task.list.invalid-state",
             `Unknown task state: ${state}`,
-            `Use one of ${TASK_STATES.join(", ")}.`,
+            `Use one of ${LIST_STATES.join(", ")}.`,
           ),
         );
       }
@@ -122,8 +124,11 @@ function matchesFilters(record, filters) {
 function compareTasks(sort) {
   if (sort === "name") return (left, right) => left.task.localeCompare(right.task);
   const field = sort === "created" ? "createdAt" : "updatedAt";
-  return (left, right) =>
-    right[field].localeCompare(left[field]) || left.task.localeCompare(right.task);
+  return (left, right) => {
+    if (!left[field]) return right[field] ? 1 : left.task.localeCompare(right.task);
+    if (!right[field]) return -1;
+    return right[field].localeCompare(left[field]) || left.task.localeCompare(right.task);
+  };
 }
 
 export async function listTasks({

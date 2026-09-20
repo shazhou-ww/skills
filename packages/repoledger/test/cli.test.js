@@ -99,6 +99,28 @@ test("renders task list time and state filters", async () => {
   }
 });
 
+test("renders unregistered list and status results without undefined timestamps", () => {
+  const list = captureIo();
+  const status = captureIo();
+  const task = { task: "draft-task", state: "unregistered" };
+
+  render({
+    command: "task list",
+    diagnostics: [],
+    ok: true,
+    result: { tasks: [task] },
+  }, false, list.io);
+  render({
+    command: "status",
+    diagnostics: [],
+    ok: true,
+    result: task,
+  }, false, status.io);
+
+  assert.deepEqual(list.output, ["draft-task  unregistered"]);
+  assert.deepEqual(status.output, ["draft-task  unregistered"]);
+});
+
 test("documents ergonomic task list time inputs", async () => {
   const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
 
@@ -116,6 +138,8 @@ test("documents ergonomic task list time inputs", async () => {
   assert.match(readme, /one\s+reference instant captured for the command/);
   assert.match(readme, /Components use `d`, `h`, and\s+`m` at most once in that order/);
   assert.match(readme, /JSON reports contain the normalized bounds/);
+  assert.match(readme, /derived `unregistered` state/);
+  assert.match(readme, /time\s+filters exclude unregistered tasks/i);
 });
 
 test("renders portable repository and source ref options", async () => {

@@ -178,14 +178,14 @@ export async function inspectLayout({ config, root }) {
     }
     for (const name of [...directoryNames].sort()) {
       if (!Object.hasOwn(status.tasks, name)) {
-        diagnostics.push(
-          error(
-            "task.record.missing",
-            `${config.tasksDirectory}/${name}`,
-            `Task directory ${name} has no status record.`,
-            `Register ${name} or remove the unexpected directory.`,
-          ),
-        );
+        const path = resolve(tasksRoot, name);
+        tasks.push({
+          name,
+          path,
+          record: { state: "unregistered" },
+          relativePath: displayPath(root, path),
+          state: "unregistered",
+        });
       }
     }
   }

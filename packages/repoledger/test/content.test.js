@@ -119,6 +119,22 @@ test("allows an ongoing task before its first implementation progress", async ()
   assert.deepEqual(result.diagnostics.filter(({ level }) => level === "error"), []);
 });
 
+test("allows an unregistered task definition but rejects implementation progress", async () => {
+  const withoutProgress = await createTask("unregistered");
+  const valid = await inspectTaskContents({
+    root: withoutProgress.root,
+    tasks: [withoutProgress.task],
+  });
+  assert.deepEqual(valid.diagnostics.filter(({ level }) => level === "error"), []);
+
+  const withProgress = await createTask("unregistered", { progress: true });
+  const invalid = await inspectTaskContents({
+    root: withProgress.root,
+    tasks: [withProgress.task],
+  });
+  assert.ok(invalid.diagnostics.some(({ code }) => code === "progress.unexpected"));
+});
+
 test("requires completed tasks to include progress", async () => {
   const { root, task } = await createTask("completed");
   const result = await inspectTaskContents({ root, tasks: [task] });

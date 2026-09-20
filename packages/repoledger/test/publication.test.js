@@ -273,6 +273,48 @@ test("remote check rejects a bookkeeping-only Progress commit", async () => {
   );
 });
 
+test("registers matching published task contents and rejects divergent contents", async () => {
+  const { primaryRepository, root } = await createRemoteRepository();
+  assert.equal(
+    (await initRepository({ primaryBranch: "main", primaryRepository, root })).ok,
+    true,
+  );
+  git(root, "pull", "--ff-only");
+
+  const taskPath = join(root, "tasks", "publication-task");
+  await mkdir(taskPath);
+  await writeFile(join(taskPath, "Task.md"), TASK);
+  git(root, "add", "tasks/publication-task");
+  git(root, "commit", "-m", "Add unregistered task");
+  git(root, "push", "origin", "main");
+
+  const registered = await mutateTask({
+    now: new Date("2026-09-19T10:00:00Z"),
+    operation: "register",
+    root,
+    taskName: "publication-task",
+  });
+  assert.equal(registered.ok, true, JSON.stringify(registered.diagnostics));
+  assert.equal(registered.result.transition, "absent -> backlog");
+  git(root, "pull", "--ff-only");
+
+  const conflictingPath = join(root, "tasks", "conflicting-task");
+  await mkdir(conflictingPath);
+  await writeFile(join(conflictingPath, "Task.md"), TASK.replace("Publication task", "Conflicting task"));
+  git(root, "add", "tasks/conflicting-task");
+  git(root, "commit", "-m", "Add another unregistered task");
+  git(root, "push", "origin", "main");
+  await writeFile(join(conflictingPath, "Task.md"), TASK.replace("Publication task", "Changed task"));
+
+  const conflicted = await mutateTask({
+    operation: "register",
+    root,
+    taskName: "conflicting-task",
+  });
+  assert.equal(conflicted.ok, false);
+  assert.equal(conflicted.diagnostics[0].code, "task.register.content-conflict");
+});
+
 test("rejects unsafe init paths and task names before filesystem access", async () => {
   const { primaryRepository, root } = await createRemoteRepository();
 

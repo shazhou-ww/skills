@@ -53,28 +53,28 @@ downgrading errors to warnings.
 
 ## Acceptance criteria
 
-- [ ] `repoledger task list --local --state backlog` returns the registered
+- [x] `repoledger task list --local --state backlog` returns the registered
   backlog tasks and exits successfully when unregistered directories are
   present, without emitting diagnostics for those directories.
-- [ ] List filtering accepts `unregistered`, and list and status output expose
+- [x] List filtering accepts `unregistered`, and list and status output expose
   matching directories with `state: unregistered` in text and JSON results.
-- [ ] Unregistered entries do not receive fabricated creation or update
+- [x] Unregistered entries do not receive fabricated creation or update
   timestamps; time filtering and sorting behavior is documented and
   deterministic when registered and unregistered entries are combined.
-- [ ] Local and remote checks accept an unregistered directory as a valid
+- [x] Local and remote checks accept an unregistered directory as a valid
   pre-registration condition, while registration remains the only operation
   that can add it to the canonical status ledger.
-- [ ] Every existing layout, status, and content diagnostic is reviewed against
+- [x] Every existing layout, status, and content diagnostic is reviewed against
   the classification rule; each additional result-state change is documented
   and covered by focused positive and negative tests, or the audit records that
   no additional case qualifies.
-- [ ] Malformed YAML, invalid task records, duplicate or contradictory facts,
+- [x] Malformed YAML, invalid task records, duplicate or contradictory facts,
   unsafe paths, and state that prevents a trustworthy result remain errors and
   continue to produce a failing exit status.
-- [ ] Human-readable and JSON output preserve diagnostic codes, levels, paths,
+- [x] Human-readable and JSON output preserve diagnostic codes, levels, paths,
   and remediation for actual diagnostics, while valid unregistered state is
   represented only in command results.
-- [ ] Focused repoledger tests and the repository-wide `pnpm check` pass.
+- [x] Focused repoledger tests and the repository-wide `pnpm check` pass.
 
 ## Constraints
 

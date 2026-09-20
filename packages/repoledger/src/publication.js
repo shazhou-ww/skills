@@ -239,7 +239,8 @@ async function attemptMutation({
       const taskRelative = `${config.tasksDirectory}/${taskName}`;
       const taskPath = resolve(worktree, taskRelative);
       const statusRelative = `${config.tasksDirectory}/status.yaml`;
-      const remoteHash = existing ? await snapshotDirectory(taskPath) : null;
+      const remoteTask = layout.tasks.find(({ name }) => name === taskName);
+      const remoteHash = remoteTask ? await snapshotDirectory(taskPath) : null;
       const observed = { record: existing ?? null, taskHash: remoteHash };
       let sourceHash;
       if (operation === "register") {
@@ -274,7 +275,14 @@ async function attemptMutation({
             error("task.concurrent-conflict", `Task ${taskName} changed during publication.`, "Refresh the task and coordinate the same-task change before retrying.", { expected: baseline, actual: observed, task: taskName }),
           ]);
         }
-        await cp(sourcePath, taskPath, { recursive: true, errorOnExist: true, force: false });
+        if (remoteHash && sourceHash !== remoteHash) {
+          return report(`task ${operation}`, root, [
+            error("task.register.content-conflict", `Published unregistered task ${taskName} differs from the local task directory.`, "Reconcile the local and primary task contents before retrying registration.", { task: taskName, path: taskRelative }),
+          ]);
+        }
+        if (!remoteHash) {
+          await cp(sourcePath, taskPath, { recursive: true, errorOnExist: true, force: false });
+        }
         layout.status.tasks[taskName] = createRecord(now);
       } else {
         if (!existing) {

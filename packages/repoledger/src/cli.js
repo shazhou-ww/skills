@@ -67,7 +67,10 @@ export function render(report, json, io) {
     const tasks = report.result.tasks;
     if (tasks.length === 0) io.log("No tasks.");
     for (const task of tasks) {
-      io.log(`${task.task}  ${task.state}  ${task.createdAt}  ${task.updatedAt}`);
+      const timestamps = task.createdAt
+        ? `  ${task.createdAt}  ${task.updatedAt}`
+        : "";
+      io.log(`${task.task}  ${task.state}${timestamps}`);
       if (task.state === "ongoing") {
         io.log(`  source  ${task.sourceRepository}#${task.sourceBranch}`);
       }
@@ -77,8 +80,10 @@ export function render(report, json, io) {
   if (report.command === "status") {
     const result = report.result;
     io.log(`${result.task}  ${result.state}`);
-    io.log(`  created  ${result.createdAt}`);
-    io.log(`  updated  ${result.updatedAt}`);
+    if (result.createdAt) {
+      io.log(`  created  ${result.createdAt}`);
+      io.log(`  updated  ${result.updatedAt}`);
+    }
     if (result.state === "ongoing") {
       io.log(`  source   ${result.sourceRepository}#${result.sourceBranch}`);
     }

@@ -15,6 +15,49 @@ primaryRepository: https://example.com/owner/repository.git
 primaryBranch: main
 `;
 
+const taskDocument = `# Fixture task
+
+Created: 2026-09-20
+
+## Goal
+
+Validate one outcome.
+
+## Context
+
+Fixture context.
+
+## Scope
+
+- Included.
+
+## Out of scope
+
+- Excluded.
+
+## Acceptance criteria
+
+- [ ] Observable result.
+
+## Constraints
+
+- Preserve fixture state.
+
+## Human review checkpoints
+
+| Checkpoint | Applicability | Reviewer | Planned review artifact | Approval required before |
+| --- | --- | --- | --- | --- |
+| Scope | Required | Fixture owner | Fixture scope. | Implementation. |
+| Interface | Not applicable: no interface. | Not applicable | Not applicable | Not applicable |
+| Business and data model | Not applicable: no model. | Not applicable | Not applicable | Not applicable |
+| Architecture | Not applicable: no architecture. | Not applicable | Not applicable | Not applicable |
+| Delivery acceptance | Required | Fixture owner | Published fixture. | Completion. |
+
+## References
+
+- None.
+`;
+
 function record(state, createdAt = "2026-09-18T08:30:00Z") {
   return { state, createdAt, updatedAt: createdAt };
 }
@@ -53,17 +96,42 @@ test("accepts an empty stable task ledger", async () => {
   assert.deepEqual(report.diagnostics, []);
 });
 
-test("requires one directory for every record and one record for every directory", async () => {
+test("requires one directory for every record and accepts a valid unregistered directory", async () => {
   const root = await createRepository({ "missing-directory": record("backlog") });
   await rm(join(root, "tasks", "missing-directory"), { recursive: true });
   await mkdir(join(root, "tasks", "missing-record"));
+  await writeFile(join(root, "tasks", "missing-record", "Task.md"), taskDocument);
 
   const report = await checkRepository({ root });
   const codes = report.diagnostics.map(({ code }) => code);
 
   assert.equal(report.ok, false);
   assert.ok(codes.includes("task.directory.missing"));
-  assert.ok(codes.includes("task.record.missing"));
+  assert.ok(!codes.includes("task.record.missing"));
+  assert.equal(report.result.checked, 1);
+});
+
+test("checks required artifacts for unregistered directories", async () => {
+  const root = await createRepository();
+  await mkdir(join(root, "tasks", "unregistered-task"));
+
+  const report = await checkRepository({ root });
+
+  assert.equal(report.ok, false);
+  assert.ok(report.diagnostics.some(({ code }) => code === "task.file.missing"));
+  assert.ok(!report.diagnostics.some(({ code }) => code === "task.record.missing"));
+});
+
+test("accepts a valid unregistered task directory", async () => {
+  const root = await createRepository();
+  await mkdir(join(root, "tasks", "unregistered-task"));
+  await writeFile(join(root, "tasks", "unregistered-task", "Task.md"), taskDocument);
+
+  const report = await checkRepository({ root });
+
+  assert.equal(report.ok, true, JSON.stringify(report.diagnostics));
+  assert.equal(report.result.checked, 1);
+  assert.deepEqual(report.diagnostics, []);
 });
 
 test("rejects duplicate source refs and primary as a source branch", async () => {

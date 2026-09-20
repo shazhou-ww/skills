@@ -67,6 +67,55 @@ test("returns one local task status", async () => {
   });
 });
 
+test("returns and filters an unregistered task without fabricated timestamps", async () => {
+  const root = await createRepository();
+  await mkdir(join(root, "tasks", "unregistered-task"));
+
+  const status = await statusRepository({
+    local: true,
+    root,
+    taskName: "unregistered-task",
+  });
+  const list = await listTasks({
+    filters: { states: ["unregistered"] },
+    local: true,
+    root,
+    sort: "updated",
+  });
+
+  assert.equal(status.ok, true);
+  assert.deepEqual(status.diagnostics, []);
+  assert.deepEqual(status.result, {
+    source: "local",
+    task: "unregistered-task",
+    state: "unregistered",
+  });
+  assert.deepEqual(list.result.tasks, [{
+    task: "unregistered-task",
+    state: "unregistered",
+  }]);
+});
+
+test("places unregistered tasks after timestamped tasks and excludes them from time filters", async () => {
+  const root = await createRepository();
+  await mkdir(join(root, "tasks", "unregistered-task"));
+
+  const sorted = await listTasks({ local: true, root, sort: "updated" });
+  const filtered = await listTasks({
+    filters: { updatedSince: "2026-09-01T00:00:00Z" },
+    local: true,
+    root,
+  });
+
+  assert.deepEqual(sorted.result.tasks.map(({ task }) => task), [
+    "alpha-task",
+    "beta-task",
+    "done-task",
+    "unregistered-task",
+  ]);
+  assert.ok(!filtered.result.tasks.some(({ task }) => task === "unregistered-task"));
+});
+
 test("filters list state and half-open update interval before sorting and limiting", async () => {
   const root = await createRepository();
 

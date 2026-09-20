@@ -428,13 +428,13 @@ async function validateProgress({
   const path = displayPath(root, filePath);
   const exists = await isFile(filePath);
 
-  if (state === "backlog") {
+  if (["backlog", "unregistered"].includes(state)) {
     if (exists) {
       diagnostics.push(
         error(
           "progress.unexpected",
           path,
-          "Backlog tasks must not contain Progress.md.",
+          "Tasks that have not started must not contain Progress.md.",
           "Remove Progress.md until the task is claimed.",
         ),
       );
@@ -507,12 +507,12 @@ async function validateUserAcceptance({ diagnostics, outcome, root, state, task 
   const filePath = resolve(task.path, "UserAcceptance.md");
   if (!(await isFile(filePath))) return;
   const path = displayPath(root, filePath);
-  if (state === "backlog") {
+  if (["backlog", "unregistered"].includes(state)) {
     diagnostics.push(
       error(
         "acceptance.unexpected",
         path,
-        "Backlog tasks must not contain a user acceptance guide.",
+        "Tasks that have not started must not contain a user acceptance guide.",
         "Create UserAcceptance.md only after implementation begins and manual acceptance is required.",
       ),
     );
