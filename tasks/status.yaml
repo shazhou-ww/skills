@@ -52,6 +52,10 @@ tasks:
     state: completed
     createdAt: "2026-09-15T06:03:10Z"
     updatedAt: "2026-09-19T02:26:51Z"
+  support-ergonomic-time-filters:
+    state: backlog
+    createdAt: "2026-09-20T04:35:47Z"
+    updatedAt: "2026-09-20T04:35:47Z"
   support-portable-repository-refs:
     state: ongoing
     sourceBranch: task/support-portable-repository-refs
