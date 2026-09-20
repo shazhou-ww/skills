@@ -28,14 +28,38 @@ of presenting an assumption as Before.
 
 ## Build The Comparison
 
-Create one standalone HTML file that opens without a build step. Use the
-existing product's visual language when available; the artifact should explain
-the change, not introduce a new design system.
+Create a small review bundle that opens from `index.html` without a build step.
+Start from [`assets/review-index.html`](assets/review-index.html) and create one
+HTML file per scenario from
+[`assets/review-scenario.html`](assets/review-scenario.html):
+
+```text
+ui-review/
+   index.html
+   scenarios/
+      01-primary-flow.html
+      02-error-state.html
+```
+
+The entry page owns the decision, material deltas, scenario navigation,
+normative link, and approval question. It loads one scenario at a time in the
+template's iframe. Each scenario file owns only its title, concise callouts,
+and equivalent Before/After product surfaces; it must also remain usable when
+opened directly. Delete unused example markup and replace every `{{TOKEN}}`.
+Use the existing product's visual language inside scenario files; the artifact
+should explain the change, not introduce a new design system.
 
 - Put Before and After beside each other at wide widths and stack them in the
   same order on narrow screens.
 - Use the same scenario, representative data, viewport, shell, and scale on
   both sides so the comparison is fair.
+- Keep shared review chrome in `index.html`; do not duplicate it in scenarios.
+   Keep product-specific styles with the scenario that uses them. If multiple
+   scenarios share substantial product CSS, place it in a sibling stylesheet
+   rather than copying it into every HTML file.
+- Prefer one focused scenario file over hiding many states in one document.
+   Split only decision-relevant scenarios; do not fragment one coherent
+   comparison into separate Before and After files.
 - Show only affected regions at enough fidelity to judge hierarchy, labels,
   controls, density, and state changes.
 - Put the requested decision and material deltas before the comparison. Let the
@@ -66,14 +90,17 @@ or a normative behavior contract. It must not:
 
 ## Validate What Humans Will See
 
-Open the HTML in a browser and inspect the actual rendered result. When browser
-automation is available:
+Open `index.html` in a browser and inspect the actual rendered result. Also open
+one scenario file directly to confirm it does not depend on the parent page.
+When browser automation is available:
 
 1. Capture or inspect one representative desktop width and one narrow mobile
    width.
-2. Confirm there is no document-level horizontal overflow, clipped text,
-   incoherent overlap, or layout shift between comparable states.
-3. Exercise every included interaction and verify its visible result.
+2. Visit every scenario through the entry page. Confirm the iframe resizes to
+   its content without nested scrollbars, clipped text, incoherent overlap, or
+   document-level horizontal overflow.
+3. Exercise every included interaction and verify its visible result. Confirm
+   scenario links still work after opening the entry page from a local path.
 4. Check keyboard order, visible focus, accessible names, dialog semantics, and
    focus restoration when the artifact includes interactive controls.
 5. Confirm Before and After still use equivalent scenarios and data after
@@ -87,7 +114,7 @@ to make the validation list longer.
 Give the reviewer only:
 
 - the decision requested;
-- the standalone HTML artifact;
+- the `index.html` entry point for the review bundle;
 - the material changes and governing reason;
 - unresolved risks or choices that affect approval;
 - the normative source link, when applicable.

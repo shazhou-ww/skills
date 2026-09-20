@@ -7,10 +7,12 @@ Reusable Agent Skills maintained for projects under `shazhou-ww`.
 ### ui-change-review
 
 [`ui-change-review`](skills/ui-change-review/SKILL.md) creates a focused,
-standalone before/after HTML comparison for an existing UI change. It keeps the
-current and proposed states comparable, implements only decision-relevant
-interaction, and validates the rendered desktop and mobile result without
-turning the artifact into a full prototype.
+build-free before/after HTML review bundle for an existing UI change. Its
+standard entry template loads focused scenario files in an iframe, keeping
+shared review chrome small while each current/proposed comparison remains
+directly openable. It implements only decision-relevant interaction and
+validates the rendered desktop and mobile result without turning the artifact
+into a full prototype.
 
 ```text
 /ui-change-review [affected UI or review goal]

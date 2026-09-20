@@ -10,6 +10,12 @@ const ledgerSkillPath = fileURLToPath(
   new URL("../skills/repoledger/SKILL.md", import.meta.url),
 );
 
+function uiReviewAssetPath(name) {
+  return fileURLToPath(
+    new URL(`../skills/ui-change-review/assets/${name}`, import.meta.url),
+  );
+}
+
 function skillPath(name) {
   return fileURLToPath(new URL(`../skills/${name}/SKILL.md`, import.meta.url));
 }
@@ -55,7 +61,8 @@ test("UI review guidance stays focused on a fair visual delta", async () => {
   for (const required of [
     "about five minutes",
     "Inspect the current UI",
-    "one standalone HTML file",
+    "small review bundle",
+    "loads one scenario at a time",
     "Before and After",
     "same scenario, representative data, viewport, shell, and scale",
     "Use static states by default",
@@ -64,10 +71,42 @@ test("UI review guidance stays focused on a fair visual delta", async () => {
   ]) {
     assert.ok(source.includes(required), `ui-change-review is missing: ${required}`);
   }
+  assert.match(source, /one\s+HTML file per scenario/);
   assert.match(source, /desktop\s+width and one narrow mobile\s+width/);
   assert.match(source, /Do not recreate routing, persistence, backend IO/);
   assert.match(source, /Keep normative behavior in the owning interface/);
   assert.match(source, /explicit approval question/);
+});
+
+test("UI review templates separate shared chrome from iframe scenarios", async () => {
+  const [entry, scenario] = await Promise.all([
+    readFile(uiReviewAssetPath("review-index.html"), "utf8"),
+    readFile(uiReviewAssetPath("review-scenario.html"), "utf8"),
+  ]);
+
+  for (const required of [
+    "{{DECISION}}",
+    'role="tablist"',
+    'name="scenario-frame"',
+    'src="scenarios/01-primary-flow.html"',
+    "ui-review:height",
+    "{{APPROVAL_QUESTION}}",
+  ]) {
+    assert.ok(entry.includes(required), `review-index.html is missing: ${required}`);
+  }
+
+  for (const required of [
+    "{{SCENARIO_TITLE}}",
+    "Before",
+    "After",
+    "{{SHARED_VIEWPORT_AND_DATA}}",
+    "ResizeObserver",
+    "ui-review:height",
+  ]) {
+    assert.ok(scenario.includes(required), `review-scenario.html is missing: ${required}`);
+  }
+
+  assert.doesNotMatch(scenario, /Decision requested|APPROVAL_QUESTION/);
 });
 
 test("business data model guidance makes lifecycle semantics reviewable", async () => {
