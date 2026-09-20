@@ -4,9 +4,9 @@ Created: 2026-09-20
 
 ## Goal
 
-Make repoledger task-list time filters accept easy-to-write date-only and
-standard timezone-aware inputs, normalize them deterministically to UTC, and
-show actionable syntax examples when an input is invalid.
+Make repoledger task-list time filters accept easy-to-write date-only,
+timezone-aware, and relative shorthand inputs, normalize them deterministically
+to UTC, and show actionable syntax examples when an input is invalid.
 
 ## Context
 
@@ -16,6 +16,10 @@ The four task-list time filters currently require exact
 the error names only the strict storage timestamp format. Users must manually
 construct a full UTC timestamp even when they mean a calendar-day boundary or
 already know their UTC offset.
+
+Routine recency queries are also unnecessarily verbose. Expressions such as
+`today`, `6h`, `6h30m`, and `5d12h` should provide concise UTC day and relative
+duration boundaries without relying on the machine's local timezone.
 
 This work is distinct from the ongoing portable repository-ref task, but it
 should be release-ready before the next repoledger package release so the CLI
@@ -29,12 +33,20 @@ ergonomics can ship with the revised protocol.
   deterministic across devices and local timezone settings.
 - Accept RFC 3339 second-precision timestamps with `Z` or a colonized numeric
   offset such as `2026-09-20T00:00:00+08:00`.
+- Accept `today` as the current UTC date's `00:00:00Z` boundary.
+- Accept positive relative durations composed from days, hours, and minutes in
+  descending unit order, including `6h`, `6h30m`, and `5d12h`. Resolve each
+  expression to the command reference instant minus that duration.
+- Use one UTC reference instant captured at command start for every relative
+  bound in that invocation, then truncate the normalized result to exact
+  second precision.
 - Normalize every accepted bound to the canonical UTC
   `YYYY-MM-DDTHH:mm:ssZ` form before range validation and filtering.
 - Preserve the existing half-open interval rules and report normalized bounds
   in structured command results.
 - Improve usage errors and command documentation with copyable date-only, UTC,
-  and offset examples, including the required two-digit colonized offset.
+  offset, `today`, and relative-duration examples, including the required
+  two-digit colonized offset and ordered duration units.
 - Add focused parser, CLI, filtering, documentation, and package tests.
 
 ## Out of scope
@@ -42,7 +54,10 @@ ergonomics can ship with the revised protocol.
 - Changing the canonical timestamp format stored in `tasks/status.yaml`.
 - Inferring the machine's local timezone or accepting timezone abbreviations
   such as `PST` or IANA names such as `Asia/Shanghai`.
-- Natural-language or relative inputs such as `today`, `yesterday`, or `24h`.
+- Other calendar keywords or natural language such as `yesterday`,
+  `this-week`, or `last Friday`.
+- Relative units other than days, hours, and minutes, including months, years,
+  weeks, and seconds; signed, future, decimal, repeated, or out-of-order units.
 - Fractional seconds, minute-only times, or permissive correction of malformed
   ISO/RFC 3339 text.
 - Changing task-list sorting, state filtering, limit behavior, or half-open
@@ -57,16 +72,26 @@ ergonomics can ship with the revised protocol.
   second-precision RFC 3339 offset inputs.
 - [ ] `2026-09-20T00:00:00+08:00` normalizes to
   `2026-09-19T16:00:00Z` before comparison and filtering.
+- [ ] With a command reference instant of `2026-09-20T12:30:00Z`, `today`
+  normalizes to `2026-09-20T00:00:00Z`, `6h` to
+  `2026-09-20T06:30:00Z`, `6h30m` to `2026-09-20T06:00:00Z`, and `5d12h`
+  to `2026-09-15T00:30:00Z`.
+- [ ] All four time-filter options accept `today` and valid `d`, `h`, and `m`
+  duration combinations; `--updated-since 6h` means records updated within
+  the six hours preceding the command reference instant.
 - [ ] Existing exact `YYYY-MM-DDTHH:mm:ssZ` invocations remain compatible.
 - [ ] Structured reports expose the normalized UTC bounds that were actually
   applied rather than ambiguous or machine-local values.
 - [ ] Range validation occurs after normalization and still enforces
   `since < before` for each half-open interval.
 - [ ] Invalid calendar dates, offsets, incomplete times, timezone-less
-  date-times, and unsupported relative text fail as CLI usage errors with
-  copyable valid examples.
+  date-times, zero-duration expressions, unsupported units, repeated or
+  out-of-order units, and unsupported relative text fail as CLI usage errors
+  with copyable valid examples.
 - [ ] Documentation explains that date-only values use UTC midnight and that
-  local day boundaries require an explicit offset such as `+08:00`.
+  local day boundaries require an explicit offset such as `+08:00`; it also
+  explains that `today` is the UTC day and durations subtract from one captured
+  command reference instant.
 - [ ] Focused tests and `pnpm check` pass without changing stored task
   timestamps or unrelated command behavior.
 
@@ -74,6 +99,8 @@ ergonomics can ship with the revised protocol.
 
 - Parsing and normalization must be deterministic across operating systems,
   locales, clones, and local timezone configuration.
+- Capture the command reference instant once and make it injectable in tests;
+  do not call the clock independently for each option.
 - Do not silently accept JavaScript `Date` implementation-dependent formats or
   normalize impossible calendar values.
 - Keep filtering comparisons on canonical UTC strings after validating actual
@@ -91,8 +118,8 @@ acceptance are always required for completed work.
 | Checkpoint | Applicability | Reviewer | Planned review artifact | Approval required before |
 | --- | --- | --- | --- | --- |
 | Scope | Required | User | Goal, accepted input families, exclusions, constraints, and acceptance criteria in this task. | Substantive implementation. |
-| Interface | Required | User | CLI input/output table covering accepted syntax, normalization, examples, compatibility, and diagnostics. | Changing CLI option parsing, help text, or reports. |
-| Business and data model | Required | User | Time-boundary semantics covering UTC date-only interpretation, offset conversion, normalized comparison, and unchanged storage timestamps. | Implementing parsing or filter-boundary behavior. |
+| Interface | Required | User | CLI input/output table covering absolute and relative syntax, normalization, examples, compatibility, and diagnostics. | Changing CLI option parsing, help text, or reports. |
+| Business and data model | Required | User | Time-boundary semantics covering UTC date-only and `today` interpretation, offset conversion, one captured reference instant, duration subtraction, normalized comparison, and unchanged storage timestamps. | Implementing parsing or filter-boundary behavior. |
 | Architecture | Assess during execution: required if parsing becomes a shared or exported API or affects commands beyond `task list`. | User | Proposed parser ownership, call sites, and compatibility boundary if the trigger is reached. | Introducing the shared/exported parser or expanding command scope. |
 | Delivery acceptance | Required | User | Published implementation, command examples, validation evidence, and final package diff. | Running `task complete` for the exact approved primary commit. |
 
