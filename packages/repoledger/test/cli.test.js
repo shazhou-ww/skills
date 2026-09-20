@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, test } from "node:test";
 
-import { runCli } from "../src/cli.js";
+import { render, runCli } from "../src/cli.js";
 
 const temporaryDirectories = [];
 
@@ -65,6 +65,19 @@ test("renders task list time and state filters", async () => {
   }
 });
 
+test("renders portable repository and source ref options", async () => {
+  const init = captureIo();
+  const start = captureIo();
+
+  assert.equal(await runCli(["init", "--help"], init.io), 0);
+  assert.match(init.output.join("\n"), /--primary-repository <url>/);
+  assert.doesNotMatch(init.output.join("\n"), /--remote/);
+
+  assert.equal(await runCli(["task", "start", "--help"], start.io), 0);
+  assert.match(start.output.join("\n"), /--source-repository <url>/);
+  assert.match(start.output.join("\n"), /--source-branch <branch>/);
+});
+
 test("rejects invalid time filters as usage errors", async () => {
   const invalid = captureIo();
   const reversed = captureIo();
@@ -106,7 +119,38 @@ test("requires explicit init coordination target and completion approval", async
   const complete = captureIo();
 
   assert.equal(await runCli(["init"], init.io), 2);
-  assert.match(init.errors.join("\n"), /--remote/);
+  assert.match(init.errors.join("\n"), /--primary-repository/);
   assert.equal(await runCli(["task", "complete", "sample-task"], complete.io), 2);
   assert.match(complete.errors.join("\n"), /--approved-commit/);
+});
+
+test("renders source and primary coordinates for complete and partial starts", () => {
+  const result = {
+    task: "sample-task",
+    transition: "backlog -> ongoing",
+    publication: "published",
+    primaryBefore: "1111111111111111111111111111111111111111",
+    primaryAfter: "2222222222222222222222222222222222222222",
+    sourceRepository: "https://example.com/owner/repository.git",
+    sourceBranch: "task/sample-task",
+    sourceTip: "2222222222222222222222222222222222222222",
+    commit: "2222222222222222222222222222222222222222",
+  };
+  const complete = captureIo();
+  render({ command: "task start", ok: true, diagnostics: [], result }, false, complete.io);
+  const output = complete.output.join("\n");
+  assert.match(output, /primary before\s+111111111111/);
+  assert.match(output, /primary after\s+222222222222/);
+  assert.match(output, /source\s+https:\/\/example\.com\/owner\/repository\.git#task\/sample-task/);
+  assert.match(output, /source tip\s+222222222222/);
+
+  const partial = captureIo();
+  render({
+    command: "task start",
+    ok: false,
+    diagnostics: [{ code: "git.start.primary-pending", level: "error", message: "pending", remediation: "retry" }],
+    result: { ...result, publication: "partially-published", primaryAfter: null },
+  }, false, partial.io);
+  assert.match(partial.output.join("\n"), /partially-published/);
+  assert.match(partial.errors.join("\n"), /FAILED/);
 });

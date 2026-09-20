@@ -5,11 +5,15 @@
 Install repoledger and run:
 
 ```sh
-repoledger init --remote origin --primary-branch main
+repoledger init \
+  --primary-repository https://example.com/owner/repository.git \
+  --primary-branch main
 ```
 
 The command publishes `repoledger.yaml` and an empty `tasks/status.yaml` to the
-existing remote primary branch. It refuses existing or partial ledgers.
+existing primary repository and branch. It refuses existing or partial
+ledgers. The repository URL contains no credentials; each clone may use Git
+credential helpers or `url.*.insteadOf` configuration for local transport.
 
 Add repository instructions that:
 
@@ -20,33 +24,36 @@ Add repository instructions that:
 - require `repoledger check --remote` in CI; and
 - prohibit standalone `Progress.md` bookkeeping commits.
 
-No Git identity, worktree lane, task branch, `.gitkeep`, or archive directory is
-required.
+No Git identity, worktree lane, `.gitkeep`, or archive directory is required.
+Repoledger creates a shared source branch when a task starts.
 
 ## Storage contract
 
 ```yaml
 # repoledger.yaml
-version: 1
+version: 2
 tasksDirectory: tasks
-remote: origin
+primaryRepository: https://example.com/owner/repository.git
 primaryBranch: main
 ```
 
 ```yaml
 # tasks/status.yaml
-version: 1
+version: 2
 tasks:
   example-task:
     state: ongoing
+    sourceBranch: task/example-task
     createdAt: "2026-09-19T10:00:00Z"
     updatedAt: "2026-09-19T10:01:00Z"
 ```
 
-Each record key has exactly one matching stable task directory. Only repoledger
-writes lifecycle records and timestamps.
+Each record key has exactly one matching stable task directory. An ongoing
+record requires `sourceBranch` and may add `sourceRepository` when work lives
+in a fork; omission inherits `primaryRepository`. Only repoledger writes
+lifecycle records, source locators, and timestamps.
 
-## Legacy migration
+## Legacy layout migration
 
 Migration is a coordinated repository change, not a public command.
 
@@ -68,6 +75,47 @@ Migration is a coordinated repository change, not a public command.
 
 After migration, corrections are forward commits. Never rewrite published
 history or preserve identity/move commands as a permanent compatibility layer.
+
+## Version 1 repository-ref migration
+
+Version 1 stores a clone-local remote name and cannot be interpreted portably.
+Upgrade the CLI before a coordinated v2 migration:
+
+1. Fetch and validate the v1 primary branch with the previous CLI.
+2. Select one credential-free canonical HTTPS URL for that repository. Review
+   it explicitly when the local remote has different fetch and push URLs.
+3. Assign each ongoing task one unique source branch. Use
+   `task/<task-name>` in primary unless collaboration requires an explicit fork
+   URL.
+4. Use the package's side-effect-free `prepareV1Migration` API to validate the
+   canonical v1 documents and prepare both v2 YAML sources from the reviewed
+   primary URL, source assignments, and one migration timestamp. Review the
+   result before writing it. The transform preserves task state, `createdAt`,
+   artifacts, and terminal timestamps; it advances only the changed ongoing
+   records' `updatedAt`.
+5. Create same-repository source branches at that candidate and atomically push
+   them with primary. Publish and verify fork refs first, then publish primary.
+6. Run local and remote checks with the upgraded CLI. Existing v1 clients fail
+   with `config.migration-required` rather than guessing a local remote.
+
+```js
+import { prepareV1Migration } from "repoledger";
+
+const prepared = prepareV1Migration({
+  configSource,
+  statusSource,
+  primaryRepository: "https://example.com/owner/repository.git",
+  sourceRefs: {
+    "fork-task": {
+      sourceRepository: "https://example.com/contributor/repository.git",
+      sourceBranch: "task/fork-task",
+    },
+  },
+  now: new Date("2026-09-20T12:00:00Z"),
+});
+
+// Review prepared.configSource and prepared.statusSource before writing both.
+```
 
 ## Progress history policy
 

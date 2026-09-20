@@ -20,15 +20,16 @@ or their duration.
 - Once a task exists, keep managing it until completion, abandonment, or an
   explicit terminal state. The opt-in rule does not release existing work.
 - Use `repoledger task list`, `status`, and `check --remote` to read canonical
-  state from `origin/main` before task work.
+  state from the configured primary repository and branch before task work.
 - Create accepted work at `tasks/<task-name>/Task.md`, publish it with
   `repoledger task register`, and use `repoledger task start` before
   implementation.
 - Plan scope, interface, business and data model, architecture, and delivery
   checkpoints in `Task.md`. Scope and delivery approval are always required;
   classify the middle checkpoints for the specific task.
-- Treat accepted task work as authorization for routine non-force commits and
-  pushes to `origin/main`; do not ask for confirmation solely for those steps.
+- Treat accepted task work as authorization for routine non-force source-ref
+  publication and integration to the configured primary branch; do not ask for
+  confirmation solely for those steps.
 - Create or update `Progress.md` only in a commit that also changes at least one
   path outside `tasks/**`. Never publish procedural progress-only commits.
 - At each applicable human review gate, publish the artifact to primary and
@@ -38,8 +39,9 @@ or their duration.
   testing does not replace explicit delivery approval.
 - After delivery approval for the exact current primary commit, run
   `repoledger task complete <task-name> --approved-commit <commit>`.
-- Task paths remain stable. There are no identity lanes, claims, handoff moves,
-  task source branches, or archive moves.
+- Task paths remain stable. There are no identity lanes, ownership claims,
+  handoff moves, or archive moves. Every ongoing task advertises one shared
+  source repository and branch for cross-device and cross-person continuation.
 - Preserve unrelated work and never force-push.
 
 ## npm releases

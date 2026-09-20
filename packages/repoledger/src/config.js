@@ -1,13 +1,12 @@
 import { lstat, readFile } from "node:fs/promises";
 import { isAbsolute, posix, relative, resolve, sep } from "node:path";
 
-import { runGit } from "./git.js";
+import { validBranchName, validRepository } from "./repository.js";
 import { parseStrictYaml, stringifyCanonicalYaml } from "./yaml.js";
 
 export const DEFAULT_CONFIG_NAME = "repoledger.yaml";
 
-const CONFIG_KEYS = ["version", "tasksDirectory", "remote", "primaryBranch"];
-const REMOTE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const CONFIG_KEYS = ["version", "tasksDirectory", "primaryRepository", "primaryBranch"];
 
 function configDiagnostic(code, path, message, remediation) {
   return { code, level: "error", path, message, remediation };
@@ -58,31 +57,15 @@ export async function safeTasksPath(root, value) {
   return true;
 }
 
-export function validRemote(value) {
-  return (
-    typeof value === "string" &&
-    REMOTE_PATTERN.test(value) &&
-    !value.includes("..") &&
-    !value.endsWith(".lock")
-  );
-}
-
-export function validPrimaryBranch(root, value) {
-  if (
-    typeof value !== "string" ||
-    value.startsWith("refs/") ||
-    value.includes("/") && value.startsWith("remotes/")
-  ) {
-    return false;
-  }
-  return runGit(root, ["check-ref-format", "--branch", value]).ok;
+export function validPrimaryBranch(_root, value) {
+  return validBranchName(value);
 }
 
 export function serializeConfig(config) {
   return stringifyCanonicalYaml({
     version: config.version,
     tasksDirectory: config.tasksDirectory,
-    remote: config.remote,
+    primaryRepository: config.primaryRepository,
     primaryBranch: config.primaryBranch,
   });
 }
@@ -168,6 +151,25 @@ export async function loadConfig({ root, configPath = DEFAULT_CONFIG_NAME }) {
     };
   }
 
+  if (
+    value.version === 1 &&
+    Object.hasOwn(value, "remote") &&
+    !Object.hasOwn(value, "primaryRepository")
+  ) {
+    return {
+      config: null,
+      configPath: absolutePath,
+      diagnostics: [
+        configDiagnostic(
+          "config.migration-required",
+          displayPath,
+          "Repoledger configuration version 1 uses a clone-local Git remote name.",
+          "Migrate the configuration and task status to version 2 with a canonical primaryRepository URL.",
+        ),
+      ],
+    };
+  }
+
   const diagnostics = [];
   for (const key of Object.keys(value).sort()) {
     if (!CONFIG_KEYS.includes(key)) {
@@ -185,7 +187,7 @@ export async function loadConfig({ root, configPath = DEFAULT_CONFIG_NAME }) {
   for (const [key, code] of [
     ["version", "config.missing-version"],
     ["tasksDirectory", "config.missing-tasks-directory"],
-    ["remote", "config.missing-remote"],
+    ["primaryRepository", "config.missing-primary-repository"],
     ["primaryBranch", "config.missing-primary-branch"],
   ]) {
     if (!Object.hasOwn(value, key)) {
@@ -195,13 +197,13 @@ export async function loadConfig({ root, configPath = DEFAULT_CONFIG_NAME }) {
     }
   }
 
-  if (Object.hasOwn(value, "version") && value.version !== 1) {
+  if (Object.hasOwn(value, "version") && value.version !== 2) {
     diagnostics.push(
       configDiagnostic(
         "config.unsupported-version",
         `${displayPath}#version`,
         `Unsupported repoledger version: ${String(value.version)}`,
-        "Use version: 1.",
+        "Use version: 2.",
       ),
     );
   }
@@ -218,13 +220,16 @@ export async function loadConfig({ root, configPath = DEFAULT_CONFIG_NAME }) {
       ),
     );
   }
-  if (Object.hasOwn(value, "remote") && !validRemote(value.remote)) {
+  if (
+    Object.hasOwn(value, "primaryRepository") &&
+    !validRepository(value.primaryRepository)
+  ) {
     diagnostics.push(
       configDiagnostic(
-        "config.invalid-remote",
-        `${displayPath}#remote`,
-        "remote must be a safe Git remote name.",
-        "Use a name such as origin.",
+        "config.invalid-primary-repository",
+        `${displayPath}#primaryRepository`,
+        "primaryRepository must be a canonical credential-free HTTPS repository URL.",
+        "Use a URL such as https://example.com/owner/repository.git without credentials, query, fragment, or trailing slash.",
       ),
     );
   }
@@ -248,7 +253,7 @@ export async function loadConfig({ root, configPath = DEFAULT_CONFIG_NAME }) {
         "config.noncanonical",
         displayPath,
         "The repoledger configuration is valid but not canonical.",
-        "Rewrite properties in version, tasksDirectory, remote, primaryBranch order with LF endings.",
+        "Rewrite properties in version, tasksDirectory, primaryRepository, primaryBranch order with LF endings.",
       ),
     );
   }

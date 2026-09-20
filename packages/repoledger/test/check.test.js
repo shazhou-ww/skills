@@ -9,9 +9,9 @@ import { serializeStatusFile } from "../src/ledger.js";
 
 const temporaryDirectories = [];
 
-const config = `version: 1
+const config = `version: 2
 tasksDirectory: tasks
-remote: origin
+primaryRepository: https://example.com/owner/repository.git
 primaryBranch: main
 `;
 
@@ -34,7 +34,7 @@ async function createRepository(tasks = {}) {
   await mkdir(join(root, "tasks"));
   await writeFile(
     join(root, "tasks", "status.yaml"),
-    serializeStatusFile({ version: 1, tasks }),
+    serializeStatusFile({ version: 2, tasks }),
   );
   for (const name of Object.keys(tasks)) {
     await mkdir(join(root, "tasks", name));
@@ -64,6 +64,30 @@ test("requires one directory for every record and one record for every directory
   assert.equal(report.ok, false);
   assert.ok(codes.includes("task.directory.missing"));
   assert.ok(codes.includes("task.record.missing"));
+});
+
+test("rejects duplicate source refs and primary as a source branch", async () => {
+  const root = await createRepository({
+    "alpha-task": {
+      ...record("ongoing"),
+      sourceBranch: "task/shared",
+    },
+    "beta-task": {
+      ...record("ongoing"),
+      sourceBranch: "task/shared",
+    },
+    "primary-task": {
+      ...record("ongoing"),
+      sourceBranch: "main",
+    },
+  });
+
+  const report = await checkRepository({ root });
+  const codes = report.diagnostics.map(({ code }) => code);
+
+  assert.equal(report.ok, false);
+  assert.ok(codes.includes("task.source.duplicate"));
+  assert.ok(codes.includes("task.source.primary-branch"));
 });
 
 test("focuses content checks while retaining repository structure checks", async () => {
@@ -98,7 +122,7 @@ test("rejects a symbolic-link task root", async () => {
   await mkdir(externalTasks);
   await writeFile(
     join(externalTasks, "status.yaml"),
-    serializeStatusFile({ version: 1, tasks: {} }),
+    serializeStatusFile({ version: 2, tasks: {} }),
   );
   await symlink(
     externalTasks,

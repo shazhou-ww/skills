@@ -6,9 +6,9 @@ import {
   safeTasksPath,
   serializeConfig,
   validPrimaryBranch,
-  validRemote,
   validTasksDirectory,
 } from "./config.js";
+import { validRepository } from "./repository.js";
 import {
   commitPaths,
   fetchPrimary,
@@ -24,14 +24,14 @@ function error(code, message, remediation, extra = {}) {
 
 export async function initRepository({
   primaryBranch,
-  remote,
+  primaryRepository,
   root = process.cwd(),
   tasksDirectory = "tasks",
 } = {}) {
-  const config = { version: 1, tasksDirectory, remote, primaryBranch };
-  if (!remote || !primaryBranch) {
+  const config = { version: 2, tasksDirectory, primaryRepository, primaryBranch };
+  if (!primaryRepository || !primaryBranch) {
     const diagnostics = [
-      error("init.arguments.missing", "Remote and primary branch are required.", "Pass --remote and --primary-branch."),
+      error("init.arguments.missing", "Primary repository and branch are required.", "Pass --primary-repository and --primary-branch."),
     ];
     return { command: "init", ok: false, root, diagnostics, result: null };
   }
@@ -39,8 +39,8 @@ export async function initRepository({
   if (!validTasksDirectory(tasksDirectory) || !(await safeTasksPath(root, tasksDirectory))) {
     invalid.push(error("config.invalid-tasks-directory", "tasksDirectory is not a safe normalized repository-relative path.", "Use a path such as tasks."));
   }
-  if (!validRemote(remote)) {
-    invalid.push(error("config.invalid-remote", "remote is not a safe Git remote name.", "Use a name such as origin."));
+  if (!validRepository(primaryRepository)) {
+    invalid.push(error("config.invalid-primary-repository", "primaryRepository is not a canonical credential-free HTTPS repository URL.", "Use a URL such as https://example.com/owner/repository.git."));
   }
   if (!validPrimaryBranch(root, primaryBranch)) {
     invalid.push(error("config.invalid-primary-branch", "primaryBranch is not a valid short Git branch name.", "Use a branch such as main."));
@@ -107,7 +107,10 @@ export async function initRepository({
       await writeFile(configPath, serializeConfig(config));
       await writeFile(
         resolve(tasksPath, "status.yaml"),
-        serializeStatusFile({ version: 1, tasks: {} }),
+        serializeStatusFile(
+          { version: 2, tasks: {} },
+          { primaryRepository: config.primaryRepository },
+        ),
       );
       const commit = commitPaths(
         worktree,
@@ -115,7 +118,7 @@ export async function initRepository({
         "chore: initialize repoledger",
       );
       try {
-        pushPrimary(worktree, config);
+        pushPrimary(worktree, config, primaryBefore);
         verifyPrimary(root, config, commit);
       } catch (caught) {
         return {

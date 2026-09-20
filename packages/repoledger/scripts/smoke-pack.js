@@ -35,9 +35,9 @@ try {
   await mkdir(join(consumer, "tasks"), { recursive: true });
   await writeFile(
     join(consumer, "repoledger.yaml"),
-    "version: 1\ntasksDirectory: tasks\nremote: origin\nprimaryBranch: main\n",
+    "version: 2\ntasksDirectory: tasks\nprimaryRepository: https://example.com/owner/repository.git\nprimaryBranch: main\n",
   );
-  await writeFile(join(consumer, "tasks", "status.yaml"), "version: 1\ntasks: {}\n");
+  await writeFile(join(consumer, "tasks", "status.yaml"), "version: 2\ntasks: {}\n");
 
   npm(["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball], consumer);
   const help = npm(["exec", "--", "repoledger", "--help"], consumer);
@@ -49,11 +49,11 @@ try {
     [
       "--input-type=module",
       "-e",
-      "import { checkRepository, initRepository, listTasks, mutateTask, statusRepository } from 'repoledger'; console.log([checkRepository, initRepository, listTasks, mutateTask, statusRepository].map((value) => typeof value).join(','));",
+      "import { checkRepository, initRepository, listTasks, mutateTask, prepareV1Migration, statusRepository } from 'repoledger'; console.log([checkRepository, initRepository, listTasks, mutateTask, prepareV1Migration, statusRepository].map((value) => typeof value).join(','));",
     ],
     consumer,
   );
-  assert.equal(exported, "function,function,function,function,function");
+  assert.equal(exported, "function,function,function,function,function,function");
   const checked = JSON.parse(npm(["exec", "--", "repoledger", "check", "--json"], consumer));
   assert.equal(checked.ok, true);
   const listed = JSON.parse(npm(["exec", "--", "repoledger", "task", "list", "--local", "--json"], consumer));

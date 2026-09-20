@@ -31,13 +31,29 @@ function renderDiagnostics(report, io) {
   }
 }
 
-function render(report, json, io) {
+function renderPublication(result, io) {
+  io.log(`${result.publication}: ${result.transition}`);
+  io.log(`  commit         ${result.commit.slice(0, 12)}`);
+  if (result.primaryBefore) {
+    io.log(`  primary before  ${result.primaryBefore.slice(0, 12)}`);
+  }
+  if (result.primaryAfter) {
+    io.log(`  primary after   ${result.primaryAfter.slice(0, 12)}`);
+  }
+  if (result.sourceRepository) {
+    io.log(`  source          ${result.sourceRepository}#${result.sourceBranch}`);
+    io.log(`  source tip      ${result.sourceTip.slice(0, 12)}`);
+  }
+}
+
+export function render(report, json, io) {
   if (json) {
     io.log(JSON.stringify(report, null, 2));
     return;
   }
   renderDiagnostics(report, io);
   if (!report.ok) {
+    if (report.result?.publication) renderPublication(report.result, io);
     io.error("FAILED");
     return;
   }
@@ -46,6 +62,9 @@ function render(report, json, io) {
     if (tasks.length === 0) io.log("No tasks.");
     for (const task of tasks) {
       io.log(`${task.task}  ${task.state}  ${task.createdAt}  ${task.updatedAt}`);
+      if (task.state === "ongoing") {
+        io.log(`  source  ${task.sourceRepository}#${task.sourceBranch}`);
+      }
     }
     return;
   }
@@ -54,12 +73,14 @@ function render(report, json, io) {
     io.log(`${result.task}  ${result.state}`);
     io.log(`  created  ${result.createdAt}`);
     io.log(`  updated  ${result.updatedAt}`);
+    if (result.state === "ongoing") {
+      io.log(`  source   ${result.sourceRepository}#${result.sourceBranch}`);
+    }
     if (result.primary) io.log(`  primary  ${result.primary}`);
     return;
   }
   if (report.result?.publication) {
-    io.log(`${report.result.publication}: ${report.result.transition ?? report.command}`);
-    io.log(`  commit  ${report.result.commit.slice(0, 12)}`);
+    renderPublication(report.result, io);
     return;
   }
   io.log(`OK: ${report.command}`);
@@ -130,13 +151,13 @@ Examples:
     program
       .command("init")
       .description("initialize and publish a new task ledger")
-      .requiredOption("--remote <remote>", "Git remote name")
+      .requiredOption("--primary-repository <url>", "canonical HTTPS primary repository URL")
       .requiredOption("--primary-branch <branch>", "shared primary branch")
       .option("--tasks-directory <path>", "repository-relative task directory", "tasks"),
   ).action(async (options) => {
     const report = await initRepository({
       primaryBranch: options.primaryBranch,
-      remote: options.remote,
+      primaryRepository: options.primaryRepository,
       root: options.root,
       tasksDirectory: options.tasksDirectory,
     });
@@ -188,7 +209,7 @@ Examples:
     program.setOptionValue("resultCode", report.ok ? 0 : 1);
   });
 
-  for (const operation of ["register", "start", "abandon"]) {
+  for (const operation of ["register", "abandon"]) {
     addCommonOptions(
       task.command(`${operation} <task-name>`).description(`${operation} one task`),
     ).action(async (taskName, options) => {
@@ -197,6 +218,24 @@ Examples:
       program.setOptionValue("resultCode", report.ok ? 0 : 1);
     });
   }
+
+  addCommonOptions(
+    task
+      .command("start <task-name>")
+      .description("start one task and publish its shared source ref")
+      .option("--source-repository <url>", "canonical HTTPS source repository URL")
+      .option("--source-branch <branch>", "shared source branch"),
+  ).action(async (taskName, options) => {
+    const report = await mutateTask({
+      operation: "start",
+      root: options.root,
+      sourceBranch: options.sourceBranch,
+      sourceRepository: options.sourceRepository,
+      taskName,
+    });
+    render(report, options.json, io);
+    program.setOptionValue("resultCode", report.ok ? 0 : 1);
+  });
 
   addCommonOptions(
     task

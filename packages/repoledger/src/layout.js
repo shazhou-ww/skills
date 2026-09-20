@@ -2,6 +2,7 @@ import { lstat, readFile, readdir } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 
 import { parseStatusFile, STATUS_FILE_NAME } from "./ledger.js";
+import { effectiveSourceRepository } from "./repository.js";
 
 const PORTABLE_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -74,7 +75,9 @@ export async function inspectLayout({ config, root }) {
     );
   } else {
     try {
-      status = parseStatusFile(await readFile(statusPath, "utf8"));
+      status = parseStatusFile(await readFile(statusPath, "utf8"), {
+        primaryRepository: config.primaryRepository,
+      });
     } catch (caught) {
       diagnostics.push(
         error(
@@ -120,6 +123,38 @@ export async function inspectLayout({ config, root }) {
 
   const tasks = [];
   if (status) {
+    const sourceOwners = new Map();
+    for (const [name, record] of Object.entries(status.tasks)) {
+      if (record.state !== "ongoing") continue;
+      const repository = effectiveSourceRepository(config, record);
+      if (
+        repository === config.primaryRepository &&
+        record.sourceBranch === config.primaryBranch
+      ) {
+        diagnostics.push(
+          error(
+            "task.source.primary-branch",
+            `${config.tasksDirectory}/${STATUS_FILE_NAME}#tasks.${name}.sourceBranch`,
+            `Ongoing task ${name} cannot use the primary branch as its source branch.`,
+            `Use a dedicated branch such as task/${name}.`,
+          ),
+        );
+      }
+      const key = `${repository}\0${record.sourceBranch}`;
+      const existing = sourceOwners.get(key);
+      if (existing) {
+        diagnostics.push(
+          error(
+            "task.source.duplicate",
+            `${config.tasksDirectory}/${STATUS_FILE_NAME}#tasks.${name}.sourceBranch`,
+            `Ongoing tasks ${existing} and ${name} advertise the same source ref.`,
+            "Assign each ongoing task a unique source repository and branch pair.",
+          ),
+        );
+      } else {
+        sourceOwners.set(key, name);
+      }
+    }
     for (const [name, record] of Object.entries(status.tasks)) {
       const path = resolve(tasksRoot, name);
       if (!directoryNames.has(name)) {

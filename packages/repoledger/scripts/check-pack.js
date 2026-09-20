@@ -26,6 +26,7 @@ if (packed.status !== 0) {
     "bin/repoledger.js",
     "package.json",
     "schema/v1.json",
+    "schema/v2.json",
     "src/cli.js",
     "src/config.js",
     "src/content.js",
@@ -35,7 +36,9 @@ if (packed.status !== 0) {
     "src/layout.js",
     "src/ledger.js",
     "src/markdown.js",
+    "src/migration.js",
     "src/publication.js",
+    "src/repository.js",
     "src/status.js",
     "src/yaml.js",
   ].sort();

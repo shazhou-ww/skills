@@ -130,13 +130,17 @@ npx repoledger@0.7.0 task list --state ongoing
 
 Repositories should pin the package for CI and run `check --remote`. The
 versioned configuration and task-record contract is the GitHub-hosted
-[`schema/v1.json`](packages/repoledger/schema/v1.json).
+[`schema/v2.json`](packages/repoledger/schema/v2.json); the v1 schema remains
+available for migration tooling and historical interpretation.
 
 The lifecycle commands are `task register`, `task start`, `task complete`, and
-`task abandon`. Task paths remain stable and records never contain an identity
-or source branch. Mutations fetch primary, construct and validate an isolated
-commit, push without force, and verify publication while preserving the
-caller's branch, index, and unrelated worktree files.
+`task abandon`. Task paths remain stable. Shared configuration identifies
+primary by canonical HTTPS repository URL and branch instead of a clone-local
+remote name. Every ongoing record advertises a source branch and, only for fork
+work, a source repository override. Mutations construct and validate isolated
+commits, protect remote refs against concurrent replacement, and verify
+publication while preserving the caller's branch, index, and unrelated
+worktree files.
 
 ## Project release skill
 

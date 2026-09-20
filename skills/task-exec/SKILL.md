@@ -22,17 +22,19 @@ implementation files.
    clarification for no match, conflicting locators, or semantic overlap.
 5. Route by state:
    - `backlog`: review overlap, then run `repoledger task start <task-name>`.
-   - `ongoing`: resume from primary.
+   - `ongoing`: fetch the advertised source repository and branch, then resume
+     from that shared ref without silently changing its locator.
    - `completed` or `abandoned`: report the terminal outcome and stop.
 
-There is no identity claim, takeover, handoff state, task source branch, or
-archive move.
+There is no identity claim, takeover, handoff state, or archive move. The
+ongoing source ref identifies resumable work but does not assign ownership or
+replace primary as the authority for lifecycle state and accepted history.
 
 ## Execute
 
-Follow the core lifecycle through implementation, validation, human review,
-primary publication, and completion or abandonment. Continue until the task is
-terminal or reaches a genuine external blocker.
+Follow the core lifecycle through source publication, implementation,
+validation, human review, primary integration, and completion or abandonment.
+Continue until the task is terminal or reaches a genuine external blocker.
 
 Update `Progress.md` only in a commit that also changes a path outside the task
 directory. Do not stop merely to create or publish procedural task metadata.

@@ -30,10 +30,17 @@ repository-root links for repository-local targets elsewhere.
 
 ## Publication
 
-The shared authority is `origin/main`. Repoledger mutations fetch primary,
-build an isolated validated commit, push without force, fetch again, and verify
-publication. Optional contributor branches and pull requests are transport
-choices outside task state.
+The shared authority is
+`https://github.com/shazhou-ww/skills.git` on `main`. Repoledger addresses it
+by URL rather than a clone-local remote name. Mutations fetch primary, build an
+isolated validated commit, push without force, fetch again, and verify
+publication.
+
+Every ongoing task advertises a source repository and branch. The source
+repository defaults to the configured primary repository; a fork URL may be
+recorded explicitly. Publish source work non-force so another clone can resume
+it, then integrate accepted work to primary through the repository's normal
+workflow. Repoledger never deletes source branches.
 
 Accepted task work authorizes routine non-force publication. Never force-push,
 discard concurrent commits, or infer semantic conflict resolution.
@@ -45,7 +52,7 @@ repoledger task list
 repoledger status <task-name>
 repoledger check <task-name> --remote
 repoledger task register <task-name>
-repoledger task start <task-name>
+repoledger task start <task-name> [--source-repository <url>] [--source-branch <branch>]
 repoledger task complete <task-name> --approved-commit <commit>
 repoledger task abandon <task-name>
 ```

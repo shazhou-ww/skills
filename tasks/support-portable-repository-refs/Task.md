@@ -56,28 +56,28 @@ encoding a local remote alias or checkout.
 
 ## Acceptance criteria
 
-- [ ] `repoledger.yaml` identifies the primary repository and branch without a
+- [x] `repoledger.yaml` identifies the primary repository and branch without a
   committed clone-local remote name, with matching runtime validation, schema,
   canonical serialization, documentation, and migration behavior.
-- [ ] Two clones with different remote names can read, validate, and publish
+- [x] Two clones with different remote names can read, validate, and publish
   against the same configured primary repository without editing committed
   configuration.
-- [ ] Every ongoing task has a valid `sourceBranch` and may omit
+- [x] Every ongoing task has a valid `sourceBranch` and may omit
   `sourceRepository` to inherit `primaryRepository`; non-ongoing records cannot
   retain source-ref fields.
-- [ ] Starting a task records a published, remotely readable source ref, and
+- [x] Starting a task records a published, remotely readable source ref, and
   status/list output makes that effective repository and branch discoverable
   to another clone.
-- [ ] Remote validation detects missing, unreadable, or invalid primary and
+- [x] Remote validation detects missing, unreadable, or invalid primary and
   task source refs with actionable structured diagnostics.
-- [ ] Cross-repository source refs have documented and tested publication,
+- [x] Cross-repository source refs have documented and tested publication,
   retry, conflict, and partial-failure behavior without force-pushing or
   silently targeting a different repository.
-- [ ] Completion and abandonment remove task source fields from canonical
+- [x] Completion and abandonment remove task source fields from canonical
   status without automatically deleting the referenced branch.
-- [ ] Existing valid repositories have a documented, tested migration path
+- [x] Existing valid repositories have a documented, tested migration path
   that preserves task state, timestamps, artifacts, and accepted Git history.
-- [ ] `pnpm check`, `pnpm check:skills`, package checks, Markdown links, and
+- [x] `pnpm check`, `pnpm check:skills`, package checks, Markdown links, and
   whitespace validation pass with the revised contract.
 
 ## Constraints

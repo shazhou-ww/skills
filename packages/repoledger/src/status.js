@@ -4,6 +4,7 @@ import { loadConfig } from "./config.js";
 import { fetchPrimary, withTemporaryWorktree } from "./git.js";
 import { inspectLayout } from "./layout.js";
 import { isTimestamp, TASK_STATES } from "./ledger.js";
+import { effectiveSourceRepository } from "./repository.js";
 
 function diagnostic(code, message, remediation) {
   return { code, level: "error", message, remediation };
@@ -15,8 +16,17 @@ async function localSnapshot(root) {
     ? await inspectLayout({ config: loaded.config, root })
     : { diagnostics: [], tasks: [] };
   return {
+    config: loaded.config,
     diagnostics: [...loaded.diagnostics, ...layout.diagnostics],
     tasks: layout.tasks,
+  };
+}
+
+function resolvedRecord(config, record) {
+  if (record.state !== "ongoing") return record;
+  return {
+    ...record,
+    sourceRepository: effectiveSourceRepository(config, record),
   };
 }
 
@@ -156,7 +166,7 @@ export async function listTasks({
   }
 
   let tasks = snapshot.tasks
-    .map(({ name, record }) => ({ task: name, ...record }))
+    .map(({ name, record }) => ({ task: name, ...resolvedRecord(snapshot.config, record) }))
     .filter((record) => matchesFilters(record, normalized))
     .sort(compareTasks(sort));
   if (limit !== undefined) tasks = tasks.slice(0, limit);
@@ -217,6 +227,8 @@ export async function statusRepository({
     ok: diagnostics.every(({ level }) => level !== "error"),
     root: repositoryRoot,
     diagnostics,
-    result: task ? { source: "local", task: task.name, ...task.record } : null,
+    result: task
+      ? { source: "local", task: task.name, ...resolvedRecord(snapshot.config, task.record) }
+      : null,
   };
 }

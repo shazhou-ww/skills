@@ -5,10 +5,15 @@ import { relative, resolve } from "node:path";
 import { loadConfig } from "./config.js";
 import {
   commitPaths,
+  fetchRepositoryBranch,
   fetchPrimary,
   pushPrimary,
+  pushSourceCreate,
+  pushStartAtomic,
+  readRemoteBranch,
   runGit,
   verifyPrimary,
+  verifySource,
   withTemporaryWorktree,
 } from "./git.js";
 import { checkRepository } from "./index.js";
@@ -19,6 +24,11 @@ import {
   transitionRecord,
 } from "./ledger.js";
 import { inspectLayout } from "./layout.js";
+import {
+  effectiveSourceRepository,
+  validBranchName,
+  validRepository,
+} from "./repository.js";
 
 function error(code, message, remediation, extra = {}) {
   return { code, level: "error", message, remediation, ...extra };
@@ -90,6 +100,83 @@ function cleanInternal(reportValue) {
   return publicReport;
 }
 
+function requestedSource(config, taskName, sourceRepository, sourceBranch) {
+  const repository = sourceRepository ?? config.primaryRepository;
+  const branch = sourceBranch ?? `task/${taskName}`;
+  if (!validRepository(repository)) {
+    throw Object.assign(
+      new Error("sourceRepository must be a canonical credential-free HTTPS repository URL."),
+      { code: "task.source.invalid-repository" },
+    );
+  }
+  if (!validBranchName(branch)) {
+    throw Object.assign(
+      new Error("sourceBranch must be a valid short Git branch name."),
+      { code: "task.source.invalid-branch" },
+    );
+  }
+  if (repository === config.primaryRepository && branch === config.primaryBranch) {
+    throw Object.assign(
+      new Error("sourceBranch must differ from primaryBranch in the primary repository."),
+      { code: "task.source.primary-branch" },
+    );
+  }
+  return {
+    branch,
+    repository,
+    storedRepository: repository === config.primaryRepository ? undefined : repository,
+  };
+}
+
+async function findPendingStart({
+  config,
+  primaryBefore,
+  root,
+  source,
+  statusRelative,
+  taskName,
+}) {
+  const sourceTip = fetchRepositoryBranch(root, source.repository, source.branch);
+  if (!runGit(root, ["merge-base", "--is-ancestor", primaryBefore, sourceTip]).ok) {
+    return null;
+  }
+  const listed = runGit(root, [
+    "rev-list",
+    "--reverse",
+    "--ancestry-path",
+    `${primaryBefore}..${sourceTip}`,
+  ]);
+  if (!listed.ok || !listed.stdout) return null;
+  const candidate = listed.stdout.split(/\r?\n/, 1)[0];
+  const parents = runGit(root, ["show", "-s", "--format=%P", candidate]);
+  const message = runGit(root, ["show", "-s", "--format=%B", candidate]);
+  const changed = runGit(root, ["diff", "--name-only", primaryBefore, candidate, "--"]);
+  if (
+    !parents.ok ||
+    parents.stdout !== primaryBefore ||
+    !message.ok ||
+    message.stdout !== messageFor("start", taskName) ||
+    !changed.ok ||
+    changed.stdout !== statusRelative
+  ) {
+    return null;
+  }
+
+  const valid = await withTemporaryWorktree(root, candidate, async (worktree) => {
+    const loaded = await loadConfig({ root: worktree });
+    if (!loaded.config || JSON.stringify(loaded.config) !== JSON.stringify(config)) return false;
+    const layout = await inspectLayout({ config, root: worktree });
+    if (layout.diagnostics.some(({ level }) => level === "error")) return false;
+    const record = layout.status.tasks[taskName];
+    return Boolean(
+      record?.state === "ongoing" &&
+      record.sourceBranch === source.branch &&
+      effectiveSourceRepository(config, record) === source.repository,
+    );
+  });
+  return valid ? { candidate, sourceTip } : null;
+}
+
 async function attemptMutation({
   _beforePush,
   attempt,
@@ -98,6 +185,8 @@ async function attemptMutation({
   now = new Date(),
   operation,
   root = process.cwd(),
+  sourceBranch,
+  sourceRepository,
   taskName,
 } = {}) {
   if (!isTaskName(taskName)) {
@@ -108,6 +197,21 @@ async function attemptMutation({
   const loaded = await loadConfig({ root });
   if (!loaded.config) return report(`task ${operation}`, root, loaded.diagnostics);
   const config = loaded.config;
+  let source;
+  if (operation === "start") {
+    try {
+      source = requestedSource(
+        config,
+        taskName,
+        sourceRepository,
+        sourceBranch,
+      );
+    } catch (caught) {
+      return report(`task ${operation}`, root, [
+        error(caught.code, caught.message, "Use a dedicated short branch and a canonical credential-free HTTPS repository URL.", { task: taskName }),
+      ]);
+    }
+  }
   let primaryBefore;
   try {
     primaryBefore = fetchPrimary(root, config);
@@ -123,7 +227,7 @@ async function attemptMutation({
       if (!remoteConfig.config || JSON.stringify(remoteConfig.config) !== JSON.stringify(config)) {
         return report(`task ${operation}`, root, [
           ...remoteConfig.diagnostics,
-          error("config.remote-mismatch", "Local configuration does not match fetched primary.", "Refresh the local primary branch before retrying."),
+          error("config.primary-mismatch", "Local configuration does not match fetched primary.", "Refresh the local primary branch before retrying."),
         ]);
       }
       const layout = await inspectLayout({ config, root: worktree });
@@ -193,6 +297,39 @@ async function attemptMutation({
         if (existing.state === target) {
           const commit = operationCommit(root, primaryBefore, operation, taskName, statusRelative);
           if (operation !== "complete" || !approvedCommit) {
+            if (operation === "start") {
+              const existingRepository = effectiveSourceRepository(config, existing);
+              if (
+                existingRepository !== source.repository ||
+                existing.sourceBranch !== source.branch
+              ) {
+                return report(`task ${operation}`, root, [
+                  error("task.source.conflict", `Task ${taskName} is already ongoing from a different source ref.`, "Use the source ref reported by repoledger status.", { actual: existing, task: taskName }),
+                ]);
+              }
+              try {
+                const sourceTip = fetchRepositoryBranch(
+                  root,
+                  existingRepository,
+                  existing.sourceBranch,
+                );
+                return report(`task ${operation}`, root, [], {
+                  task: taskName,
+                  transition: `${baseline?.record?.state ?? existing.state} -> ${target}`,
+                  publication: "already-published",
+                  primaryBefore,
+                  primaryAfter: primaryBefore,
+                  sourceRepository: existingRepository,
+                  sourceBranch: existing.sourceBranch,
+                  sourceTip,
+                  commit,
+                });
+              } catch (caught) {
+                return report(`task ${operation}`, root, [
+                  error("task.source.unavailable", caught.message, "Republish the recorded source branch and retry.", { task: taskName }),
+                ]);
+              }
+            }
             return report(`task ${operation}`, root, [], {
               task: taskName,
               transition: `${baseline?.record?.state ?? existing.state} -> ${target}`,
@@ -229,9 +366,37 @@ async function attemptMutation({
               error("task.complete.approval-mismatch", "The approved commit is not the fetched primary tip.", "Obtain delivery approval for the current primary commit and retry with --approved-commit.", { expected: primaryBefore, actual: resolved.stdout ?? null, task: taskName }),
             ]);
           }
+          const existingRepository = effectiveSourceRepository(config, existing);
+          let sourceTip;
+          try {
+            sourceTip = fetchRepositoryBranch(
+              root,
+              existingRepository,
+              existing.sourceBranch,
+            );
+          } catch (caught) {
+            return report(`task ${operation}`, root, [
+              error("task.complete.source-unavailable", caught.message, "Restore the recorded source branch before completing the task.", { task: taskName }),
+            ]);
+          }
+          if (!runGit(root, ["merge-base", "--is-ancestor", sourceTip, resolved.stdout]).ok) {
+            return report(`task ${operation}`, root, [
+              error("task.complete.source-not-integrated", "The recorded source branch tip is not contained in the approved primary commit.", "Integrate the fetched source tip into primary, validate it, and obtain delivery approval for the new primary commit.", { actual: sourceTip, expected: resolved.stdout, task: taskName }),
+            ]);
+          }
         }
         try {
-          layout.status.tasks[taskName] = transitionRecord(existing, target, now);
+          layout.status.tasks[taskName] = transitionRecord(
+            existing,
+            target,
+            now,
+            operation === "start"
+              ? {
+                sourceBranch: source.branch,
+                sourceRepository: source.storedRepository,
+              }
+              : undefined,
+          );
         } catch (caught) {
           return report(`task ${operation}`, root, [
             error("task.state.conflict", caught.message, "Refresh task status and choose a legal lifecycle operation.", { actual: existing, task: taskName }),
@@ -239,7 +404,12 @@ async function attemptMutation({
         }
       }
 
-      await writeFile(resolve(worktree, statusRelative), serializeStatusFile(layout.status));
+      await writeFile(
+        resolve(worktree, statusRelative),
+        serializeStatusFile(layout.status, {
+          primaryRepository: config.primaryRepository,
+        }),
+      );
       const prospective = await checkRepository({ root: worktree });
       if (prospective.diagnostics.some(({ level }) => level === "error")) {
         return report(`task ${operation}`, root, prospective.diagnostics);
@@ -258,14 +428,136 @@ async function attemptMutation({
         ? [statusRelative, taskRelative]
         : [statusRelative];
       const commit = commitPaths(worktree, ownedPaths, messageFor(operation, taskName));
+      if (operation === "start") {
+        let existingSource;
+        try {
+          existingSource = readRemoteBranch(root, source.repository, source.branch);
+        } catch (caught) {
+          return report(`task ${operation}`, root, [
+            error("git.source.inspect-failed", caught.message, "Check source repository access and retry.", { task: taskName }),
+          ]);
+        }
+
+        if (existingSource) {
+          if (source.repository === config.primaryRepository) {
+            return report(`task ${operation}`, root, [
+              error("task.source.exists", `Source branch ${source.branch} already exists in the primary repository.`, "Choose a new source branch or resume the task already advertising this ref.", { actual: existingSource, task: taskName }),
+            ]);
+          }
+          const pending = await findPendingStart({
+            config,
+            primaryBefore,
+            root,
+            source,
+            statusRelative,
+            taskName,
+          });
+          if (!pending) {
+            return report(`task ${operation}`, root, [
+              error("task.source.exists", `Source branch ${source.branch} already exists and is not a recoverable start publication.`, "Choose a new source branch or coordinate cleanup of the existing ref.", { actual: existingSource, task: taskName }),
+            ]);
+          }
+          try {
+            if (_beforePush) await _beforePush({ attempt, primaryBefore });
+            pushPrimary(worktree, config, primaryBefore, pending.candidate);
+            verifyPrimary(root, config, pending.candidate);
+          } catch (caught) {
+            return report(`task ${operation}`, root, [
+              error("git.start.primary-pending", caught.message, "Retry while primary remains at the candidate's original parent, or choose a new source branch.", { task: taskName }),
+            ], {
+              task: taskName,
+              transition: "backlog -> ongoing",
+              publication: "partially-published",
+              primaryBefore,
+              primaryAfter: null,
+              sourceRepository: source.repository,
+              sourceBranch: source.branch,
+              sourceTip: pending.sourceTip,
+              commit: pending.candidate,
+            });
+          }
+          return report(`task ${operation}`, root, prospective.diagnostics, {
+            task: taskName,
+            transition: "backlog -> ongoing",
+            publication: "published",
+            primaryBefore,
+            primaryAfter: pending.candidate,
+            sourceRepository: source.repository,
+            sourceBranch: source.branch,
+            sourceTip: pending.sourceTip,
+            commit: pending.candidate,
+          });
+        }
+
+        if (source.repository === config.primaryRepository) {
+          try {
+            if (_beforePush) await _beforePush({ attempt, primaryBefore });
+            pushStartAtomic(worktree, config, {
+              commit,
+              primaryBefore,
+              sourceBranch: source.branch,
+            });
+            verifyPrimary(root, config, commit);
+            verifySource(root, source.repository, source.branch, commit);
+          } catch (caught) {
+            return {
+              ...report(`task ${operation}`, root, [
+                error("git.publish.failed", caught.message, "Refresh primary and source refs, then retry without force-pushing.", { task: taskName }),
+              ]),
+              _observed: observed,
+              _retryable: true,
+            };
+          }
+        } else {
+          try {
+            pushSourceCreate(worktree, source.repository, source.branch, commit);
+            verifySource(root, source.repository, source.branch, commit);
+          } catch (caught) {
+            return report(`task ${operation}`, root, [
+              error("git.source.publish-failed", caught.message, "Check source repository access, branch availability, and permissions before retrying.", { task: taskName }),
+            ]);
+          }
+          try {
+            if (_beforePush) await _beforePush({ attempt, primaryBefore });
+            pushPrimary(worktree, config, primaryBefore);
+            verifyPrimary(root, config, commit);
+          } catch (caught) {
+            return report(`task ${operation}`, root, [
+              error("git.start.primary-pending", caught.message, "Retry while primary remains at the candidate's original parent, or choose a new source branch.", { task: taskName }),
+            ], {
+              task: taskName,
+              transition: "backlog -> ongoing",
+              publication: "partially-published",
+              primaryBefore,
+              primaryAfter: null,
+              sourceRepository: source.repository,
+              sourceBranch: source.branch,
+              sourceTip: commit,
+              commit,
+            });
+          }
+        }
+
+        return report(`task ${operation}`, root, prospective.diagnostics, {
+          task: taskName,
+          transition: "backlog -> ongoing",
+          publication: "published",
+          primaryBefore,
+          primaryAfter: commit,
+          sourceRepository: source.repository,
+          sourceBranch: source.branch,
+          sourceTip: commit,
+          commit,
+        });
+      }
       try {
         if (_beforePush) await _beforePush({ attempt, primaryBefore });
-        pushPrimary(worktree, config);
+        pushPrimary(worktree, config, primaryBefore);
         verifyPrimary(root, config, commit);
       } catch (caught) {
         return {
           ...report(`task ${operation}`, root, [
-          error("git.publish.failed", caught.message, "Refresh primary, resolve the reported conflict, and retry without force-pushing.", { task: taskName }),
+            error("git.publish.failed", caught.message, "Refresh primary, resolve the reported conflict, and retry without force-pushing.", { task: taskName }),
           ]),
           _observed: observed,
           _retryable: true,

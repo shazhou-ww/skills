@@ -1,4 +1,5 @@
 import { parseStrictYaml } from "./yaml.js";
+import { validBranchName, validRepository } from "./repository.js";
 
 export const STATUS_FILE_NAME = "status.yaml";
 export const TASK_STATES = ["backlog", "ongoing", "completed", "abandoned"];
@@ -6,7 +7,13 @@ export const TASK_STATES = ["backlog", "ongoing", "completed", "abandoned"];
 const PORTABLE_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 const STATUS_KEYS = new Set(["version", "tasks"]);
-const RECORD_KEYS = new Set(["state", "createdAt", "updatedAt"]);
+const RECORD_KEYS = new Set([
+  "state",
+  "sourceRepository",
+  "sourceBranch",
+  "createdAt",
+  "updatedAt",
+]);
 const TRANSITIONS = new Map([
   ["backlog", new Set(["ongoing", "abandoned"])],
   ["ongoing", new Set(["completed", "abandoned"])],
@@ -44,7 +51,7 @@ function validateRecord(name, record) {
       throw statusError(`unknown field ${key} for ${name}`);
     }
   }
-  for (const key of RECORD_KEYS) {
+  for (const key of ["state", "createdAt", "updatedAt"]) {
     if (!Object.hasOwn(record, key)) {
       throw statusError(`missing ${key} for ${name}`);
     }
@@ -58,32 +65,67 @@ function validateRecord(name, record) {
   if (record.createdAt > record.updatedAt) {
     throw statusError(`timestamp createdAt must not be later than updatedAt for ${name}`);
   }
+  if (record.state === "ongoing") {
+    if (!Object.hasOwn(record, "sourceBranch")) {
+      throw statusError(`missing sourceBranch for ongoing task ${name}`);
+    }
+    if (!validBranchName(record.sourceBranch)) {
+      throw statusError(`invalid sourceBranch for ${name}: ${String(record.sourceBranch)}`);
+    }
+    if (
+      Object.hasOwn(record, "sourceRepository") &&
+      !validRepository(record.sourceRepository)
+    ) {
+      throw statusError(`invalid sourceRepository for ${name}`);
+    }
+  } else if (
+    Object.hasOwn(record, "sourceRepository") ||
+    Object.hasOwn(record, "sourceBranch")
+  ) {
+    throw statusError(`source fields are allowed only for ongoing task ${name}`);
+  }
 }
 
-export function validateStatusFile(value) {
+export function validateStatusFile(value, { primaryRepository } = {}) {
   if (!isMapping(value)) throw statusError("document must be a mapping");
   for (const key of Object.keys(value)) {
     if (!STATUS_KEYS.has(key)) throw statusError(`unknown top-level field: ${key}`);
   }
-  if (value.version !== 1) throw statusError("version must be 1");
+  if (value.version === 1) throw statusError("version 1 requires migration to version 2");
+  if (value.version !== 2) throw statusError("version must be 2");
   if (!isMapping(value.tasks)) throw statusError("tasks must be a mapping");
   for (const [name, record] of Object.entries(value.tasks)) {
     validateRecord(name, record);
+    if (record.sourceRepository) {
+      if (!primaryRepository) {
+        throw statusError(
+          `primaryRepository is required to validate sourceRepository for ${name}`,
+        );
+      }
+      if (record.sourceRepository === primaryRepository) {
+        throw statusError(
+          `sourceRepository for ${name} must be omitted when it equals primaryRepository`,
+        );
+      }
+    }
   }
   return value;
 }
 
-export function serializeStatusFile(value) {
-  validateStatusFile(value);
+export function serializeStatusFile(value, options) {
+  validateStatusFile(value, options);
   const names = Object.keys(value.tasks).sort();
-  if (names.length === 0) return "version: 1\ntasks: {}\n";
+  if (names.length === 0) return "version: 2\ntasks: {}\n";
 
-  const lines = ["version: 1", "tasks:"];
+  const lines = ["version: 2", "tasks:"];
   for (const name of names) {
     const record = value.tasks[name];
+    lines.push(`  ${name}:`, `    state: ${record.state}`);
+    if (record.sourceRepository) {
+      lines.push(`    sourceRepository: ${record.sourceRepository}`);
+    }
+    if (record.sourceBranch) lines.push(`    sourceBranch: ${record.sourceBranch}`);
     lines.push(
-      `  ${name}:`,
-      `    state: ${record.state}`,
       `    createdAt: \"${record.createdAt}\"`,
       `    updatedAt: \"${record.updatedAt}\"`,
     );
@@ -91,7 +133,7 @@ export function serializeStatusFile(value) {
   return `${lines.join("\n")}\n`;
 }
 
-export function parseStatusFile(source) {
+export function parseStatusFile(source, options) {
   const normalizedSource = source.replaceAll("\r\n", "\n");
   let value;
   try {
@@ -99,8 +141,8 @@ export function parseStatusFile(source) {
   } catch (error) {
     throw statusError(error.message);
   }
-  validateStatusFile(value);
-  if (serializeStatusFile(value) !== normalizedSource) {
+  validateStatusFile(value, options);
+  if (serializeStatusFile(value, options) !== normalizedSource) {
     throw statusError("status.yaml is not canonical");
   }
   return value;
@@ -125,14 +167,22 @@ export function createRecord(now = new Date()) {
   return { state: "backlog", createdAt: timestamp, updatedAt: timestamp };
 }
 
-export function transitionRecord(record, targetState, now = new Date()) {
+export function transitionRecord(record, targetState, now = new Date(), source = {}) {
   validateRecord("task", record);
   if (!TRANSITIONS.get(record.state)?.has(targetState)) {
     throw statusError(`illegal transition from ${record.state} to ${targetState}`);
   }
-  return {
+  const transitioned = {
     state: targetState,
     createdAt: record.createdAt,
     updatedAt: nextTimestamp(record.updatedAt, now),
   };
+  if (targetState === "ongoing") {
+    if (source.sourceRepository) {
+      transitioned.sourceRepository = source.sourceRepository;
+    }
+    transitioned.sourceBranch = source.sourceBranch;
+  }
+  validateRecord("task", transitioned);
+  return transitioned;
 }

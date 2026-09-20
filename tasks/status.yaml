@@ -1,4 +1,4 @@
-version: 1
+version: 2
 tasks:
   add-task-entry-skills:
     state: completed
@@ -54,8 +54,9 @@ tasks:
     updatedAt: "2026-09-19T02:26:51Z"
   support-portable-repository-refs:
     state: ongoing
+    sourceBranch: task/support-portable-repository-refs
     createdAt: "2026-09-20T02:50:37Z"
-    updatedAt: "2026-09-20T02:56:48Z"
+    updatedAt: "2026-09-20T03:27:18Z"
   use-repository-root-task-links:
     state: completed
     createdAt: "2026-09-15T06:03:10Z"

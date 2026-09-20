@@ -12,6 +12,7 @@ const temporaryDirectories = [];
 const tasks = {
   "alpha-task": {
     state: "ongoing",
+    sourceBranch: "task/alpha-task",
     createdAt: "2026-09-17T08:00:00Z",
     updatedAt: "2026-09-19T10:00:00Z",
   },
@@ -40,12 +41,12 @@ async function createRepository() {
   temporaryDirectories.push(root);
   await writeFile(
     join(root, "repoledger.yaml"),
-    "version: 1\ntasksDirectory: tasks\nremote: origin\nprimaryBranch: main\n",
+    "version: 2\ntasksDirectory: tasks\nprimaryRepository: https://example.com/owner/repository.git\nprimaryBranch: main\n",
   );
   await mkdir(join(root, "tasks"));
   await writeFile(
     join(root, "tasks", "status.yaml"),
-    serializeStatusFile({ version: 1, tasks }),
+    serializeStatusFile({ version: 2, tasks }),
   );
   for (const name of Object.keys(tasks)) await mkdir(join(root, "tasks", name));
   return root;
@@ -62,6 +63,7 @@ test("returns one local task status", async () => {
     source: "local",
     task: "alpha-task",
     ...tasks["alpha-task"],
+    sourceRepository: "https://example.com/owner/repository.git",
   });
 });
 
@@ -87,7 +89,11 @@ test("filters list state and half-open update interval before sorting and limiti
     updatedBefore: "2026-09-20T00:00:00Z",
   });
   assert.deepEqual(report.result.tasks, [
-    { task: "alpha-task", ...tasks["alpha-task"] },
+    {
+      task: "alpha-task",
+      ...tasks["alpha-task"],
+      sourceRepository: "https://example.com/owner/repository.git",
+    },
   ]);
 });
 
