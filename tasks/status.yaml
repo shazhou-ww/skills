@@ -41,9 +41,10 @@ tasks:
     createdAt: "2026-09-15T08:57:15Z"
     updatedAt: "2026-09-19T02:26:51Z"
   relax-nonblocking-ledger-diagnostics:
-    state: backlog
+    state: ongoing
+    sourceBranch: task/relax-nonblocking-ledger-diagnostics
     createdAt: "2026-09-20T14:28:25Z"
-    updatedAt: "2026-09-20T14:28:25Z"
+    updatedAt: "2026-09-20T14:37:50Z"
   rename-core-skill-to-repoledger:
     state: completed
     createdAt: "2026-09-20T07:04:24Z"
