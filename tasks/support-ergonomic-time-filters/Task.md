@@ -118,12 +118,13 @@ acceptance are always required for completed work.
 | Checkpoint | Applicability | Reviewer | Planned review artifact | Approval required before |
 | --- | --- | --- | --- | --- |
 | Scope | Required | User | Goal, accepted input families, exclusions, constraints, and acceptance criteria in this task. | Substantive implementation. |
-| Interface | Required | User | CLI input/output table covering absolute and relative syntax, normalization, examples, compatibility, and diagnostics. | Changing CLI option parsing, help text, or reports. |
-| Business and data model | Required | User | Time-boundary semantics covering UTC date-only and `today` interpretation, offset conversion, one captured reference instant, duration subtraction, normalized comparison, and unchanged storage timestamps. | Implementing parsing or filter-boundary behavior. |
-| Architecture | Assess during execution: required if parsing becomes a shared or exported API or affects commands beyond `task list`. | User | Proposed parser ownership, call sites, and compatibility boundary if the trigger is reached. | Introducing the shared/exported parser or expanding command scope. |
+| Interface | Required | User | CLI input/output contract, examples, compatibility, and diagnostics in [Design.md](./Design.md). | Changing CLI option parsing, help text, or reports. |
+| Business and data model | Required | User | UTC boundary, reference-instant, normalization, comparison, and storage semantics in [Design.md](./Design.md). | Implementing parsing or filter-boundary behavior. |
+| Architecture | Not applicable: normalization remains private to CLI orchestration and affects only `task list`; reopen if that boundary changes. | User | Ownership and reopen trigger in [Design.md](./Design.md). | Exporting or sharing the parser, or expanding command scope. |
 | Delivery acceptance | Required | User | Published implementation, command examples, validation evidence, and final package diff. | Running `task complete` for the exact approved primary commit. |
 
 ## References
 
+- [Time filter contract](./Design.md)
 - [Repoledger package documentation](/packages/repoledger/README.md)
 - [Repository task profile](/docs/repository-tasks.md)
