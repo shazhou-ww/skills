@@ -11,6 +11,12 @@ const { version: VERSION } = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
 
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+const OFFSET_TIMESTAMP = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})([+-])(\d{2}):(\d{2})$/;
+const RELATIVE_DURATION = /^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?$/;
+const TIME_OPTION_KEYS = ["createdSince", "createdBefore", "updatedSince", "updatedBefore"];
+const TIME_EXAMPLES = "2026-09-20, 2026-09-20T00:00:00Z, 2026-09-20T00:00:00+08:00, today, 6h30m";
+
 function write(method, value) {
   const text = value.replace(/\n$/, "");
   if (text) method(text);
@@ -95,14 +101,98 @@ function positiveInteger(value) {
   return Number(value);
 }
 
-function validateTimestampOptions(program, options) {
-  for (const key of ["createdSince", "createdBefore", "updatedSince", "updatedBefore"]) {
-    if (options[key] !== undefined && !isTimestamp(options[key])) {
-      program.error(`error: option --${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)} requires YYYY-MM-DDTHH:mm:ssZ`, {
+function utcMilliseconds(year, month, day, hour = 0, minute = 0, second = 0) {
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  date.setUTCHours(hour, minute, second, 0);
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day ||
+    date.getUTCHours() !== hour ||
+    date.getUTCMinutes() !== minute ||
+    date.getUTCSeconds() !== second
+  ) {
+    return undefined;
+  }
+  return date.valueOf();
+}
+
+function canonicalTimestamp(milliseconds) {
+  const date = new Date(milliseconds);
+  if (Number.isNaN(date.valueOf())) return undefined;
+  const value = date.toISOString();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z$/.test(value)) return undefined;
+  return value.replace(".000Z", "Z");
+}
+
+function normalizeAbsoluteTime(value) {
+  if (isTimestamp(value)) return value;
+
+  const dateOnly = DATE_ONLY.exec(value);
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly.map(Number);
+    return utcMilliseconds(year, month, day) === undefined
+      ? undefined
+      : `${value}T00:00:00Z`;
+  }
+
+  const offsetTimestamp = OFFSET_TIMESTAMP.exec(value);
+  if (!offsetTimestamp) return undefined;
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText, sign, offsetHourText, offsetMinuteText] = offsetTimestamp;
+  const [year, month, day, hour, minute, second, offsetHour, offsetMinute] = [
+    yearText,
+    monthText,
+    dayText,
+    hourText,
+    minuteText,
+    secondText,
+    offsetHourText,
+    offsetMinuteText,
+  ].map(Number);
+  const localMilliseconds = utcMilliseconds(year, month, day, hour, minute, second);
+  if (localMilliseconds === undefined || offsetHour > 23 || offsetMinute > 59) return undefined;
+  const offsetMilliseconds = (offsetHour * 60 + offsetMinute) * 60_000;
+  return canonicalTimestamp(localMilliseconds + (sign === "+" ? -offsetMilliseconds : offsetMilliseconds));
+}
+
+function normalizeRelativeTime(value, referenceInstant) {
+  if (value === "today") {
+    return `${referenceInstant.toISOString().slice(0, 10)}T00:00:00Z`;
+  }
+  const duration = RELATIVE_DURATION.exec(value);
+  if (!duration || !duration.slice(1).some(Boolean)) return undefined;
+  const components = duration.slice(1);
+  if (components.some((component) => component !== undefined && !/^[1-9]\d*$/.test(component))) {
+    return undefined;
+  }
+  const [days = "0", hours = "0", minutes = "0"] = components;
+  const durationMilliseconds = (
+    BigInt(days) * 24n * 60n +
+    BigInt(hours) * 60n +
+    BigInt(minutes)
+  ) * 60_000n;
+  if (durationMilliseconds === 0n) return undefined;
+  const result = BigInt(referenceInstant.valueOf()) - durationMilliseconds;
+  if (result < -8_640_000_000_000_000n || result > 8_640_000_000_000_000n) return undefined;
+  return canonicalTimestamp(Math.floor(Number(result) / 1000) * 1000);
+}
+
+function normalizeTime(value, referenceInstant) {
+  return normalizeAbsoluteTime(value) ?? normalizeRelativeTime(value, referenceInstant);
+}
+
+function normalizeTimestampOptions(program, options, referenceInstant) {
+  for (const key of TIME_OPTION_KEYS) {
+    if (options[key] === undefined) continue;
+    const normalized = normalizeTime(options[key], referenceInstant);
+    if (!normalized) {
+      program.error(`error: option --${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)} requires a valid time (examples: ${TIME_EXAMPLES}; offsets use +HH:MM or -HH:MM; durations use each of d, h, m at most once in d, h, m order)`, {
         exitCode: 2,
         code: "repoledger.invalid-timestamp",
       });
     }
+    options[key] = normalized;
   }
   for (const field of ["created", "updated"]) {
     if (options[`${field}Since`] && options[`${field}Before`] && options[`${field}Since`] >= options[`${field}Before`]) {
@@ -114,7 +204,7 @@ function validateTimestampOptions(program, options) {
   }
 }
 
-export function createProgram(io = console) {
+export function createProgram(io = console, { now = () => new Date() } = {}) {
   const program = new Command();
   program
     .name("repoledger")
@@ -182,16 +272,30 @@ Examples:
       .command("list")
       .description("list and filter task records")
       .addOption(new Option("--state <state>", "include a lifecycle state").choices(TASK_STATES).argParser(collect).default([]))
-      .option("--created-since <timestamp>", "inclusive creation lower bound")
-      .option("--created-before <timestamp>", "exclusive creation upper bound")
-      .option("--updated-since <timestamp>", "inclusive update lower bound")
-      .option("--updated-before <timestamp>", "exclusive update upper bound")
+      .option("--created-since <time>", "inclusive creation lower bound")
+      .option("--created-before <time>", "exclusive creation upper bound")
+      .option("--updated-since <time>", "inclusive update lower bound")
+      .option("--updated-before <time>", "exclusive update upper bound")
       .addOption(new Option("--sort <key>", "sort key").choices(["name", "created", "updated"]).default("name"))
       .option("--limit <count>", "maximum result count", positiveInteger)
       .option("--local", "read the worktree snapshot without fetching"),
   );
+  list.addHelpText("after", `
+Time examples:
+  2026-09-20                   UTC midnight on that date
+  2026-09-20T00:00:00Z         exact UTC timestamp
+  2026-09-20T00:00:00+08:00    timestamp with a colonized offset
+  today                        midnight on the current UTC date
+  6h30m                        captured command time minus 6 hours 30 minutes
+
+Offsets require +HH:MM or -HH:MM. Durations use positive d, h, and m
+components at most once in that order.`);
   list.action(async (options) => {
-    validateTimestampOptions(program, options);
+    const referenceInstant = now();
+    if (!(referenceInstant instanceof Date) || Number.isNaN(referenceInstant.valueOf())) {
+      throw new Error("Invalid task list reference instant");
+    }
+    normalizeTimestampOptions(program, options, referenceInstant);
     const report = await listTasks({
       filters: {
         states: options.state,
@@ -256,8 +360,8 @@ Examples:
   return program;
 }
 
-export async function runCli(args, io = console) {
-  const program = createProgram(io);
+export async function runCli(args, io = console, dependencies = {}) {
+  const program = createProgram(io, dependencies);
   try {
     await program.parseAsync(args.length === 0 ? ["--help"] : args, { from: "user" });
   } catch (caught) {

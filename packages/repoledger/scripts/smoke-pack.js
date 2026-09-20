@@ -56,9 +56,30 @@ try {
   assert.equal(exported, "function,function,function,function,function,function");
   const checked = JSON.parse(npm(["exec", "--", "repoledger", "check", "--json"], consumer));
   assert.equal(checked.ok, true);
-  const listed = JSON.parse(npm(["exec", "--", "repoledger", "task", "list", "--local", "--json"], consumer));
+  await mkdir(join(consumer, "tasks", "sample-task"));
+  await writeFile(
+    join(consumer, "tasks", "status.yaml"),
+    "version: 2\ntasks:\n  sample-task:\n    state: backlog\n    createdAt: \"2026-09-20T00:00:00Z\"\n    updatedAt: \"2026-09-20T06:15:00Z\"\n",
+  );
+  const listed = JSON.parse(npm([
+    "exec",
+    "--",
+    "repoledger",
+    "task",
+    "list",
+    "--local",
+    "--json",
+    "--updated-since",
+    "2026-09-20",
+    "--updated-before",
+    "2026-09-20T15:00:00+08:00",
+  ], consumer));
   assert.equal(listed.ok, true);
-  assert.deepEqual(listed.result.tasks, []);
+  assert.deepEqual(listed.result.filters, {
+    updatedSince: "2026-09-20T00:00:00Z",
+    updatedBefore: "2026-09-20T07:00:00Z",
+  });
+  assert.deepEqual(listed.result.tasks.map(({ task }) => task), ["sample-task"]);
   process.stdout.write(`PACK_SMOKE_OK name=${packed.name} version=${packed.version}\n`);
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true });

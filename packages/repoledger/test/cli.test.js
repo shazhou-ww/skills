@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, test } from "node:test";
 
 import { render, runCli } from "../src/cli.js";
+import { serializeStatusFile } from "../src/ledger.js";
 
 const temporaryDirectories = [];
 
@@ -27,6 +28,30 @@ function captureIo() {
     },
     output,
   };
+}
+
+async function createRepository() {
+  const root = await mkdtemp(join(tmpdir(), "repoledger-cli-time-"));
+  temporaryDirectories.push(root);
+  await writeFile(
+    join(root, "repoledger.yaml"),
+    "version: 2\ntasksDirectory: tasks\nprimaryRepository: https://example.com/owner/repository.git\nprimaryBranch: main\n",
+  );
+  await mkdir(join(root, "tasks", "sample-task"), { recursive: true });
+  await writeFile(
+    join(root, "tasks", "status.yaml"),
+    serializeStatusFile({
+      version: 2,
+      tasks: {
+        "sample-task": {
+          state: "backlog",
+          createdAt: "2026-09-20T00:00:00Z",
+          updatedAt: "2026-09-20T06:15:00Z",
+        },
+      },
+    }),
+  );
+  return root;
 }
 
 test("renders the approved command surface without legacy commands", async () => {
@@ -53,16 +78,44 @@ test("renders task list time and state filters", async () => {
   assert.equal(exitCode, 0);
   for (const option of [
     "--state <state>",
-    "--created-since <timestamp>",
-    "--created-before <timestamp>",
-    "--updated-since <timestamp>",
-    "--updated-before <timestamp>",
+    "--created-since <time>",
+    "--created-before <time>",
+    "--updated-since <time>",
+    "--updated-before <time>",
     "--sort <key>",
     "--limit <count>",
     "--local",
   ]) {
     assert.match(help, new RegExp(option.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
+  for (const example of [
+    "2026-09-20",
+    "2026-09-20T00:00:00Z",
+    "2026-09-20T00:00:00+08:00",
+    "today",
+    "6h30m",
+  ]) {
+    assert.match(help, new RegExp(example.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+});
+
+test("documents ergonomic task list time inputs", async () => {
+  const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
+
+  for (const example of [
+    "2026-09-20",
+    "2026-09-20T12:30:00Z",
+    "2026-09-20T00:00:00+08:00",
+    "today",
+    "6h30m",
+    "5d12h",
+  ]) {
+    assert.match(readme, new RegExp(example.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  assert.match(readme, /current UTC date/);
+  assert.match(readme, /one\s+reference instant captured for the command/);
+  assert.match(readme, /Components use `d`, `h`, and\s+`m` at most once in that order/);
+  assert.match(readme, /JSON reports contain the normalized bounds/);
 });
 
 test("renders portable repository and source ref options", async () => {
@@ -78,25 +131,165 @@ test("renders portable repository and source ref options", async () => {
   assert.match(start.output.join("\n"), /--source-branch <branch>/);
 });
 
-test("rejects invalid time filters as usage errors", async () => {
-  const invalid = captureIo();
+test("normalizes absolute and relative task list bounds with one reference instant", async () => {
+  const root = await createRepository();
+  const capture = captureIo();
+  let clockCalls = 0;
+
+  const exitCode = await runCli([
+    "task",
+    "list",
+    "--local",
+    "--root",
+    root,
+    "--json",
+    "--created-since",
+    "2026-09-20",
+    "--created-before",
+    "2026-09-21T08:00:00+08:00",
+    "--updated-since",
+    "today",
+    "--updated-before",
+    "6h",
+  ], capture.io, {
+    now: () => {
+      clockCalls += 1;
+      return new Date("2026-09-20T12:30:00.987Z");
+    },
+  });
+  const report = JSON.parse(capture.output.join("\n"));
+
+  assert.equal(exitCode, 0);
+  assert.equal(clockCalls, 1);
+  assert.deepEqual(report.result.filters, {
+    createdSince: "2026-09-20T00:00:00Z",
+    createdBefore: "2026-09-21T00:00:00Z",
+    updatedSince: "2026-09-20T00:00:00Z",
+    updatedBefore: "2026-09-20T06:30:00Z",
+  });
+  assert.deepEqual(report.result.tasks.map(({ task }) => task), ["sample-task"]);
+});
+
+test("normalizes documented relative task list examples", async () => {
+  const root = await createRepository();
+  const examples = new Map([
+    ["today", "2026-09-20T00:00:00Z"],
+    ["6h", "2026-09-20T06:30:00Z"],
+    ["6h30m", "2026-09-20T06:00:00Z"],
+    ["5d12h", "2026-09-15T00:30:00Z"],
+  ]);
+
+  for (const [input, expected] of examples) {
+    const capture = captureIo();
+    const exitCode = await runCli([
+      "task",
+      "list",
+      "--local",
+      "--root",
+      root,
+      "--json",
+      "--updated-since",
+      input,
+    ], capture.io, { now: () => new Date("2026-09-20T12:30:00Z") });
+
+    assert.equal(exitCode, 0, input);
+    assert.equal(JSON.parse(capture.output.join("\n")).result.filters.updatedSince, expected);
+  }
+});
+
+test("accepts every time input family for all four task list bounds", async () => {
+  const root = await createRepository();
+  const options = new Map([
+    ["--created-since", "createdSince"],
+    ["--created-before", "createdBefore"],
+    ["--updated-since", "updatedSince"],
+    ["--updated-before", "updatedBefore"],
+  ]);
+  const examples = new Map([
+    ["2026-09-20", "2026-09-20T00:00:00Z"],
+    ["2026-09-20T12:30:00Z", "2026-09-20T12:30:00Z"],
+    ["2026-09-20T00:00:00+08:00", "2026-09-19T16:00:00Z"],
+    ["2026-09-20T00:00:00-08:00", "2026-09-20T08:00:00Z"],
+    ["today", "2026-09-20T00:00:00Z"],
+    ["6h30m", "2026-09-20T06:00:00Z"],
+  ]);
+
+  for (const [option, filter] of options) {
+    for (const [input, expected] of examples) {
+      const capture = captureIo();
+      const exitCode = await runCli([
+        "task",
+        "list",
+        "--local",
+        "--root",
+        root,
+        "--json",
+        option,
+        input,
+      ], capture.io, { now: () => new Date("2026-09-20T12:30:00Z") });
+
+      assert.equal(exitCode, 0, `${option} ${input}`);
+      assert.equal(
+        JSON.parse(capture.output.join("\n")).result.filters[filter],
+        expected,
+        `${option} ${input}`,
+      );
+    }
+  }
+});
+
+test("rejects invalid time filters with actionable examples", async () => {
+  const invalidInputs = [
+    "2026-02-30",
+    "2026-02-30T00:00:00+08:00",
+    "2026-09-20T00:00",
+    "2026-09-20T00:00:00",
+    "2026-09-20T00:00:00+8:00",
+    "2026-09-20T00:00:00+24:00",
+    "2026-09-20T00:00:00+08:60",
+    "2026-09-20T00:00:00.000Z",
+    "2026-09-20t00:00:00z",
+    "0m",
+    "0d1h",
+    "06h",
+    "+2h",
+    "2w",
+    "1h2d",
+    "1h30h",
+    "1.5h",
+    "yesterday",
+  ];
+
+  for (const input of invalidInputs) {
+    const capture = captureIo();
+    assert.equal(
+      await runCli(["task", "list", "--created-since", input], capture.io),
+      2,
+      input,
+    );
+    const error = capture.errors.join("\n");
+    for (const example of ["2026-09-20", "2026-09-20T00:00:00Z", "+08:00", "today", "6h30m"]) {
+      assert.match(error, new RegExp(example.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), input);
+    }
+    assert.match(error, /d, h, m order/, input);
+  }
+});
+
+test("validates task list ranges after UTC normalization", async () => {
   const reversed = captureIo();
 
-  assert.equal(
-    await runCli(["task", "list", "--created-since", "today"], invalid.io),
-    2,
-  );
   assert.equal(
     await runCli([
       "task",
       "list",
       "--updated-since",
-      "2026-09-20T00:00:00Z",
+      "2026-09-20T00:00:00-08:00",
       "--updated-before",
-      "2026-09-19T00:00:00Z",
+      "2026-09-20T01:00:00Z",
     ], reversed.io),
     2,
   );
+  assert.match(reversed.errors.join("\n"), /--updated-since must be earlier than --updated-before/);
 });
 
 test("returns a stable JSON validation report", async () => {

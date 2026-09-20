@@ -47,9 +47,9 @@ or local remote name.
 ```text
 repoledger init --primary-repository <https-url> --primary-branch <branch>
                 [--tasks-directory <path>]
-repoledger task list [--state <state>...] [--created-since <timestamp>]
-                     [--created-before <timestamp>] [--updated-since <timestamp>]
-                     [--updated-before <timestamp>] [--sort <name|created|updated>]
+repoledger task list [--state <state>...] [--created-since <time>]
+                     [--created-before <time>] [--updated-since <time>]
+                     [--updated-before <time>] [--sort <name|created|updated>]
                      [--limit <count>] [--local]
 repoledger status <task-name> [--local]
 repoledger check [<task-name>] [--remote]
@@ -62,8 +62,31 @@ repoledger task abandon <task-name>
 
 Remote reads fetch configured primary by URL and inspect an isolated temporary
 worktree. `--local` explicitly reads the current worktree snapshot. List and
-status report the effective source locator without fetching it. Time filters
-use half-open intervals: `since` is inclusive and `before` is exclusive.
+status report the effective source locator without fetching it.
+
+Task-list time bounds accept these forms:
+
+- `2026-09-20` means `2026-09-20T00:00:00Z`, not local midnight.
+- `2026-09-20T12:30:00Z` is an exact UTC second-precision timestamp.
+- `2026-09-20T00:00:00+08:00` uses a two-digit colonized offset and
+  normalizes to `2026-09-19T16:00:00Z`. Use an explicit offset when a local
+  calendar-day boundary is intended.
+- `today` means midnight at the start of the current UTC date.
+- `6h`, `6h30m`, and `5d12h` subtract positive elapsed durations from one
+  reference instant captured for the command. Components use `d`, `h`, and
+  `m` at most once in that order.
+
+All accepted bounds normalize to `YYYY-MM-DDTHH:mm:ssZ` before validation and
+filtering. Time filters use half-open intervals: `since` is inclusive and
+`before` is exclusive. JSON reports contain the normalized bounds actually
+applied. Invalid dates, times, offsets, or duration syntax are usage errors
+with copyable examples and exit status `2`.
+
+```sh
+repoledger task list --state completed --updated-since 2026-09-20
+repoledger task list --updated-since 6h30m --updated-before 15m
+repoledger task list --created-since 2026-09-20T00:00:00+08:00
+```
 
 Mutation commands fetch primary, build and validate an isolated commit, push
 without overwriting concurrent refs, fetch again, and verify publication. A
