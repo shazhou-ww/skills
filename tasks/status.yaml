@@ -57,10 +57,9 @@ tasks:
     createdAt: "2026-09-20T04:35:47Z"
     updatedAt: "2026-09-20T05:05:20Z"
   support-portable-repository-refs:
-    state: ongoing
-    sourceBranch: task/support-portable-repository-refs
+    state: completed
     createdAt: "2026-09-20T02:50:37Z"
-    updatedAt: "2026-09-20T03:27:18Z"
+    updatedAt: "2026-09-20T05:05:35Z"
   use-repository-root-task-links:
     state: completed
     createdAt: "2026-09-15T06:03:10Z"
