@@ -79,9 +79,9 @@ conversation context remains a supported fallback.
 
 ## Protocol core
 
-### repository-task-ledger
+### repoledger
 
-[`repository-task-ledger`](skills/repository-task-ledger/SKILL.md) is the single
+[`repoledger`](skills/repoledger/SKILL.md) is the single
 authoritative protocol shared by both entry skills. It keeps implementation
 work that the user explicitly opts into in a repository-owned `tasks/` ledger
 when that repository owns changes outside its own `tasks/**`. Issues remain the
@@ -99,13 +99,13 @@ decision.
 Install all three skills together with:
 
 ```sh
-npx skills add shazhou-ww/skills --skill repository-task-ledger --skill task-new --skill task-exec
+npx skills add shazhou-ww/skills --skill repoledger --skill task-new --skill task-exec
 ```
 
 Each skill remains independently discoverable and installable, but the entry
 skills deliberately stop when the core is missing. Agent Skills do not define
 runtime-enforced dependencies: each entry asks the agent to load
-`repository-task-ledger` by name, so composition is model-mediated. The core
+`repoledger` by name, so composition is model-mediated. The core
 uses `user-invocable: false`; clients that honor this extension hide its direct
 slash entry while retaining model loading, and other clients may ignore it or
 present skills without slash commands.

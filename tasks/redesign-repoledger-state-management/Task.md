@@ -133,7 +133,7 @@ acceptance are always required for completed work.
 
 ## References
 
-- [Repository task ledger skill](/skills/repository-task-ledger/SKILL.md)
+- [Repository task ledger skill](/skills/repoledger/SKILL.md)
 - [Repository task profile](/docs/repository-tasks.md)
 - [Storage model](./repoledger-storage-model.md)
 - [Use-case analysis](./repoledger-use-cases.md)

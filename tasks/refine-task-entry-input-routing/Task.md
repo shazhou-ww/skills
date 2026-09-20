@@ -106,5 +106,5 @@ choose whether to add the new context there or create a distinct task.
 
 - [task-new entry skill](/skills/task-new/SKILL.md)
 - [task-exec entry skill](/skills/task-exec/SKILL.md)
-- [Repository task ledger](/skills/repository-task-ledger/SKILL.md)
+- [Repository task ledger](/skills/repoledger/SKILL.md)
 - [Original entry-skills task](/tasks/add-task-entry-skills/Task.md)

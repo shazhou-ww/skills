@@ -42,5 +42,5 @@ old directory itself disappeared.
 
 ## References
 
-- [Repository task ledger skill](../../skills/repository-task-ledger/SKILL.md)
-- [Project adoption guide](../../skills/repository-task-ledger/references/adoption.md)
+- [Repository task ledger skill](../../skills/repoledger/SKILL.md)
+- [Project adoption guide](../../skills/repoledger/references/adoption.md)

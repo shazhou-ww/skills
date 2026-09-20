@@ -61,7 +61,7 @@ compatibility boundary and a fallback for other renderers.
 
 ## References
 
-- [Repository task ledger skill](/skills/repository-task-ledger/SKILL.md)
-- [Project adoption guide](/skills/repository-task-ledger/references/adoption.md)
+- [Repository task ledger skill](/skills/repoledger/SKILL.md)
+- [Project adoption guide](/skills/repoledger/references/adoption.md)
 - [GitHub relative links](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#relative-links)
 - [VS Code Markdown path completions](https://code.visualstudio.com/docs/languages/markdown#_path-completions)

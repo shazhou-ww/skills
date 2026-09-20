@@ -55,23 +55,23 @@ only moving one directory.
 
 ## Acceptance criteria
 
-- [ ] Skill discovery exposes a valid hidden core skill named `repoledger` from
+- [x] Skill discovery exposes a valid hidden core skill named `repoledger` from
   `skills/repoledger/` and no live skill named `repository-task-ledger`.
-- [ ] `task-new` and `task-exec` load `repoledger` by name, still fail closed
+- [x] `task-new` and `task-exec` load `repoledger` by name, still fail closed
   when the core is unavailable, and remain the only user-invocable task
   workflow entries.
-- [ ] Scope and interface review requests from `task-exec` link to the
+- [x] Scope and interface review requests from `task-exec` link to the
   canonical `Task.md` and let the user approve without supplying a commit ID,
   while final delivery approval remains bound to the exact primary commit.
-- [ ] Repository instructions and current documentation consistently identify
+- [x] Repository instructions and current documentation consistently identify
   the skill as Repoledger, distinguish it from the Repoledger CLI where needed,
   and install it with `--skill repoledger`.
-- [ ] Repository-local links continue to resolve after the directory move;
+- [x] Repository-local links continue to resolve after the directory move;
   completed task prose that records the former name remains historically
   accurate.
-- [ ] No compatibility alias or duplicate source of lifecycle policy remains
+- [x] No compatibility alias or duplicate source of lifecycle policy remains
   under `skills/repository-task-ledger/`.
-- [ ] `pnpm check`, `pnpm check:skills`, skill discovery, Markdown-link checks,
+- [x] `pnpm check`, `pnpm check:skills`, skill discovery, Markdown-link checks,
   and `git diff --check` pass.
 
 ## Constraints
@@ -99,7 +99,7 @@ Task creation records this plan, not approval.
 
 ## References
 
-- [Current core skill](/skills/repository-task-ledger/SKILL.md)
+- [Repoledger core skill](/skills/repoledger/SKILL.md)
 - [task-new entry skill](/skills/task-new/SKILL.md)
 - [task-exec entry skill](/skills/task-exec/SKILL.md)
 - [Repository task profile](/docs/repository-tasks.md)

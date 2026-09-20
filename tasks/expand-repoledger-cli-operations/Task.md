@@ -140,6 +140,6 @@ acceptance are always required for completed work.
 - [Current layout inspection](/packages/repoledger/src/layout.js)
 - [Current Markdown parsing](/packages/repoledger/src/markdown.js)
 - [Package documentation](/packages/repoledger/README.md)
-- [Repository task ledger skill](/skills/repository-task-ledger/SKILL.md)
+- [Repository task ledger skill](/skills/repoledger/SKILL.md)
 - [Initial CLI scope decision](/tasks/build-repoledger-cli/Task.md)
 - [Repository-root link decision](/tasks/use-repository-root-task-links/Task.md)

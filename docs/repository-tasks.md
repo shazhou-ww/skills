@@ -1,7 +1,7 @@
 # Repository tasks
 
 This repository uses the local
-[`repository-task-ledger`](/skills/repository-task-ledger/SKILL.md) with
+[`repoledger`](/skills/repoledger/SKILL.md) skill with
 `repoledger.yaml` and `tasks/status.yaml`.
 
 ## Admission

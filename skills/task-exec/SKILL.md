@@ -7,7 +7,7 @@ user-invocable: true
 
 # Execute Repository Task
 
-Load `repository-task-ledger`, repository instructions, and the repository task
+Load `repoledger`, repository instructions, and the repository task
 profile. If the core is unavailable, stop without changing task or
 implementation files.
 
@@ -39,8 +39,13 @@ Continue until the task is terminal or reaches a genuine external blocker.
 Update `Progress.md` only in a commit that also changes a path outside the task
 directory. Do not stop merely to create or publish procedural task metadata.
 For a human review gate, publish the review artifact to primary, request an
-explicit decision for that commit, and stop before protected implementation.
-Approval alone does not require a follow-up commit.
+explicit decision, and stop before protected implementation. Scope and
+interface review requests must link the canonical `Task.md` so the user can
+open it directly; do not ask the user to provide or repeat a commit ID. Bind
+the decision to the refreshed authoritative revision internally. Final
+delivery approval remains bound to the exact primary commit required by
+`repoledger task complete --approved-commit`. Approval alone does not require a
+follow-up commit.
 
 Finish by reporting the task, lifecycle state, validation, and primary
 publication state. When blocked without an implementation delta, report the

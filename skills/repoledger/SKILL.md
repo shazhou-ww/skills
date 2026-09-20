@@ -1,10 +1,10 @@
 ---
-name: repository-task-ledger
+name: repoledger
 description: "Authoritative lifecycle for user-invoked task-new and task-exec flows and existing repository tasks. Ordinary implementation requests remain task-free."
 user-invocable: false
 ---
 
-# Repository Task Ledger
+# Repoledger
 
 Manage explicitly opted-in implementation work as stable repository state on a
 shared primary branch. Repoledger validates and publishes lifecycle facts; it
@@ -83,10 +83,16 @@ the blocker to the user without manufacturing a Progress update.
 Every new task plans scope and delivery review. Interface, business/data model,
 and architecture review apply when those surfaces change.
 
-- A review request names an immutable commit reachable from primary.
+- Scope and interface review requests link the canonical `Task.md` on primary
+  so the user can open the review artifact directly. Do not require the user to
+  provide or repeat a commit ID; associate the explicit decision with the
+  refreshed authoritative revision internally.
+- Other review requests identify their published artifact clearly. Delivery
+  approval remains bound to the exact primary commit passed to
+  `repoledger task complete --approved-commit`.
 - Task-only review artifacts may be published without editing `Progress.md`.
-- Approval is an explicit human decision naming the reviewed commit; Git
-  activity and silence are not approval.
+- Approval is an explicit human decision; Git activity and silence are not
+  approval.
 - Approval alone does not create a metadata commit. If the decision materially
   affects later implementation, summarize it in the next implementation-linked
   Progress update.

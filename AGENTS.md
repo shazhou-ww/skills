@@ -3,7 +3,7 @@
 ## Task workflow
 
 Load and follow
-[`repository-task-ledger`](skills/repository-task-ledger/SKILL.md) only when
+[`repoledger`](skills/repoledger/SKILL.md) only when
 the user explicitly invokes `task-new`, invokes `task-exec`, or asks to manage
 an existing repository task. Then apply the repository profile in
 [`docs/repository-tasks.md`](docs/repository-tasks.md). Ordinary implementation

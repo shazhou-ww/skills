@@ -123,7 +123,7 @@ branch, then change both YAML files to version 2 in one candidate. Preserve
 task states, creation times, artifacts, and terminal update times; advance the
 changed ongoing records' update times. Atomically publish same-repository
 source branches with primary, publish fork refs first, and finish with
-`repoledger check --remote`. See the repository-task-ledger adoption guide for
+`repoledger check --remote`. See the Repoledger skill's adoption guide for
 the complete procedure.
 
 The exported `prepareV1Migration` helper parses canonical v1 configuration and

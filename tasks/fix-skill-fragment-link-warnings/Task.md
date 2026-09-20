@@ -39,4 +39,4 @@ resolver is interpreting targets such as `#verify-every-task-move` as paths.
 
 ## References
 
-- [Repository Task Ledger skill](/skills/repository-task-ledger/SKILL.md)
+- [Repository Task Ledger skill](/skills/repoledger/SKILL.md)

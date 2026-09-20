@@ -7,7 +7,7 @@ import { parseDocument } from "yaml";
 
 const readmePath = fileURLToPath(new URL("../README.md", import.meta.url));
 const ledgerSkillPath = fileURLToPath(
-  new URL("../skills/repository-task-ledger/SKILL.md", import.meta.url),
+  new URL("../skills/repoledger/SKILL.md", import.meta.url),
 );
 
 function skillPath(name) {
@@ -119,4 +119,23 @@ test("documentation keeps review skills installable and ledger composition optio
     assert.ok(ledger.includes(required), `ledger skill is missing: ${required}`);
   }
   assert.match(ledger, /optional communication\s+aids/);
+});
+
+test("Repoledger entry skills keep the core and review contracts aligned", async () => {
+  const [core, taskNew, taskExec, readme] = await Promise.all([
+    loadSkill("repoledger"),
+    loadSkill("task-new"),
+    loadSkill("task-exec"),
+    readFile(readmePath, "utf8"),
+  ]);
+
+  assert.equal(core.metadata.name, "repoledger");
+  assert.equal(core.metadata["user-invocable"], false);
+  assert.match(taskNew.source, /Load `repoledger`/);
+  assert.match(taskExec.source, /Load `repoledger`/);
+  assert.match(taskExec.source, /link the canonical `Task\.md`/);
+  assert.match(taskExec.source, /do not ask the user to provide or repeat a commit ID/);
+  assert.match(core.source, /Delivery\s+approval remains bound to the exact primary commit/);
+  assert.match(readme, /--skill repoledger --skill task-new --skill task-exec/);
+  assert.doesNotMatch(readme, /--skill repository-task-ledger/);
 });

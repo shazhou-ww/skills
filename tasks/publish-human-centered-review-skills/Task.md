@@ -124,6 +124,6 @@ acceptance are always required for completed work.
 
 ## References
 
-- [Repository task ledger](/skills/repository-task-ledger/SKILL.md)
+- [Repository task ledger](/skills/repoledger/SKILL.md)
 - [Skills repository profile](/docs/repository-tasks.md)
 - [Repository overview](/README.md)
