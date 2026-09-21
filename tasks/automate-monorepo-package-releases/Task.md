@@ -90,8 +90,8 @@ committed package manifest remaining the source of package name and version.
 ## References
 
 - [Build the repoledger CLI](/tasks/build-repoledger-cli/Task.md)
-- [repoledger package manifest](/packages/repoledger/package.json)
-- [npm release workflow](/.github/workflows/publish-npm.yml)
-- [npm release planner](/scripts/prepare-npm-release.mjs)
-- [npm package release guide](/docs/npm-package-releases.md)
+- [repoledger package manifest](https://github.com/shazhou-ww/repoledger/blob/main/package.json)
+- [npm release workflow](https://github.com/shazhou-ww/repoledger/blob/main/.github/workflows/publish-npm.yml)
+- [npm release planner](https://github.com/shazhou-ww/repoledger/blob/main/scripts/prepare-npm-release.mjs)
+- [npm package release guide](https://github.com/shazhou-ww/repoledger/blob/main/docs/npm-package-releases.md)
 - [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)

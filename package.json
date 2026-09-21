@@ -6,18 +6,14 @@
     "node": ">=22"
   },
   "devDependencies": {
-    "repoledger": "workspace:*",
-    "semver": "^7.8.5",
+    "repoledger": "0.8.2",
     "yaml": "^2.9.1"
   },
   "scripts": {
-    "check": "pnpm --filter repoledger check && pnpm check:release && pnpm test:review-skills && pnpm check:ledger",
-    "check:ledger": "node packages/repoledger/bin/repoledger.js check",
-    "check:release": "node --check scripts/prepare-npm-release.mjs && node --test test/prepare-npm-release.test.mjs",
+    "check": "pnpm test:review-skills && pnpm check:ledger && pnpm check:skills",
+    "check:ledger": "repoledger check",
     "check:skills": "npx skills add . --list",
-    "prepare:npm-release": "node scripts/prepare-npm-release.mjs",
-    "test": "pnpm --filter repoledger test && pnpm test:release && pnpm test:review-skills",
-    "test:release": "node --test test/prepare-npm-release.test.mjs",
+    "test": "pnpm test:review-skills",
     "test:review-skills": "node --test test/review-skills.test.mjs"
   }
 }

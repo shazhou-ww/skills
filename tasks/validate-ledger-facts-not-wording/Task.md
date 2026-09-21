@@ -87,6 +87,6 @@ acceptance are always required for completed work.
 
 ## References
 
-- [Repoledger content validation](/packages/repoledger/src/content.js)
-- [Progress template](/skills/repoledger/assets/Progress.md)
+- [Repoledger content validation](https://github.com/shazhou-ww/repoledger/blob/main/src/content.js)
+- [Progress template](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/assets/Progress.md)
 - [Task repository profile](/docs/repository-tasks.md)

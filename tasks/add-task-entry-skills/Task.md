@@ -84,7 +84,7 @@ its lifecycle rules or pretending the dependency is runtime-enforced.
 
 ## References
 
-- [Repository task ledger](/skills/repoledger/SKILL.md)
-- [Project adoption guide](/skills/repoledger/references/adoption.md)
+- [Repository task ledger](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/SKILL.md)
+- [Project adoption guide](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/references/adoption.md)
 - [Skills repository profile](/docs/repository-tasks.md)
 - [Agent Skills specification](https://agentskills.io/specification)

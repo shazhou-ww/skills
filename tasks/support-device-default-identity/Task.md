@@ -59,5 +59,5 @@ visible in repository paths and Git history wherever it is registered.
 
 ## References
 
-- [Repository task ledger skill](../../skills/repoledger/SKILL.md)
-- [Project adoption guide](../../skills/repoledger/references/adoption.md)
+- [Repository task ledger skill](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/SKILL.md)
+- [Project adoption guide](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/references/adoption.md)

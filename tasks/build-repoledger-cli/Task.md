@@ -111,6 +111,6 @@ JavaScript package workspace.
 
 ## References
 
-- [Repository task ledger skill](/skills/repoledger/SKILL.md)
-- [Project adoption guidance](/skills/repoledger/references/adoption.md)
+- [Repository task ledger skill](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/SKILL.md)
+- [Project adoption guidance](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/references/adoption.md)
 - [UniCAS adoption task](https://github.com/shazhou-ww/unicas/blob/main/tasks/backlog/adopt-repoledger-cli/Task.md)

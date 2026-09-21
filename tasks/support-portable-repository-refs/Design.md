@@ -319,20 +319,20 @@ record.
 
 ## Implementation boundaries
 
-- [Configuration parsing](/packages/repoledger/src/config.js) owns the v2
+- [Configuration parsing](https://github.com/shazhou-ww/repoledger/blob/main/src/config.js) owns the v2
   top-level contract and delegates canonical URL validation.
-- [Status parsing](/packages/repoledger/src/ledger.js) owns the discriminated
+- [Status parsing](https://github.com/shazhou-ww/repoledger/blob/main/src/ledger.js) owns the discriminated
   task-record union, field order, and transition projection.
-- [Layout validation](/packages/repoledger/src/layout.js) owns cross-record
+- [Layout validation](https://github.com/shazhou-ww/repoledger/blob/main/src/layout.js) owns cross-record
   uniqueness and checks that depend on primary configuration.
-- [Git operations](/packages/repoledger/src/git.js) own URL-based fetch/push,
+- [Git operations](https://github.com/shazhou-ww/repoledger/blob/main/src/git.js) own URL-based fetch/push,
   namespaced refs, atomic same-repository publication, and ref verification.
-- [Task publication](/packages/repoledger/src/publication.js) owns start
+- [Task publication](https://github.com/shazhou-ww/repoledger/blob/main/src/publication.js) owns start
   orchestration, cross-repository partial results, retries, and terminal source
   cleanup in status.
-- [Remote checks](/packages/repoledger/src/index.js) own source existence,
+- [Remote checks](https://github.com/shazhou-ww/repoledger/blob/main/src/index.js) own source existence,
   ancestry, and completion reachability diagnostics.
-- [Status reporting](/packages/repoledger/src/status.js) resolves and exposes
+- [Status reporting](https://github.com/shazhou-ww/repoledger/blob/main/src/status.js) resolves and exposes
   effective source repositories without adding network calls to list/status.
 
 ## Validation plan

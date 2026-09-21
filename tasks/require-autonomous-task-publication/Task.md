@@ -71,5 +71,5 @@ durable user-facing acceptance guide when manual acceptance is a prerequisite.
 
 ## References
 
-- [Repository task ledger skill](/skills/repoledger/SKILL.md)
+- [Repository task ledger skill](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/SKILL.md)
 - [Skills repository task profile](/docs/repository-tasks.md)

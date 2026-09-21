@@ -102,7 +102,7 @@ acceptance are always required for completed work.
 
 ## References
 
-- [Repoledger layout validation](/packages/repoledger/src/layout.js)
-- [Repoledger command reporting](/packages/repoledger/src/cli.js)
-- [Repoledger check tests](/packages/repoledger/test/check.test.js)
-- [Repoledger package documentation](/packages/repoledger/README.md)
+- [Repoledger layout validation](https://github.com/shazhou-ww/repoledger/blob/main/src/layout.js)
+- [Repoledger command reporting](https://github.com/shazhou-ww/repoledger/blob/main/src/cli.js)
+- [Repoledger check tests](https://github.com/shazhou-ww/repoledger/blob/main/test/check.test.js)
+- [Repoledger package documentation](https://github.com/shazhou-ww/repoledger/blob/main/README.md)

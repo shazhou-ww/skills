@@ -126,5 +126,5 @@ acceptance are always required for completed work.
 ## References
 
 - [Time filter contract](./Design.md)
-- [Repoledger package documentation](/packages/repoledger/README.md)
+- [Repoledger package documentation](https://github.com/shazhou-ww/repoledger/blob/main/README.md)
 - [Repository task profile](/docs/repository-tasks.md)

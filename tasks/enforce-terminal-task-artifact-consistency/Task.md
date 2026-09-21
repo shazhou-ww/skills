@@ -98,10 +98,10 @@ explicitly approved before its protected step.
 
 ## References
 
-- [Repoledger content validation](/packages/repoledger/src/content.js)
-- [Repoledger publication flow](/packages/repoledger/src/publication.js)
-- [Repoledger content tests](/packages/repoledger/test/content.test.js)
-- [Repoledger publication tests](/packages/repoledger/test/publication.test.js)
-- [Repoledger package documentation](/packages/repoledger/README.md)
+- [Repoledger content validation](https://github.com/shazhou-ww/repoledger/blob/main/src/content.js)
+- [Repoledger publication flow](https://github.com/shazhou-ww/repoledger/blob/main/src/publication.js)
+- [Repoledger content tests](https://github.com/shazhou-ww/repoledger/blob/main/test/content.test.js)
+- [Repoledger publication tests](https://github.com/shazhou-ww/repoledger/blob/main/test/publication.test.js)
+- [Repoledger package documentation](https://github.com/shazhou-ww/repoledger/blob/main/README.md)
 - [Repository task workflow](/docs/repository-tasks.md)
 - [Originating UniCAS task](https://github.com/shazhou-ww/unicas/blob/main/tasks/enforce-terminal-task-artifact-consistency/Task.md)

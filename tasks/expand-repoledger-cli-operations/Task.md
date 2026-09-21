@@ -136,10 +136,10 @@ acceptance are always required for completed work.
 ## References
 
 - [CLI expansion design](./Design.md)
-- [Current CLI routing](/packages/repoledger/src/cli.js)
-- [Current layout inspection](/packages/repoledger/src/layout.js)
-- [Current Markdown parsing](/packages/repoledger/src/markdown.js)
-- [Package documentation](/packages/repoledger/README.md)
-- [Repository task ledger skill](/skills/repoledger/SKILL.md)
+- [Current CLI routing](https://github.com/shazhou-ww/repoledger/blob/main/src/cli.js)
+- [Current layout inspection](https://github.com/shazhou-ww/repoledger/blob/main/src/layout.js)
+- [Current Markdown parsing](https://github.com/shazhou-ww/repoledger/blob/main/src/markdown.js)
+- [Package documentation](https://github.com/shazhou-ww/repoledger/blob/main/README.md)
+- [Repository task ledger skill](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/SKILL.md)
 - [Initial CLI scope decision](/tasks/build-repoledger-cli/Task.md)
 - [Repository-root link decision](/tasks/use-repository-root-task-links/Task.md)

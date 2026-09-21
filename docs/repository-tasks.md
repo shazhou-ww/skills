@@ -1,12 +1,13 @@
 # Repository tasks
 
 This repository uses the local
-[`repoledger`](/skills/repoledger/SKILL.md) skill with
+[`repoledger`](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/SKILL.md)
+skill with
 `repoledger.yaml` and `tasks/status.yaml`.
 
 ## Admission
 
-Begin intake only after explicit `task-new` invocation. Admit one accepted
+Begin intake only after explicit `/repoledger new` invocation. Admit one accepted
 outcome only when it is expected to change at least one path outside `tasks/**`.
 Questions, planning-only work, validation-only work, external-only work, and
 task-ledger maintenance remain task-free.
@@ -71,7 +72,7 @@ commit. Completion uses the exact delivery-approved primary commit.
 
 ## Repository Checks
 
-- Run `pnpm check` after CLI, task, configuration, or migration changes.
+- Run `pnpm check` after review-skill, task, or configuration changes.
 - Run `pnpm check:skills` after skill changes.
 - Validate Markdown links, Mermaid diagrams, package contents, installed-package
   smoke behavior, and `git diff --check` before delivery review.

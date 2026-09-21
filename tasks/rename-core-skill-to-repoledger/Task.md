@@ -99,8 +99,8 @@ Task creation records this plan, not approval.
 
 ## References
 
-- [Repoledger core skill](/skills/repoledger/SKILL.md)
-- [task-new entry skill](/skills/task-new/SKILL.md)
-- [task-exec entry skill](/skills/task-exec/SKILL.md)
+- [Repoledger core skill](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/SKILL.md)
+- [task-new entry skill](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/SKILL.md)
+- [task-exec entry skill](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/SKILL.md)
 - [Repository task profile](/docs/repository-tasks.md)
-- [Repoledger package](/packages/repoledger/package.json)
+- [Repoledger package](https://github.com/shazhou-ww/repoledger/blob/main/package.json)

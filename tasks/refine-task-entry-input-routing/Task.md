@@ -104,7 +104,7 @@ choose whether to add the new context there or create a distinct task.
 
 ## References
 
-- [task-new entry skill](/skills/task-new/SKILL.md)
-- [task-exec entry skill](/skills/task-exec/SKILL.md)
-- [Repository task ledger](/skills/repoledger/SKILL.md)
+- [task-new entry skill](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/SKILL.md)
+- [task-exec entry skill](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/SKILL.md)
+- [Repository task ledger](https://github.com/shazhou-ww/repoledger/blob/main/skills/repoledger/SKILL.md)
 - [Original entry-skills task](/tasks/add-task-entry-skills/Task.md)
