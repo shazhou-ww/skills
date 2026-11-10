@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="{{LANG}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{CLI_NAME}} CLI Spec</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #ffffff;
+      --ink: #203047;
+      --muted: #4c6077;
+      --link: #1756a9;
+      --line: #c6d3e2;
+      --panel: #eef4fa;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.65;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 96rem; margin: auto; padding: 2rem clamp(1rem, 4vw, 3rem) 5rem; }
+    .spec-layout { display: grid; grid-template-columns: 17rem minmax(0, 1fr); gap: 2rem; align-items: start; }
+    .details { min-width: 0; }
+    h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); margin: 0; line-height: 1.2; }
+    h2 { font-size: 1.5rem; margin-top: 0; }
+    h3 { font-size: 1.1rem; margin-top: 1.75rem; }
+    p, dd { max-width: 76ch; }
+    a { color: var(--link); text-underline-offset: .2em; }
+    a:focus-visible { outline: 3px solid var(--link); outline-offset: 4px; }
+    section { scroll-margin-top: 1rem; }
+    header { margin-bottom: 2rem; }
+    .meta { color: var(--muted); }
+    .tree { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; overflow-wrap: anywhere; background: var(--panel); padding: 1.5rem; border-left: 4px solid var(--link); }
+    .tree h2 { font-size: 1.1rem; }
+    .tree a { display: inline-block; padding: .2rem 0; }
+    .tree ul { list-style: none; padding-left: 1.5rem; }
+    .tree > ul { padding-left: 0; }
+    .tree ul ul { border-left: 1px solid var(--line); margin-left: .5rem; }
+    .tree li { padding: .3rem 0; }
+    code, pre { font-family: Consolas, "Cascadia Code", monospace; }
+    code { overflow-wrap: anywhere; }
+    pre { padding: 1rem; background: var(--panel); overflow-x: auto; line-height: 1.5; }
+    pre code { overflow-wrap: normal; }
+    .chapter, .shared { margin: 0 0 3rem; }
+    @supports selector(:has(*)) {
+      .details > .chapter { display: none; }
+      .details > .chapter:target { display: block; }
+      .details:has(> .chapter:target) > .shared { display: none; }
+    }
+    .status { font-size: .9rem; color: var(--muted); }
+    .table-scroll { overflow-x: auto; }
+    .table-scroll:focus-visible { outline: 3px solid var(--link); }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: .95rem; }
+    caption { text-align: left; font-weight: 600; margin-bottom: .5rem; }
+    th, td { padding: .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    thead { background: var(--panel); }
+    dt { font-weight: 600; margin-top: .75rem; }
+    dd { margin-left: 0; }
+    .examples { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1.5rem; }
+    .example { min-width: 0; }
+    .example h3 { margin-top: .5rem; }
+    @media (max-width: 48rem) {
+      .spec-layout { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+      .examples { grid-template-columns: 1fr; }
+      th, td { padding: .5rem; }
+      .tree { position: static; max-height: none; padding: 1rem; }
+    }
+    @media print {
+      main { max-width: none; padding: 0; }
+      .spec-layout { display: block; }
+      .tree { position: static; max-height: none; overflow: visible; margin-bottom: 2rem; }
+      .details > .chapter, .details > .shared { display: block !important; }
+      a { color: inherit; }
+      pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+      .table-scroll { overflow: visible; }
+      table { table-layout: fixed; overflow-wrap: anywhere; }
+      .examples { display: block; }
+      h2, h3 { break-after: avoid; }
+      tr { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>{{CLI_NAME}} CLI Spec</h1>
+      <p class="meta">{{REVISION_AND_APPROVAL_STATUS}}</p>
+      <p>{{SCOPE_AND_REQUIREMENTS_REFERENCE}}</p>
+    </header>
+
+    <div class="spec-layout">
+    <nav id="command-tree" class="tree" aria-labelledby="tree-title">
+      <h2 id="tree-title">{{COMMAND_TREE_LABEL}}</h2>
+      <p class="status">{{TREE_APPROVAL_AND_GROUP_BEHAVIOR}}</p>
+      <p><a href="#shared-contracts">{{SHARED_CONTRACTS_LABEL}}</a></p>
+      <!-- Repeat nested list items for the real hierarchy; link every callable node. -->
+      <ul>
+        <li><code>{{CLI_NAME}}</code>
+          <ul>
+            <li><a href="#{{COMMAND_ID}}"><code>{{COMMAND_NAME}}</code></a> {{COMMAND_SUMMARY}}</li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="details">
+    <section id="shared-contracts" class="shared" aria-labelledby="shared-title" tabindex="-1">
+      <h2 id="shared-title">{{SHARED_CONTRACTS_LABEL}}</h2>
+      <p class="status">{{SHARED_APPROVAL_STATUS}}</p>
+      <dl>
+        <dt>{{GLOBAL_OPTIONS_LABEL}}</dt>
+        <dd>{{GLOBAL_OPTIONS_AND_DEFAULT_RESOLUTION}}</dd>
+        <dt>{{IO_LABEL}}</dt>
+        <dd>{{SHARED_STREAMS_FORMATS_AND_EXIT_CODES}}</dd>
+        <dt>{{INTERACTION_LABEL}}</dt>
+        <dd>{{HELP_TTY_NON_TTY_AND_SAFETY}}</dd>
+      </dl>
+    </section>
+
+    <!-- Repeat this section for each callable command, using unique stable IDs. -->
+    <section id="{{COMMAND_ID}}" class="chapter" aria-labelledby="{{COMMAND_ID}}-title" tabindex="-1">
+      <h2 id="{{COMMAND_ID}}-title"><code>{{FULL_COMMAND_PATH}}</code></h2>
+      <p class="status">{{CHAPTER_APPROVAL_STATUS_AND_SCENARIO_IDS}}</p>
+      <p>{{COMMAND_PURPOSE}}</p>
+      <pre><code>{{SYNOPSIS}}</code></pre>
+      <p><a href="#shared-contracts">{{APPLICABLE_SHARED_RULES_LABEL}}</a>: {{EXCEPTIONS_OR_NONE}}</p>
+
+      <h3>{{PARAMETERS_LABEL}}</h3>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="{{PARAMETERS_LABEL}}">
+        <table>
+          <caption>{{PARAMETER_TABLE_CAPTION}}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{{NAME_LABEL}}</th>
+              <th scope="col">{{TYPE_AND_INPUT_CHANNEL_LABEL}}</th>
+              <th scope="col">{{REQUIRED_LABEL}}</th>
+              <th scope="col">{{DEFAULT_LABEL}}</th>
+              <th scope="col">{{USER_CONFIG_LABEL}}</th>
+              <th scope="col">{{CONSTRAINTS_LABEL}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>{{PARAMETER_NAME}}</code></th>
+              <td>{{PARAMETER_TYPE_AND_CHANNEL}}</td>
+              <td>{{PARAMETER_REQUIRED}}</td>
+              <td>{{PARAMETER_DEFAULT_OR_UNRESOLVED}}</td>
+              <td>{{PARAMETER_CONFIG_MAPPING}}</td>
+              <td>{{PARAMETER_CONSTRAINTS_AND_CONFLICTS}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>{{EXPECTED_OUTPUT_LABEL}}</h3>
+      <dl>
+        <dt>stdout</dt><dd>{{STDOUT_SCHEMA_AND_FIELD_MEANINGS}}</dd>
+        <dt>stderr</dt><dd>{{STDERR_DIAGNOSTICS_AND_PROGRESS}}</dd>
+        <dt>{{EXIT_CODES_LABEL}}</dt><dd>{{EXIT_CODES_AND_MEANINGS}}</dd>
+        <dt>{{SIDE_EFFECTS_LABEL}}</dt><dd>{{FILES_RESOURCES_AND_CLEANUP}}</dd>
+        <dt>{{INTERACTION_LABEL}}</dt><dd>{{COMMAND_HELP_PROMPTS_AND_CANCELLATION}}</dd>
+      </dl>
+
+      <h3>{{EXAMPLES_LABEL}}</h3>
+      <p>{{EXPECTED_NOT_EXECUTED_NOTICE}}</p>
+      <div class="examples">
+        <div class="example">
+          <h3>{{SUCCESS_EXAMPLE_LABEL}}</h3>
+          <dl>
+            <dt>{{INVOCATION_LABEL}}</dt><dd><pre><code>{{SUCCESS_INVOCATION}}</code></pre></dd>
+            <dt>stdin</dt><dd><pre><code>{{SUCCESS_STDIN_OR_UNUSED}}</code></pre></dd>
+            <dt>stdout</dt><dd><pre><code>{{SUCCESS_STDOUT_OR_EMPTY}}</code></pre></dd>
+            <dt>stderr</dt><dd><pre><code>{{SUCCESS_STDERR_OR_EMPTY}}</code></pre></dd>
+            <dt>{{EXIT_CODE_LABEL}}</dt><dd>{{SUCCESS_EXIT_CODE}}</dd>
+          </dl>
+        </div>
+        <div class="example">
+          <h3>{{FAILURE_EXAMPLE_LABEL}}</h3>
+          <dl>
+            <dt>{{INVOCATION_LABEL}}</dt><dd><pre><code>{{FAILURE_INVOCATION}}</code></pre></dd>
+            <dt>stdin</dt><dd><pre><code>{{FAILURE_STDIN_OR_UNUSED}}</code></pre></dd>
+            <dt>stdout</dt><dd><pre><code>{{FAILURE_STDOUT_OR_EMPTY}}</code></pre></dd>
+            <dt>stderr</dt><dd><pre><code>{{FAILURE_STDERR_OR_EMPTY}}</code></pre></dd>
+            <dt>{{EXIT_CODE_LABEL}}</dt><dd>{{FAILURE_EXIT_CODE}}</dd>
+          </dl>
+        </div>
+      </div>
+      <h3>{{OPEN_DECISIONS_LABEL}}</h3>
+      <p>{{OPEN_DECISIONS_OR_NONE}}</p>
+      <p><a href="#command-tree">{{BACK_TO_TREE_LABEL}}</a></p>
+    </section>
+    </div>
+    </div>
+  </main>
+</body>
+</html>
