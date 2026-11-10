@@ -147,3 +147,53 @@ test("documentation keeps review skills installable and points to Repoledger", a
   assert.match(readme, /--skill repoledger/);
   assert.doesNotMatch(readme, /--skill task-new|--skill task-exec/);
 });
+
+test("CLI Spec template keeps bounded details and vertically stacked examples", async () => {
+  const template = await readFile(
+    new URL("../skills/shazhou-cli-design/assets/cli-spec.template.html", import.meta.url),
+    "utf8",
+  );
+  const { source } = await loadSkill("shazhou-cli-design");
+  assert.match(template, /grid-template-rows: auto minmax\(0, 1fr\)/);
+  assert.match(template, /\.chapter, \.shared \{[^}]*max-width: 72rem;[^}]*margin: 0 auto/);
+  assert.match(template, /\.examples \{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(template, /\.splitter \{[^}]*cursor: col-resize/);
+  assert.doesNotMatch(template, /\.splitter:hover[^}]*background:/);
+  assert.match(source, /never arrange success and failure examples side by side/);
+});
+
+test("CLI Spec navigation collapse progressively enhances the accessible splitter", async () => {
+  const template = await readFile(
+    new URL("../skills/shazhou-cli-design/assets/cli-spec.template.html", import.meta.url),
+    "utf8",
+  );
+  for (const required of [
+    'aria-controls="command-tree" aria-expanded="true" hidden',
+    'role="separator"',
+    'splitter.setAttribute("aria-valuenow"',
+    'toggle.setAttribute("aria-expanded", String(!collapsed))',
+    'layout.classList.toggle("is-nav-collapsed")',
+    "setWidth(savedWidth)",
+    'case "ArrowLeft"',
+    'case "ArrowRight"',
+    'case "Home"',
+    'case "End"',
+    "splitter.releasePointerCapture(capturedPointer)",
+    ".spec-layout > .tree { display: block;",
+    ".details > .chapter, .details > .shared { display: block !important; }",
+  ]) {
+    assert.ok(template.includes(required), `CLI Spec template is missing: ${required}`);
+  }
+  assert.doesNotMatch(template, /<script[^>]+src=|<link[^>]+href=["']https?:/);
+});
+
+test("collapsed CLI Spec details occupy the full layout instead of an empty grid track", async () => {
+  const template = await readFile(
+    new URL("../skills/shazhou-cli-design/assets/cli-spec.template.html", import.meta.url),
+    "utf8",
+  );
+  const collapsedRule = /\.spec-layout\.is-nav-collapsed\s*\{([^}]+)\}/.exec(template);
+  assert.ok(collapsedRule, "Collapsed navigation needs its own layout rule");
+  assert.match(collapsedRule[1], /grid-template-columns:\s*minmax\(0,\s*1fr\)\s*;/);
+  assert.match(template, /\.is-nav-collapsed > \.tree, \.is-nav-collapsed > \.splitter \{ display: none; \}/);
+});

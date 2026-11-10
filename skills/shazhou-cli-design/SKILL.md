@@ -304,12 +304,27 @@ an implementation plan. Generate a standalone HTML file using the template's
 structure and inline styles. Use the user's language for its content and set
 the HTML language accordingly.
 
-Use a navigation-and-detail layout: a persistent command tree on the left and
-the selected chapter on the right, with shared contracts as the initial detail.
-Navigation links must support direct anchors and browser back/forward. Keep
-the navigation above the detail on narrow screens, and expand all chapters
-for printing. Preserve the template's no-JavaScript navigation and readable
-all-sections fallback for browsers without the required CSS support.
+Use a full-viewport navigation-and-detail layout with a fixed title bar:
+an independently scrollable command tree on the left and the selected chapter
+on the right, with shared contracts as the initial detail. Put revision,
+approval, and scope notes in the shared detail rather than crowding the title.
+Preserve the template's optional inline splitter enhancement: pointer dragging,
+Left/Right keys (Shift for larger steps), Home/End bounds, visible focus, and
+separator ARIA values. Keep both panes usable at the resize limits.
+Keep the divider visually quiet: a hairline boundary with a wider invisible
+drag target and a column-resize cursor, not a bright hover stripe. Include a
+title-bar button to collapse and restore the command navigation, preserving
+its resized width and exposing `aria-expanded` and `aria-controls`. Keep the
+button available on narrow screens too; hide it when JavaScript is unavailable.
+When collapsed, use a single full-width detail track, not empty navigation tracks.
+Center detail chapters with a maximum width of 72rem and generous responsive
+gutters. Keep every example in a single vertical column, including on wide
+screens; never arrange success and failure examples side by side.
+Navigation links must support direct anchors and browser back/forward without
+JavaScript; only resizing and collapsing may depend on the inline script. On narrow screens,
+stack navigation above detail and hide the splitter. Print all chapters without
+fixed chrome or clipped scroll panes. Preserve the readable all-sections fallback
+for browsers without the required CSS support.
 
 Use an authorized destination if available; otherwise save the draft in the
 session's persistent files area and provide a clickable link. This must not
@@ -338,6 +353,8 @@ Each command chapter includes:
   stdin (if used), stdout, stderr, and exit status separately. Include success
   and a meaningful failure for commands with failure cases. Examples are
   proposed contracts, not evidence that the CLI has been implemented or tested.
+  Stack examples vertically in one column and expand returned JSON across lines
+  for reading. Example indentation alone does not approve serialization whitespace.
 
 Put genuinely shared contracts after the command tree and before the chapters;
 each chapter must link to the applicable rules and state its exceptions. Keep
@@ -376,6 +393,12 @@ and a concise summary; do not automatically implement the design.
 - Parameters, synopsis, examples, output shapes, and exit codes agree.
 - HTML has a meaningful title and language, ordered headings, table headers,
   visible keyboard focus, and readable narrow-screen and print layouts.
+- Full-viewport panes scroll independently below the fixed title. Check pointer
+  and keyboard resizing, bounds, viewport changes, and separator accessibility.
+  Check navigation collapse/restore on desktop and mobile, retained resize
+  width, centered maximum-width details, and vertically stacked examples.
+  Printing must include the navigation even when it is collapsed on screen.
+  With JavaScript disabled, navigation and reading must still work.
 - All placeholder tokens are replaced; IDs are unique and internal links resolve.
 - No external assets, secret values, or executable sample commands run on load.
 - Inspect the rendered document when browser tools are available. Structural

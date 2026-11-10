@@ -8,74 +8,105 @@
     :root {
       color-scheme: light;
       --paper: #ffffff;
-      --ink: #203047;
-      --muted: #4c6077;
-      --link: #1756a9;
-      --line: #c6d3e2;
-      --panel: #eef4fa;
+      --ink: #243247;
+      --muted: #627186;
+      --link: #315fba;
+      --line: #e2e7ef;
+      --panel: #f6f8fb;
       font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
       color: var(--ink);
       background: var(--paper);
       line-height: 1.65;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; }
-    main { max-width: 96rem; margin: auto; padding: 2rem clamp(1rem, 4vw, 3rem) 5rem; }
-    .spec-layout { display: grid; grid-template-columns: 17rem minmax(0, 1fr); gap: 2rem; align-items: start; }
-    .details { min-width: 0; }
-    h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); margin: 0; line-height: 1.2; }
+    body { margin: 0; overflow: hidden; }
+    main { display: grid; grid-template-rows: auto minmax(0, 1fr); width: 100%; height: 100vh; height: 100dvh; }
+    .spec-layout { display: grid; grid-template-columns: clamp(16rem, var(--nav-width, 19rem), calc(100% - 21rem)) minmax(0, 1fr); min-height: 0; }
+    .spec-layout.is-resizable { grid-template-columns: clamp(16rem, var(--nav-width, 19rem), calc(100% - 21rem)) .5rem minmax(0, 1fr); }
+    .spec-layout.is-nav-collapsed { grid-template-columns: minmax(0, 1fr); }
+    .is-nav-collapsed > .tree, .is-nav-collapsed > .splitter { display: none; }
+    .tree, .details { min-height: 0; overflow: auto; overscroll-behavior: contain; }
+    .details { min-width: 0; padding: clamp(1.25rem, 3vw, 3rem); scrollbar-gutter: stable; }
+    .splitter { display: none; position: relative; cursor: col-resize; touch-action: none; background: var(--paper); }
+    .splitter::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 1px; background: var(--line); }
+    .is-resizable:not(.is-nav-collapsed) > .splitter { display: block; }
+    .splitter:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+    .is-resizing { cursor: col-resize; user-select: none; }
+    h1 { font-size: 1.4rem; margin: 0; line-height: 1.2; }
     h2 { font-size: 1.5rem; margin-top: 0; }
     h3 { font-size: 1.1rem; margin-top: 1.75rem; }
     p, dd { max-width: 76ch; }
     a { color: var(--link); text-underline-offset: .2em; }
     a:focus-visible { outline: 3px solid var(--link); outline-offset: 4px; }
     section { scroll-margin-top: 1rem; }
-    header { margin-bottom: 2rem; }
+    header { display: flex; align-items: center; gap: .85rem; position: sticky; top: 0; z-index: 1; padding: 1rem 1.5rem; background: var(--paper); border-bottom: 1px solid var(--line); }
+    .nav-toggle { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 2.25rem; height: 2.25rem; padding: .5rem; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: .6rem; cursor: pointer; }
+    .nav-toggle[hidden] { display: none; }
+    .nav-toggle:hover { color: var(--link); background: var(--panel); }
+    .nav-toggle:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; }
+    .nav-toggle[aria-expanded="false"] .nav-icon-pane { display: none; }
+    .nav-toggle svg { width: 100%; height: 100%; }
     .meta { color: var(--muted); }
-    .tree { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; overflow-wrap: anywhere; background: var(--panel); padding: 1.5rem; border-left: 4px solid var(--link); }
-    .tree h2 { font-size: 1.1rem; }
-    .tree a { display: inline-block; padding: .2rem 0; }
+    .tree { overflow-wrap: anywhere; background: var(--panel); padding: 1.5rem 1.25rem; }
+    .tree h2 { font-size: .85rem; letter-spacing: .04em; color: var(--muted); }
+    .tree a { display: inline-block; padding: .3rem .5rem; border-radius: .4rem; text-decoration: none; }
+    .tree a:hover, .tree a:focus-visible { background: #e7eefb; color: var(--link); }
     .tree ul { list-style: none; padding-left: 1.5rem; }
     .tree > ul { padding-left: 0; }
     .tree ul ul { border-left: 1px solid var(--line); margin-left: .5rem; }
     .tree li { padding: .3rem 0; }
     code, pre { font-family: Consolas, "Cascadia Code", monospace; }
     code { overflow-wrap: anywhere; }
-    pre { padding: 1rem; background: var(--panel); overflow-x: auto; line-height: 1.5; }
+    pre { padding: 1rem 1.25rem; background: var(--panel); border: 1px solid var(--line); border-radius: .6rem; overflow-x: auto; line-height: 1.6; font-size: .9rem; }
     pre code { overflow-wrap: normal; }
-    .chapter, .shared { margin: 0 0 3rem; }
+    .chapter, .shared { width: 100%; max-width: 72rem; margin: 0 auto 3rem; }
     @supports selector(:has(*)) {
       .details > .chapter { display: none; }
       .details > .chapter:target { display: block; }
       .details:has(> .chapter:target) > .shared { display: none; }
     }
     .status { font-size: .9rem; color: var(--muted); }
-    .table-scroll { overflow-x: auto; }
+    .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: .6rem; }
     .table-scroll:focus-visible { outline: 3px solid var(--link); }
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: .95rem; }
+    table { width: 100%; min-width: 40rem; border-collapse: collapse; text-align: left; font-size: .95rem; }
     caption { text-align: left; font-weight: 600; margin-bottom: .5rem; }
     th, td { padding: .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
     thead { background: var(--panel); }
     dt { font-weight: 600; margin-top: .75rem; }
     dd { margin-left: 0; }
-    .examples { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1.5rem; }
-    .example { min-width: 0; }
+    .examples { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+    .example { min-width: 0; padding: 1.25rem; border: 1px solid var(--line); border-radius: .8rem; }
+    .example dl { margin-bottom: 0; }
+    .example dd { max-width: none; }
+    .example pre { white-space: pre-wrap; }
+    .example pre code { overflow-wrap: anywhere; }
     .example h3 { margin-top: .5rem; }
     @media (max-width: 48rem) {
-      .spec-layout { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+      body { overflow: auto; }
+      main { display: block; height: auto; min-height: 100dvh; }
+      .spec-layout, .spec-layout.is-resizable, .spec-layout.is-nav-collapsed { grid-template-columns: minmax(0, 1fr); }
+      .spec-layout > .splitter { display: none !important; }
+      .tree, .details { overflow: visible; }
+      .details { padding: 1rem; }
+      section, nav { scroll-margin-top: 5rem; }
       .examples { grid-template-columns: 1fr; }
       th, td { padding: .5rem; }
-      .tree { position: static; max-height: none; padding: 1rem; }
+      .tree { padding: 1rem; border-bottom: 1px solid var(--line); }
     }
     @media print {
-      main { max-width: none; padding: 0; }
+      body { overflow: visible; }
+      main { display: block; height: auto; min-height: 0; }
+      header { position: static; padding: 0 0 1rem; }
       .spec-layout { display: block; }
-      .tree { position: static; max-height: none; overflow: visible; margin-bottom: 2rem; }
+      .spec-layout > .tree { display: block; margin-bottom: 2rem; }
+      .tree, .details { overflow: visible; padding: 0; }
+      .spec-layout > .splitter, .nav-toggle { display: none !important; }
+      .chapter, .shared { max-width: none; }
       .details > .chapter, .details > .shared { display: block !important; }
       a { color: inherit; }
       pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-      .table-scroll { overflow: visible; }
-      table { table-layout: fixed; overflow-wrap: anywhere; }
+      .table-scroll { overflow: visible; border: 0; }
+      table { min-width: 0; table-layout: fixed; overflow-wrap: anywhere; }
       .examples { display: block; }
       h2, h3 { break-after: avoid; }
       tr { break-inside: avoid; }
@@ -85,9 +116,14 @@
 <body>
   <main>
     <header>
+      <button class="nav-toggle" type="button" aria-label="{{TOGGLE_NAVIGATION_LABEL}}" title="{{TOGGLE_NAVIGATION_LABEL}}" aria-controls="command-tree" aria-expanded="true" hidden>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <rect x="2.5" y="3" width="15" height="14" rx="2"></rect>
+          <path d="M8 3v14"></path>
+          <path class="nav-icon-pane" d="M5 6v8"></path>
+        </svg>
+      </button>
       <h1>{{CLI_NAME}} CLI Spec</h1>
-      <p class="meta">{{REVISION_AND_APPROVAL_STATUS}}</p>
-      <p>{{SCOPE_AND_REQUIREMENTS_REFERENCE}}</p>
     </header>
 
     <div class="spec-layout">
@@ -105,9 +141,12 @@
       </ul>
     </nav>
 
-    <div class="details">
+    <div class="splitter" role="separator" aria-label="{{RESIZE_NAVIGATION_LABEL}}" aria-orientation="vertical" aria-controls="command-tree spec-details" tabindex="0" hidden></div>
+    <div id="spec-details" class="details">
     <section id="shared-contracts" class="shared" aria-labelledby="shared-title" tabindex="-1">
       <h2 id="shared-title">{{SHARED_CONTRACTS_LABEL}}</h2>
+      <p class="meta">{{REVISION_AND_APPROVAL_STATUS}}</p>
+      <p>{{SCOPE_AND_REQUIREMENTS_REFERENCE}}</p>
       <p class="status">{{SHARED_APPROVAL_STATUS}}</p>
       <dl>
         <dt>{{GLOBAL_OPTIONS_LABEL}}</dt>
@@ -194,5 +233,106 @@
     </div>
     </div>
   </main>
+  <script>
+    (() => {
+      const layout = document.querySelector(".spec-layout");
+      const navigation = document.querySelector(".tree");
+      const splitter = document.querySelector(".splitter");
+      const toggle = document.querySelector(".nav-toggle");
+      const narrow = window.matchMedia("(max-width: 48rem)");
+      let pointerId = null;
+      let pointerOffset = 0;
+      let savedWidth = navigation.getBoundingClientRect().width;
+
+      function bounds() {
+        const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return { min: 16 * rem, max: layout.clientWidth - 21 * rem };
+      }
+
+      function setWidth(width) {
+        const { min, max } = bounds();
+        const value = Math.round(Math.max(min, Math.min(max, width)));
+        layout.style.setProperty("--nav-width", `${value}px`);
+        splitter.setAttribute("aria-valuemin", String(Math.round(min)));
+        splitter.setAttribute("aria-valuemax", String(Math.round(max)));
+        splitter.setAttribute("aria-valuenow", String(value));
+        splitter.setAttribute("aria-valuetext", `${Math.round(value / layout.clientWidth * 100)}%`);
+      }
+
+      function finishResize() {
+        const capturedPointer = pointerId;
+        pointerId = null;
+        layout.classList.remove("is-resizing");
+        if (capturedPointer !== null && splitter.hasPointerCapture(capturedPointer)) {
+          splitter.releasePointerCapture(capturedPointer);
+        }
+      }
+
+      function syncWidth() {
+        const collapsed = layout.classList.contains("is-nav-collapsed");
+        splitter.tabIndex = narrow.matches || collapsed ? -1 : 0;
+        if (narrow.matches || collapsed) {
+          finishResize();
+        } else {
+          setWidth(savedWidth);
+        }
+      }
+
+      toggle.addEventListener("click", () => {
+        const collapsed = layout.classList.toggle("is-nav-collapsed");
+        toggle.setAttribute("aria-expanded", String(!collapsed));
+        syncWidth();
+      });
+      window.addEventListener("hashchange", () => {
+        if (window.location.hash === "#command-tree" && layout.classList.contains("is-nav-collapsed")) {
+          layout.classList.remove("is-nav-collapsed");
+          toggle.setAttribute("aria-expanded", "true");
+          syncWidth();
+          navigation.scrollIntoView();
+        }
+      });
+
+      splitter.addEventListener("pointerdown", (event) => {
+        if (narrow.matches || layout.classList.contains("is-nav-collapsed") || !event.isPrimary || event.button !== 0) return;
+        pointerId = event.pointerId;
+        pointerOffset = event.clientX - navigation.getBoundingClientRect().right;
+        splitter.setPointerCapture(pointerId);
+        splitter.focus();
+        layout.classList.add("is-resizing");
+        event.preventDefault();
+      });
+      splitter.addEventListener("pointermove", (event) => {
+        if (event.pointerId === pointerId) {
+          setWidth(event.clientX - layout.getBoundingClientRect().left - pointerOffset);
+          savedWidth = navigation.getBoundingClientRect().width;
+        }
+      });
+      splitter.addEventListener("pointerup", finishResize);
+      splitter.addEventListener("pointercancel", finishResize);
+      splitter.addEventListener("lostpointercapture", finishResize);
+      splitter.addEventListener("keydown", (event) => {
+        if (narrow.matches || layout.classList.contains("is-nav-collapsed")) return;
+        const step = event.shiftKey ? 40 : 10;
+        const width = navigation.getBoundingClientRect().width;
+        const { min, max } = bounds();
+        let next;
+        switch (event.key) {
+          case "ArrowLeft": next = width - step; break;
+          case "ArrowRight": next = width + step; break;
+          case "Home": next = min; break;
+          case "End": next = max; break;
+          default: return;
+        }
+        event.preventDefault();
+        setWidth(next);
+        savedWidth = navigation.getBoundingClientRect().width;
+      });
+      layout.classList.add("is-resizable");
+      splitter.hidden = false;
+      toggle.hidden = false;
+      window.addEventListener("resize", syncWidth);
+      syncWidth();
+    })();
+  </script>
 </body>
 </html>
